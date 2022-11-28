@@ -20,36 +20,17 @@ import (
     "os/exec"
     "strings"
     "time"
+    "what-changed/tui"
 )
-
-type colorType int
-type viewType int
-
-type rgb []int32
-
-func (r rgb) r() int32 {
-    return r[0]
-}
-func (r rgb) g() int32 {
-    return r[1]
-}
-func (r rgb) b() int32 {
-    return r[2]
-}
 
 const (
-    CYAN                   = "#67eaf9::b"
-    MAGENTA                = "#ea67f9::b"
-    lineNumber   colorType = 0
-    changeNumber colorType = 1
-    originalView viewType  = 0
-    newView      viewType  = 1
+    CYAN                       = "#67eaf9::b"
+    MAGENTA                    = "#ea67f9::b"
+    lineNumber   tui.ColorType = 0
+    changeNumber tui.ColorType = 1
+    originalView tui.ViewType  = 0
+    newView      tui.ViewType  = 1
 )
-
-var CYAN_RGB = rgb{103, 234, 249}
-var MAGENTA_RGB = rgb{234, 103, 249}
-var CYAN_CELL_COLOR = tcell.NewRGBColor(CYAN_RGB.r(), CYAN_RGB.g(), CYAN_RGB.b())
-var MAGENTA_CELL_COLOR = tcell.NewRGBColor(MAGENTA_RGB.r(), MAGENTA_RGB.g(), MAGENTA_RGB.b())
 
 type commit struct {
     hash          string
@@ -236,7 +217,7 @@ func main() {
 
     comm := commitHistory[0]
 
-    root := BuildTree(comm.document, comm.changes)
+    root := tui.BuildTree(comm.document, comm.changes)
 
     tree := tview.NewTreeView().
         SetRoot(root).
@@ -259,10 +240,10 @@ func main() {
 
     table := tview.NewTable().SetBorders(false)
 
-    table.SetCell(0, 0, tview.NewTableCell("Date").SetTextColor(CYAN_CELL_COLOR))
-    table.SetCell(0, 1, tview.NewTableCell("Message").SetTextColor(CYAN_CELL_COLOR))
-    table.SetCell(0, 2, tview.NewTableCell("Changes").SetTextColor(CYAN_CELL_COLOR))
-    table.SetCell(0, 3, tview.NewTableCell("Breaking").SetTextColor(CYAN_CELL_COLOR))
+    table.SetCell(0, 0, tview.NewTableCell("Date").SetTextColor(tui.CYAN_CELL_COLOR))
+    table.SetCell(0, 1, tview.NewTableCell("Message").SetTextColor(tui.CYAN_CELL_COLOR))
+    table.SetCell(0, 2, tview.NewTableCell("Changes").SetTextColor(tui.CYAN_CELL_COLOR))
+    table.SetCell(0, 3, tview.NewTableCell("Breaking").SetTextColor(tui.CYAN_CELL_COLOR))
 
     n := 1
     for k := range commitHistory {
@@ -360,15 +341,15 @@ func main() {
 
         }
 
-        table.GetCell(row, 0).SetTextColor(MAGENTA_CELL_COLOR)
-        table.GetCell(row, 1).SetTextColor(MAGENTA_CELL_COLOR)
-        table.GetCell(row, 2).SetTextColor(MAGENTA_CELL_COLOR)
-        table.GetCell(row, 3).SetTextColor(MAGENTA_CELL_COLOR)
+        table.GetCell(row, 0).SetTextColor(tui.MAGENTA_CELL_COLOR)
+        table.GetCell(row, 1).SetTextColor(tui.MAGENTA_CELL_COLOR)
+        table.GetCell(row, 2).SetTextColor(tui.MAGENTA_CELL_COLOR)
+        table.GetCell(row, 3).SetTextColor(tui.MAGENTA_CELL_COLOR)
 
         c := commitHistory[row-1]
         currentCommit = c
 
-        r := BuildTree(c.document, c.changes)
+        r := tui.BuildTree(c.document, c.changes)
         tree.SetRoot(r)
         tree.SetCurrentNode(r)
         app.SetFocus(tree)
@@ -423,7 +404,7 @@ func renderDiff(left, right *tview.TextView, diffView *tview.Flex, change *model
         table.SetBorders(false)
         table.SetBorderPadding(0, 0, 0, 0)
 
-        table.SetCell(0, 0, tview.NewTableCell("Original Value").SetTextColor(CYAN_CELL_COLOR))
+        table.SetCell(0, 0, tview.NewTableCell("Original Value").SetTextColor(tui.CYAN_CELL_COLOR))
         table.SetCell(0, 1, tview.NewTableCell("Line").SetTextColor(tcell.ColorGrey))
         table.SetCell(0, 2, tview.NewTableCell("Column").SetTextColor(tcell.ColorGrey))
 
@@ -531,7 +512,7 @@ func renderDiff(left, right *tview.TextView, diffView *tview.Flex, change *model
         right.SetWrap(false)
         table := tview.NewTable().SetBorders(false)
 
-        table.SetCell(0, 0, tview.NewTableCell("New Value").SetTextColor(MAGENTA_CELL_COLOR))
+        table.SetCell(0, 0, tview.NewTableCell("New Value").SetTextColor(tui.MAGENTA_CELL_COLOR))
         table.SetCell(0, 1, tview.NewTableCell("Line").SetTextColor(tcell.ColorGrey))
         table.SetCell(0, 2, tview.NewTableCell("Column").SetTextColor(tcell.ColorGrey))
 
@@ -609,7 +590,7 @@ func renderDiff(left, right *tview.TextView, diffView *tview.Flex, change *model
 
 }
 
-func checkClippedWordColor(value, change string, breaking bool, view viewType) string {
+func checkClippedWordColor(value, change string, breaking bool, view tui.ViewType) string {
     if change == "" {
         return "grey"
     }
@@ -628,7 +609,7 @@ func checkClippedWordColor(value, change string, breaking bool, view viewType) s
     return CYAN
 }
 
-func getColorForChange(view viewType, changeType colorType, currentLine, changeLine int) string {
+func getColorForChange(view tui.ViewType, changeType tui.ColorType, currentLine, changeLine int) string {
 
     if changeType == changeNumber && currentLine != changeLine {
         return "grey"

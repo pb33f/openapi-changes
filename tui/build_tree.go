@@ -1,7 +1,7 @@
 // Copyright 2022 Princess B33f Heavy Industries / Dave Shanley
 // SPDX-License-Identifier: MIT
 
-package main
+package tui
 
 import (
     "fmt"
@@ -14,6 +14,26 @@ import (
     "reflect"
     "strings"
 )
+
+type ColorType int
+type ViewType int
+
+type RGB []int32
+
+func (r RGB) R() int32 {
+    return r[0]
+}
+func (r RGB) G() int32 {
+    return r[1]
+}
+func (r RGB) B() int32 {
+    return r[2]
+}
+
+var CYAN_RGB = RGB{103, 234, 249}
+var MAGENTA_RGB = RGB{234, 103, 249}
+var CYAN_CELL_COLOR = tcell.NewRGBColor(CYAN_RGB.R(), CYAN_RGB.G(), CYAN_RGB.B())
+var MAGENTA_CELL_COLOR = tcell.NewRGBColor(MAGENTA_RGB.R(), MAGENTA_RGB.G(), MAGENTA_RGB.B())
 
 func BuildTree(doc libopenapi.Document, changes *model.DocumentChanges) *tview.TreeNode {
 
@@ -241,13 +261,13 @@ func buildTreeNode(root *tview.TreeNode, object any) *tview.TreeNode {
     for i := range topChanges {
 
         msg := ""
-        var color rgb
+        var color RGB
         if topChanges[i].ChangeType == model.PropertyRemoved || topChanges[i].ChangeType == model.ObjectRemoved {
             var br = ""
             color = CYAN_RGB
             if topChanges[i].Breaking {
                 br = "{X}"
-                color = rgb{255, 0, 0}
+                color = RGB{255, 0, 0}
             }
 
             msg = fmt.Sprintf(" - %s Removed %s", caser.String(topChanges[i].Property), br)
@@ -270,7 +290,7 @@ func buildTreeNode(root *tview.TreeNode, object any) *tview.TreeNode {
             SetReference(topChanges[i]).
             SetSelectable(true)
 
-        node.SetColor(tcell.NewRGBColor(color.r(), color.g(), color.b()))
+        node.SetColor(tcell.NewRGBColor(color.R(), color.G(), color.B()))
 
         root.AddChild(node)
 
