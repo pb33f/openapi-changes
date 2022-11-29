@@ -7,39 +7,24 @@ import (
     "fmt"
     "github.com/gdamore/tcell/v2"
     "github.com/pb33f/libopenapi"
-    "github.com/pb33f/libopenapi/what-changed/model"
+    whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
     "github.com/rivo/tview"
     "golang.org/x/text/cases"
     "golang.org/x/text/language"
     "reflect"
     "strings"
+    "what-changed/model"
 )
 
-type ColorType int
-type ViewType int
-
-type RGB []int32
-
-func (r RGB) R() int32 {
-    return r[0]
-}
-func (r RGB) G() int32 {
-    return r[1]
-}
-func (r RGB) B() int32 {
-    return r[2]
+func BuildTreeView(commit *model.Commit) *tview.TreeView {
+    root := BuildTreeModel(commit.Document, commit.Changes)
+    tree := tview.NewTreeView()
+    tree.SetRoot(root).SetCurrentNode(root)
+    return tree
 }
 
-var CYAN_RGB = RGB{103, 234, 249}
-var MAGENTA_RGB = RGB{234, 103, 249}
-var CYAN_CELL_COLOR = tcell.NewRGBColor(CYAN_RGB.R(), CYAN_RGB.G(), CYAN_RGB.B())
-var MAGENTA_CELL_COLOR = tcell.NewRGBColor(MAGENTA_RGB.R(), MAGENTA_RGB.G(), MAGENTA_RGB.B())
-
-func BuildTree(doc libopenapi.Document, changes *model.DocumentChanges) *tview.TreeNode {
-
-    //model, _ := doc.BuildV3Model()
-
-    root := tview.NewTreeNode(doc.GetSpecInfo().SpecType).SetColor(tcell.ColorRed)
+func BuildTreeModel(doc libopenapi.Document, changes *whatChangedModel.DocumentChanges) *tview.TreeNode {
+    root := tview.NewTreeNode(doc.GetSpecInfo().SpecType).SetColor(CYAN_CELL_COLOR)
     if changes != nil {
         buildTreeNode(root, changes)
     }
@@ -54,193 +39,191 @@ func buildTreeNode(root *tview.TreeNode, object any) *tview.TreeNode {
     v := reflect.ValueOf(object).Elem()
     num := v.NumField()
 
-    var topChanges []*model.Change
-    // var infoChanges *model.InfoChanges
-
+    var topChanges []*whatChangedModel.Change
     for i := 0; i < num; i++ {
         fName := v.Type().Field(i).Name
         field := v.FieldByName(fName)
         switch field.Type() {
 
-        case reflect.TypeOf(&model.PropertyChanges{}):
-            topChanges = field.Elem().Interface().(model.PropertyChanges).Changes
+        case reflect.TypeOf(&whatChangedModel.PropertyChanges{}):
+            topChanges = field.Elem().Interface().(whatChangedModel.PropertyChanges).Changes
             continue
 
-        case reflect.TypeOf([]*model.Change{}):
-            topChanges = append(topChanges, field.Elem().Interface().([]*model.Change)...)
+        case reflect.TypeOf([]*whatChangedModel.Change{}):
+            topChanges = append(topChanges, field.Elem().Interface().([]*whatChangedModel.Change)...)
             continue
 
-        case reflect.TypeOf(&model.InfoChanges{}):
+        case reflect.TypeOf(&whatChangedModel.InfoChanges{}):
             node := CreateNode("Info", object)
-            DigIntoObject[model.InfoChanges](root, node, field)
+            DigIntoObject[whatChangedModel.InfoChanges](root, node, field)
 
-        case reflect.TypeOf(&model.ContactChanges{}):
+        case reflect.TypeOf(&whatChangedModel.ContactChanges{}):
             node := CreateNode("Contact", object)
-            DigIntoObject[model.ContactChanges](root, node, field)
+            DigIntoObject[whatChangedModel.ContactChanges](root, node, field)
 
-        case reflect.TypeOf(&model.ItemsChanges{}):
+        case reflect.TypeOf(&whatChangedModel.ItemsChanges{}):
             node := CreateNode("Items", object)
-            DigIntoObject[model.ItemsChanges](root, node, field)
+            DigIntoObject[whatChangedModel.ItemsChanges](root, node, field)
 
-        case reflect.TypeOf(&model.LicenseChanges{}):
+        case reflect.TypeOf(&whatChangedModel.LicenseChanges{}):
             node := CreateNode("License", object)
-            DigIntoObject[model.LicenseChanges](root, node, field)
+            DigIntoObject[whatChangedModel.LicenseChanges](root, node, field)
 
-        case reflect.TypeOf(&model.PathsChanges{}):
+        case reflect.TypeOf(&whatChangedModel.PathsChanges{}):
             node := CreateNode("Paths", object)
-            DigIntoObject[model.PathsChanges](root, node, field)
+            DigIntoObject[whatChangedModel.PathsChanges](root, node, field)
 
-        case reflect.TypeOf(&model.OperationChanges{}):
+        case reflect.TypeOf(&whatChangedModel.OperationChanges{}):
             node := CreateNode(strings.ToUpper(strings.ReplaceAll(fName, "Changes", "")), object)
-            DigIntoObject[model.OperationChanges](root, node, field)
+            DigIntoObject[whatChangedModel.OperationChanges](root, node, field)
 
-        case reflect.TypeOf(&model.ServerChanges{}):
+        case reflect.TypeOf(&whatChangedModel.ServerChanges{}):
             node := CreateNode("Servers", object)
-            DigIntoObject[model.ServerChanges](root, node, field)
+            DigIntoObject[whatChangedModel.ServerChanges](root, node, field)
 
-        case reflect.TypeOf(&model.ComponentsChanges{}):
+        case reflect.TypeOf(&whatChangedModel.ComponentsChanges{}):
             node := CreateNode("Components", object)
-            DigIntoObject[model.ComponentsChanges](root, node, field)
+            DigIntoObject[whatChangedModel.ComponentsChanges](root, node, field)
 
-        case reflect.TypeOf(&model.ItemsChanges{}):
+        case reflect.TypeOf(&whatChangedModel.ItemsChanges{}):
             node := CreateNode("Items", object)
-            DigIntoObject[model.ItemsChanges](root, node, field)
+            DigIntoObject[whatChangedModel.ItemsChanges](root, node, field)
 
-        case reflect.TypeOf(&model.RequestBodyChanges{}):
+        case reflect.TypeOf(&whatChangedModel.RequestBodyChanges{}):
             node := CreateNode("Request Bodies", object)
-            DigIntoObject[model.RequestBodyChanges](root, node, field)
+            DigIntoObject[whatChangedModel.RequestBodyChanges](root, node, field)
 
-        case reflect.TypeOf([]*model.ServerChanges{}):
-            BuildSliceTreeNode[model.ServerChanges](field, root, object, "Servers")
+        case reflect.TypeOf([]*whatChangedModel.ServerChanges{}):
+            BuildSliceTreeNode[whatChangedModel.ServerChanges](field, root, object, "Servers")
 
-        case reflect.TypeOf([]*model.SecurityRequirementChanges{}):
-            BuildSliceTreeNode[model.SecurityRequirementChanges](field, root, object, "Security Requirements")
+        case reflect.TypeOf([]*whatChangedModel.SecurityRequirementChanges{}):
+            BuildSliceTreeNode[whatChangedModel.SecurityRequirementChanges](field, root, object, "Security Requirements")
 
-        case reflect.TypeOf([]*model.ParameterChanges{}):
-            BuildSliceTreeNode[model.ParameterChanges](field, root, object, "Parameters")
+        case reflect.TypeOf([]*whatChangedModel.ParameterChanges{}):
+            BuildSliceTreeNode[whatChangedModel.ParameterChanges](field, root, object, "Parameters")
 
-        case reflect.TypeOf(&model.SchemaChanges{}):
+        case reflect.TypeOf(&whatChangedModel.SchemaChanges{}):
             node := CreateNode("Schemas", object)
-            DigIntoObject[model.SchemaChanges](root, node, field)
+            DigIntoObject[whatChangedModel.SchemaChanges](root, node, field)
 
-        case reflect.TypeOf([]*model.SchemaChanges{}):
-            BuildSliceTreeNode[model.SchemaChanges](field, root, object, strings.ToUpper(strings.ReplaceAll(fName, "Changes", "")))
+        case reflect.TypeOf([]*whatChangedModel.SchemaChanges{}):
+            BuildSliceTreeNode[whatChangedModel.SchemaChanges](field, root, object, strings.ToUpper(strings.ReplaceAll(fName, "Changes", "")))
 
-        case reflect.TypeOf(&model.ExamplesChanges{}):
+        case reflect.TypeOf(&whatChangedModel.ExamplesChanges{}):
             node := CreateNode("Examples", object)
-            DigIntoObject[model.ExamplesChanges](root, node, field)
+            DigIntoObject[whatChangedModel.ExamplesChanges](root, node, field)
 
-        case reflect.TypeOf(&model.ExtensionChanges{}):
+        case reflect.TypeOf(&whatChangedModel.ExtensionChanges{}):
             node := CreateNode("Extensions", object)
-            DigIntoObject[model.ExtensionChanges](root, node, field)
+            DigIntoObject[whatChangedModel.ExtensionChanges](root, node, field)
 
-        case reflect.TypeOf(&model.ExternalDocChanges{}):
+        case reflect.TypeOf(&whatChangedModel.ExternalDocChanges{}):
             node := CreateNode("External Docs", object)
-            DigIntoObject[model.ExternalDocChanges](root, node, field)
+            DigIntoObject[whatChangedModel.ExternalDocChanges](root, node, field)
 
-        case reflect.TypeOf(&model.XMLChanges{}):
+        case reflect.TypeOf(&whatChangedModel.XMLChanges{}):
             node := CreateNode("XML", object)
-            DigIntoObject[model.XMLChanges](root, node, field)
+            DigIntoObject[whatChangedModel.XMLChanges](root, node, field)
 
-        case reflect.TypeOf(&model.ScopesChanges{}):
+        case reflect.TypeOf(&whatChangedModel.ScopesChanges{}):
             node := CreateNode("Scopes", object)
-            DigIntoObject[model.ScopesChanges](root, node, field)
+            DigIntoObject[whatChangedModel.ScopesChanges](root, node, field)
 
-        case reflect.TypeOf(&model.OAuthFlowChanges{}):
+        case reflect.TypeOf(&whatChangedModel.OAuthFlowChanges{}):
             node := CreateNode("OAuth Flow", object)
-            DigIntoObject[model.OAuthFlowChanges](root, node, field)
+            DigIntoObject[whatChangedModel.OAuthFlowChanges](root, node, field)
 
-        case reflect.TypeOf(&model.OAuthFlowsChanges{}):
+        case reflect.TypeOf(&whatChangedModel.OAuthFlowsChanges{}):
             node := CreateNode("OAuth Flows", object)
-            DigIntoObject[model.OAuthFlowsChanges](root, node, field)
+            DigIntoObject[whatChangedModel.OAuthFlowsChanges](root, node, field)
 
-        case reflect.TypeOf(&model.DiscriminatorChanges{}):
+        case reflect.TypeOf(&whatChangedModel.DiscriminatorChanges{}):
             node := CreateNode("Discriminator", object)
-            DigIntoObject[model.DiscriminatorChanges](root, node, field)
+            DigIntoObject[whatChangedModel.DiscriminatorChanges](root, node, field)
 
-        case reflect.TypeOf(&model.ResponsesChanges{}):
+        case reflect.TypeOf(&whatChangedModel.ResponsesChanges{}):
 
             node := CreateNode("Responses", object)
-            DigIntoObject[model.ResponsesChanges](root, node, field)
+            DigIntoObject[whatChangedModel.ResponsesChanges](root, node, field)
 
-        case reflect.TypeOf([]*model.TagChanges{}):
-            BuildSliceTreeNode[model.TagChanges](field, root, object, "Tag")
+        case reflect.TypeOf([]*whatChangedModel.TagChanges{}):
+            BuildSliceTreeNode[whatChangedModel.TagChanges](field, root, object, "Tag")
 
-        case reflect.TypeOf(&model.ResponseChanges{}):
+        case reflect.TypeOf(&whatChangedModel.ResponseChanges{}):
             node := CreateNode("Response", object)
-            DigIntoObject[model.ExtensionChanges](root, node, field)
+            DigIntoObject[whatChangedModel.ExtensionChanges](root, node, field)
 
-        case reflect.TypeOf(&model.SchemaChanges{}):
+        case reflect.TypeOf(&whatChangedModel.SchemaChanges{}):
             node := CreateNode("Schema", object)
-            DigIntoObject[model.SchemaChanges](root, node, field)
+            DigIntoObject[whatChangedModel.SchemaChanges](root, node, field)
 
-        case reflect.TypeOf(map[string]*model.ResponseChanges{}):
+        case reflect.TypeOf(map[string]*whatChangedModel.ResponseChanges{}):
             if !field.IsZero() && len(field.MapKeys()) > 0 {
                 BuildTreeMapNode(field, root)
             }
 
-        case reflect.TypeOf(map[string]*model.SchemaChanges{}):
+        case reflect.TypeOf(map[string]*whatChangedModel.SchemaChanges{}):
             if !field.IsZero() && len(field.MapKeys()) > 0 {
                 node := CreateNode("Schema", object)
                 root.AddChild(node)
                 BuildTreeMapNode(field, node)
             }
 
-        case reflect.TypeOf(map[string]*model.CallbackChanges{}):
+        case reflect.TypeOf(map[string]*whatChangedModel.CallbackChanges{}):
             if !field.IsZero() && len(field.MapKeys()) > 0 {
                 node := CreateNode("Callbacks", object)
                 root.AddChild(node)
                 BuildTreeMapNode(field, node)
             }
 
-        case reflect.TypeOf(map[string]*model.ExampleChanges{}):
+        case reflect.TypeOf(map[string]*whatChangedModel.ExampleChanges{}):
             if !field.IsZero() && len(field.MapKeys()) > 0 {
                 node := CreateNode("Example", object)
                 root.AddChild(node)
                 BuildTreeMapNode(field, node)
             }
 
-        case reflect.TypeOf(map[string]*model.EncodingChanges{}):
+        case reflect.TypeOf(map[string]*whatChangedModel.EncodingChanges{}):
             if !field.IsZero() && len(field.MapKeys()) > 0 {
                 node := CreateNode("Encoding", object)
                 root.AddChild(node)
                 BuildTreeMapNode(field, node)
             }
 
-        case reflect.TypeOf(map[string]*model.HeaderChanges{}):
+        case reflect.TypeOf(map[string]*whatChangedModel.HeaderChanges{}):
             if !field.IsZero() && len(field.MapKeys()) > 0 {
                 node := CreateNode("Headers", object)
                 root.AddChild(node)
                 BuildTreeMapNode(field, node)
             }
 
-        case reflect.TypeOf(map[string]*model.ServerVariableChanges{}):
+        case reflect.TypeOf(map[string]*whatChangedModel.ServerVariableChanges{}):
             if !field.IsZero() && len(field.MapKeys()) > 0 {
                 node := CreateNode("Server Vars", object)
                 root.AddChild(node)
                 BuildTreeMapNode(field, node)
             }
 
-        case reflect.TypeOf(map[string]*model.MediaTypeChanges{}):
+        case reflect.TypeOf(map[string]*whatChangedModel.MediaTypeChanges{}):
             if !field.IsZero() && len(field.MapKeys()) > 0 {
                 node := CreateNode("Content", object)
                 root.AddChild(node)
                 BuildTreeMapNode(field, node)
             }
 
-        case reflect.TypeOf(map[string]*model.LinkChanges{}):
+        case reflect.TypeOf(map[string]*whatChangedModel.LinkChanges{}):
             if !field.IsZero() && len(field.MapKeys()) > 0 {
                 node := CreateNode("Links", object)
                 root.AddChild(node)
                 BuildTreeMapNode(field, node)
             }
 
-        case reflect.TypeOf(map[string]*model.SecuritySchemeChanges{}):
+        case reflect.TypeOf(map[string]*whatChangedModel.SecuritySchemeChanges{}):
             if !field.IsZero() && len(field.MapKeys()) > 0 {
                 BuildTreeMapNode(field, root)
             }
 
-        case reflect.TypeOf(map[string]*model.PathItemChanges{}):
+        case reflect.TypeOf(map[string]*whatChangedModel.PathItemChanges{}):
             if !field.IsZero() && len(field.MapKeys()) > 0 {
                 node := CreateNode("PathItems", object)
                 root.AddChild(node)
@@ -250,38 +233,26 @@ func buildTreeNode(root *tview.TreeNode, object any) *tview.TreeNode {
 
     }
 
-    /*
-       s := reflect.ValueOf(t)
-
-       		for i := 0; i < s.Len(); i++ {
-       			fmt.Println(s.Index(i))
-       		}
-    */
     caser := cases.Title(language.AmericanEnglish)
     for i := range topChanges {
 
         msg := ""
         var color RGB
-        if topChanges[i].ChangeType == model.PropertyRemoved || topChanges[i].ChangeType == model.ObjectRemoved {
+        if topChanges[i].ChangeType == whatChangedModel.PropertyRemoved || topChanges[i].ChangeType == whatChangedModel.ObjectRemoved {
             var br = ""
             color = CYAN_RGB
             if topChanges[i].Breaking {
                 br = "{X}"
                 color = RGB{255, 0, 0}
             }
-
             msg = fmt.Sprintf(" - %s Removed %s", caser.String(topChanges[i].Property), br)
-
-            //   val = topChanges[i].Original
-
         }
-        if topChanges[i].ChangeType == model.PropertyAdded || topChanges[i].ChangeType == model.ObjectAdded {
+        if topChanges[i].ChangeType == whatChangedModel.PropertyAdded || topChanges[i].ChangeType == whatChangedModel.ObjectAdded {
             msg = fmt.Sprintf(" + %s Added", caser.String(topChanges[i].Property))
             color = CYAN_RGB
-            //   val = topChanges[i].Original
         }
 
-        if topChanges[i].ChangeType == model.Modified {
+        if topChanges[i].ChangeType == whatChangedModel.Modified {
             msg = fmt.Sprintf(" %s Changed", caser.String(topChanges[i].Property))
             color = MAGENTA_RGB
         }
@@ -291,14 +262,9 @@ func buildTreeNode(root *tview.TreeNode, object any) *tview.TreeNode {
             SetSelectable(true)
 
         node.SetColor(tcell.NewRGBColor(color.R(), color.G(), color.B()))
-
         root.AddChild(node)
-
     }
-
-    //fmt.Println(topChanges, infoChanges)
     return root
-
 }
 
 func BuildSliceTreeNode[T any](field reflect.Value, root *tview.TreeNode, obj any, label string) {
