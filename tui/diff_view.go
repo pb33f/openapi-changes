@@ -27,6 +27,12 @@ func BuildTextView() *tview.TextView {
         SetWordWrap(false)
 }
 
+func BuildDiffView(originalText, newText *tview.TextView) *tview.Flex {
+    return tview.NewFlex().
+        AddItem(originalText, 0, 1, false).
+        AddItem(newText, 0, 1, false)
+}
+
 func RenderDiff(left, right *tview.TextView, diffView *tview.Flex, change *whatChanged.Change) {
     curr := activeCommit
     diffView.Clear()

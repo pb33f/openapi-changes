@@ -31,8 +31,18 @@ func BuildCommitTable(commitHistory []*model.Commit) *tview.Table {
             n++
         }
     }
-
     return table
+}
+
+func ResetTableColors(table *tview.Table, row int, highlight tcell.Color) {
+    for r := 0; r < table.GetRowCount(); r++ {
+        for c := 0; c < table.GetColumnCount(); c++ {
+            table.GetCell(r, c).SetTextColor(tcell.ColorWhite)
+        }
+    }
+    for c := 0; c < table.GetColumnCount(); c++ {
+        table.GetCell(row, c).SetTextColor(highlight)
+    }
 }
 
 func RegisterModelsWithCommitTable(table *tview.Table,
@@ -40,22 +50,24 @@ func RegisterModelsWithCommitTable(table *tview.Table,
 
     table.Select(0, 0).SetFixed(1, 1).SetDoneFunc(func(key tcell.Key) {
         if key == tcell.KeyEscape {
-            //app.Stop()
-        }
-        if key == tcell.KeyEnter {
-            //     table.SetSelectable(true, false)
+            app.Stop()
         }
     }).SetSelectedFunc(func(row int, column int) {
-        for k := 1; k < len(commitHistory); k++ {
-            table.GetCell(k, 0).SetTextColor(tcell.ColorWhite)
-            table.GetCell(k, 1).SetTextColor(tcell.ColorWhite)
-            table.GetCell(k, 2).SetTextColor(tcell.ColorWhite)
-            table.GetCell(k, 3).SetTextColor(tcell.ColorWhite)
-        }
-        table.GetCell(row, 0).SetTextColor(MAGENTA_CELL_COLOR)
-        table.GetCell(row, 1).SetTextColor(MAGENTA_CELL_COLOR)
-        table.GetCell(row, 2).SetTextColor(MAGENTA_CELL_COLOR)
-        table.GetCell(row, 3).SetTextColor(MAGENTA_CELL_COLOR)
+        ResetTableColors(table, row, MAGENTA_CELL_COLOR)
+
+        c := commitHistory[row-1]
+        activeCommit = c
+        selectedRow = row
+
+        r := BuildTreeModel(c.Document, c.Changes)
+        treeView.SetRoot(r)
+        treeView.SetCurrentNode(r)
+        app.SetFocus(treeView)
+        treeView.SetTopLevel(0)
+    })
+
+    table.SetSelectionChangedFunc(func(row int, column int) {
+        ResetTableColors(table, row, CYAN_CELL_COLOR)
 
         c := commitHistory[row-1]
         activeCommit = c
@@ -63,7 +75,6 @@ func RegisterModelsWithCommitTable(table *tview.Table,
         r := BuildTreeModel(c.Document, c.Changes)
         treeView.SetRoot(r)
         treeView.SetCurrentNode(r)
-        app.SetFocus(treeView)
         treeView.SetTopLevel(0)
     })
 
