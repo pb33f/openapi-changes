@@ -24,8 +24,7 @@ func CheckStats(info *datamodel.SpecInfo) *vacuumReport.VacuumReport {
     // apply the rules in the ruleset to the specification
     lintingResults := motor.ApplyRulesToRuleSet(
         &motor.RuleSetExecution{
-            RuleSet: recommendedRS,
-            //Spec:    specBytes,
+            RuleSet:  recommendedRS,
             SpecInfo: info,
         })
 
