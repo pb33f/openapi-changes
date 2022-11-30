@@ -34,6 +34,9 @@ func BuildDiffView(originalText, newText *tview.TextView) *tview.Flex {
 }
 
 func RenderDiff(left, right *tview.TextView, diffView *tview.Flex, change *whatChanged.Change) {
+
+    // todo: this needs a bunch of cleanup, it's pretty messy, all prototype code.
+
     curr := activeCommit
     diffView.Clear()
 
@@ -58,13 +61,16 @@ func RenderDiff(left, right *tview.TextView, diffView *tview.Flex, change *whatC
         }
 
         table.SetCell(1, 0, tview.NewTableCell(change.Original))
-        table.SetCell(1, 1, tview.NewTableCell(fmt.Sprint(*change.Context.OriginalLine)).SetAlign(tview.AlignCenter))
-        table.SetCell(1, 2, tview.NewTableCell(fmt.Sprint(*change.Context.OriginalColumn)).SetAlign(tview.AlignCenter))
+        table.SetCell(1, 1,
+            tview.NewTableCell(fmt.Sprint(*change.Context.OriginalLine)).SetAlign(tview.AlignCenter))
+        table.SetCell(1, 2,
+            tview.NewTableCell(fmt.Sprint(*change.Context.OriginalColumn)).SetAlign(tview.AlignCenter))
 
         if change.NewObject == nil {
             switch change.Breaking {
             case true:
-                table.SetCell(1, 3, tview.NewTableCell("YES!").SetTextColor(tcell.ColorRed).SetAlign(tview.AlignCenter))
+                table.SetCell(1, 3, tview.NewTableCell("YES!").
+                    SetTextColor(tcell.ColorRed).SetAlign(tview.AlignCenter))
             }
 
         }
@@ -91,8 +97,7 @@ func RenderDiff(left, right *tview.TextView, diffView *tview.Flex, change *whatC
 
             for j := range clipped {
                 if j != 4 {
-                    clipped[j] = fmt.Sprintf("[%s]%s[-:-]",
-                        checkClippedWordColor(clipped[j], change.Original, change.Breaking, originalView), clipped[j])
+                    clipped[j] = fmt.Sprintf("[grey]%s[-:-]", clipped[j])
                 }
             }
 
@@ -120,9 +125,11 @@ func RenderDiff(left, right *tview.TextView, diffView *tview.Flex, change *whatC
             clipped = parsed[0 : *change.Context.OriginalLine+13]
 
             if !change.Breaking {
-                clipped[*change.Context.OriginalLine] = fmt.Sprintf("[%s]%s[-:-]", color, clipped[*change.Context.OriginalLine])
+                clipped[*change.Context.OriginalLine] = fmt.Sprintf("[%s]%s[-:-]",
+                    color, clipped[*change.Context.OriginalLine])
             } else {
-                clipped[*change.Context.OriginalLine] = fmt.Sprintf("[%s]%s[-:-]", "red", clipped[*change.Context.OriginalLine])
+                clipped[*change.Context.OriginalLine] = fmt.Sprintf("[%s]%s[-:-]", "red",
+                    clipped[*change.Context.OriginalLine])
             }
 
         }
@@ -130,18 +137,20 @@ func RenderDiff(left, right *tview.TextView, diffView *tview.Flex, change *whatC
         for x := range clipped {
             color := getColorForChange(originalView, lineNumber, currentLine, *change.Context.OriginalLine)
             if !change.Breaking {
-                clipped[x] = fmt.Sprintf("%s[%s]%d|[-] %s", printSpacing(currentLine, endLine), color, currentLine, clipped[x])
+                clipped[x] = fmt.Sprintf("%s[%s]%d|[-] %s",
+                    printSpacing(currentLine, endLine), color, currentLine, clipped[x])
             } else {
                 if currentLine != *change.Context.OriginalLine {
-                    clipped[x] = fmt.Sprintf("%s[%s]%d|[-] %s", printSpacing(currentLine, endLine), color, currentLine, clipped[x])
+                    clipped[x] = fmt.Sprintf("%s[%s]%d|[-] %s",
+                        printSpacing(currentLine, endLine), color, currentLine, clipped[x])
                 } else {
-                    clipped[x] = fmt.Sprintf("%s[%s]%d|[-] %s", printSpacing(currentLine, endLine), "red", currentLine, clipped[x])
+                    clipped[x] = fmt.Sprintf("%s[%s]%d|[-] %s",
+                        printSpacing(currentLine, endLine), "red", currentLine, clipped[x])
                 }
             }
             currentLine++
         }
 
-        //yamlData, _ := yaml.Marshal(change.OriginalObject)
         fmt.Fprintf(left, strings.Join(clipped, "\n"))
 
     }
@@ -166,13 +175,17 @@ func RenderDiff(left, right *tview.TextView, diffView *tview.Flex, change *whatC
         }
 
         table.SetCell(1, 0, tview.NewTableCell(change.New))
-        table.SetCell(1, 1, tview.NewTableCell(fmt.Sprint(*change.Context.NewLine)).SetAlign(tview.AlignCenter))
-        table.SetCell(1, 2, tview.NewTableCell(fmt.Sprint(*change.Context.NewColumn)).SetAlign(tview.AlignCenter))
+        table.SetCell(1, 1, tview.NewTableCell(fmt.Sprint(*change.Context.NewLine)).
+            SetAlign(tview.AlignCenter))
+        table.SetCell(1, 2, tview.NewTableCell(fmt.Sprint(*change.Context.NewColumn)).
+            SetAlign(tview.AlignCenter))
         switch change.Breaking {
         case true:
-            table.SetCell(1, 3, tview.NewTableCell("YES!").SetTextColor(tcell.ColorRed).SetAlign(tview.AlignCenter))
+            table.SetCell(1, 3, tview.NewTableCell("YES!").SetTextColor(tcell.ColorRed).
+                SetAlign(tview.AlignCenter))
         case false:
-            table.SetCell(1, 3, tview.NewTableCell("No").SetTextColor(tcell.ColorGrey).SetAlign(tview.AlignCenter))
+            table.SetCell(1, 3, tview.NewTableCell("No").SetTextColor(tcell.ColorGrey).
+                SetAlign(tview.AlignCenter))
         }
 
         y := tview.NewFlex()
@@ -196,8 +209,7 @@ func RenderDiff(left, right *tview.TextView, diffView *tview.Flex, change *whatC
 
             for j := range clipped {
                 if j != 4 {
-                    clipped[j] = fmt.Sprintf("[%s]%s[-:-]",
-                        checkClippedWordColor(clipped[j], change.New, change.Breaking, newView), clipped[j])
+                    clipped[j] = fmt.Sprintf("[grey]%s[-:-]", clipped[j])
                 }
             }
 
@@ -223,32 +235,14 @@ func RenderDiff(left, right *tview.TextView, diffView *tview.Flex, change *whatC
 
         for x := range clipped {
             color := getColorForChange(newView, lineNumber, currentLine, *change.Context.NewLine)
-            clipped[x] = fmt.Sprintf("%s[%s]%d|[-] %s", printSpacing(currentLine, endLine), color, currentLine, clipped[x])
+            clipped[x] = fmt.Sprintf("%s[%s]%d|[-] %s",
+                printSpacing(currentLine, endLine), color, currentLine, clipped[x])
             currentLine++
         }
 
         fmt.Fprintf(right, strings.Join(clipped, "\n"))
     }
 
-}
-
-func checkClippedWordColor(value, change string, breaking bool, view ViewType) string {
-    if change == "" {
-        return "grey"
-    }
-    if !strings.Contains(value, change) {
-        return "grey"
-    }
-    if breaking {
-        return "red"
-    }
-    switch view {
-    case originalView:
-        return CYAN
-    case newView:
-        return MAGENTA
-    }
-    return CYAN
 }
 
 func getColorForChange(view ViewType, changeType ColorType, currentLine, changeLine int) string {
@@ -354,33 +348,4 @@ func createForm(detailsTable *tview.Table, change *whatChanged.Change) {
         detailsTable.SetCell(2, 3, tview.NewTableCell(fmt.Sprint(newLine)))
         detailsTable.SetCell(2, 4, tview.NewTableCell(fmt.Sprint(newCol)))
     }
-
-    //
-    //
-    //detailsTable.SetCell(1, 0, tview.NewTableCell("Original"))
-    //detailsTable.SetCell(1, 1, tview.NewTableCell(change.Property))
-    //detailsTable.SetCell(1, 2, tview.NewTableCell(change.Original))
-    //detailsTable.SetCell(1, 3, tview.NewTableCell(fmt.Sprint(origLine)))
-    //detailsTable.SetCell(1, 4, tview.NewTableCell(fmt.Sprint(origCol)))
-    //
-    //detailsTable.SetCell(2, 0, tview.NewTableCell("New"))
-    //detailsTable.SetCell(2, 1, tview.NewTableCell(change.Property))
-    //detailsTable.SetCell(2, 2, tview.NewTableCell(change.New))
-    //detailsTable.SetCell(2, 3, tview.NewTableCell(fmt.Sprint(newLine)))
-    //detailsTable.SetCell(2, 4, tview.NewTableCell(fmt.Sprint(newCol)))
-
-    //
-    //for n := 0; n < form.GetFormItemCount(); n++ {
-    //    form.RemoveFormItem(0)
-    //}
-    //
-    //form.AddInputField("Property", change.Property, 40, nil, nil).
-    //    AddTextArea("Original Value", change.Original, 60, 0, 0, nil).SetFieldBackgroundColor(tcell.ColorGreen).
-    //    AddTextArea("New Value", change.New, 60, 0, 0, nil)
-    //
-
-    //form.AddInputField("Original Line", fmt.Sprint(origLine), 10, nil, nil).
-    //    AddInputField("Original Column", fmt.Sprint(origCol), 10, nil, nil).
-    //    AddInputField("New Line", fmt.Sprint(newLine), 10, nil, nil).
-    //    AddInputField("New Column", fmt.Sprint(newCol), 10, nil, nil)
 }

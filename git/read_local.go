@@ -7,6 +7,7 @@ import (
     "bytes"
     "fmt"
     "github.com/pb33f/libopenapi"
+    "github.com/pterm/pterm"
     "os/exec"
     "path"
     "strings"
@@ -82,7 +83,7 @@ func ExtractHistoryFromFile(repoDirectory, filePath string) []*model.Commit {
     return commitHistory
 }
 
-func PopulateHistoryWithChanges(commitHistory []*model.Commit) []error {
+func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.SpinnerPrinter) []error {
     for c := range commitHistory {
         cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", commitHistory[c].Hash, commitHistory[c].FilePath))
         var ou, er bytes.Buffer
@@ -108,6 +109,8 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit) []error {
         }
 
         var oldDoc, newDoc libopenapi.Document
+
+        printer.UpdateText(fmt.Sprintf("Processing commit: %s", commitHistory[c].Hash))
 
         var err error
         if len(oldBits) > 0 && len(newBits) > 0 {
@@ -147,7 +150,7 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit) []error {
         commitHistory[c].QualityReport = builder.CheckStats(newDoc.GetSpecInfo())
 
     }
-
+    printer.UpdateText(fmt.Sprintf("Parsed %d commits", len(commitHistory)))
     return nil
 }
 

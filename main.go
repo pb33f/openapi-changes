@@ -4,25 +4,24 @@
 package main
 
 import (
-    "what-changed/git"
-    "what-changed/tui"
+    "time"
+    "what-changed/cmd"
 )
 
+var version string
+var commit string
+var date string
+
 func main() {
-
-    // temp location for testing
-    gitPath := "../../GolandProjects/vacuum"
-    filePath := "model/test_files/burgershop.openapi.yaml"
-
-    // build commit history.
-    commitHistory := git.ExtractHistoryFromFile(gitPath, filePath)
-
-    // populate history with changes and data
-    git.PopulateHistoryWithChanges(commitHistory)
-
-    // build terminal UI.
-    app := tui.BuildApplication(commitHistory)
-    if err := app.Run(); err != nil {
-        panic(err)
+    if version == "" {
+        version = "latest"
     }
+    if commit == "" {
+        commit = "latest"
+    }
+    if date == "" {
+        date = time.Now().Format("2006-01-02 15:04:05 MST")
+    }
+
+    cmd.Execute(version, commit, date)
 }
