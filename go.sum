@@ -23,8 +23,8 @@ github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ3
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/daveshanley/vacuum v0.0.39 h1:Zl7bpWhlzjPvj9Yxmomi5lIupH6Ol31W/GsRirDsh6I=
-github.com/daveshanley/vacuum v0.0.39/go.mod h1:dJ5LUuy9C4NK7kENbx2H0dwDN4/i4vBCRoJ9IbfzLV4=
+github.com/daveshanley/vacuum v0.0.40 h1:kGhmHQ+cLjoB5rcLiQOUQ9+vIOPDApyugIEqBiiN/rs=
+github.com/daveshanley/vacuum v0.0.40/go.mod h1:9kqLukhBCVTGruGKGdrf3VzhpqXHnd2gW8KA323RvEY=
 github.com/dprotaso/go-yit v0.0.0-20191028211022-135eb7262960/go.mod h1:9HQzr9D/0PGwMEbC3d5AB7oi67+h4TsQqItC1GVYG58=
 github.com/dprotaso/go-yit v0.0.0-20220510233725-9ba8df137936 h1:PRxIJD8XjimM5aTknUK9w6DHLDox2r2M3DI4i2pnd3w=
 github.com/dprotaso/go-yit v0.0.0-20220510233725-9ba8df137936/go.mod h1:ttYvX5qlB+mlV1okblJqcSMtR4c52UKxDiX9GRBS8+Q=
@@ -101,8 +101,6 @@ github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1y
 github.com/onsi/gomega v1.17.0/go.mod h1:HnhC7FXeEQY45zxNK3PPoIUhzk/80Xly9PcubAlGdZY=
 github.com/onsi/gomega v1.19.0 h1:4ieX6qQjPP/BfC3mpsAtIGGlxTWPeA3Inl/7DtXw1tw=
 github.com/onsi/gomega v1.19.0/go.mod h1:LY+I3pBVzYsTBU1AnDwOSxaYi9WoWiqgwooUqq9yPro=
-github.com/pb33f/libopenapi v0.2.4 h1:1hzdivDdwzyu7mR4velJCUxf6mqyBJv+AoFAo9R2GBI=
-github.com/pb33f/libopenapi v0.2.4/go.mod h1:UcUNPQcwq4ojgQgthV+zbeUs25lhDlD4bM9Da8n2vdU=
 github.com/pb33f/libopenapi v0.3.2 h1:rsS1bNltxC2pf+34RewbNbSxT62c8OdthpoTXZQM1ic=
 github.com/pb33f/libopenapi v0.3.2/go.mod h1:UcUNPQcwq4ojgQgthV+zbeUs25lhDlD4bM9Da8n2vdU=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
