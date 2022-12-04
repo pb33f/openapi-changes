@@ -7,7 +7,7 @@ import (
     "fmt"
     "github.com/gdamore/tcell/v2"
     "github.com/rivo/tview"
-    "what-changed/model"
+    "github.com/pb33f/openapi-changes/model"
 )
 
 func BuildCommitTable(commitHistory []*model.Commit) *tview.Table {

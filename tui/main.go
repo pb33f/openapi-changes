@@ -7,7 +7,7 @@ import (
     "github.com/gdamore/tcell/v2"
     whatChanged "github.com/pb33f/libopenapi/what-changed/model"
     "github.com/rivo/tview"
-    "what-changed/model"
+    "github.com/pb33f/openapi-changes/model"
 )
 
 var activeCommit *model.Commit

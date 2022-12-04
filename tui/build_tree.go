@@ -13,7 +13,7 @@ import (
     "golang.org/x/text/language"
     "reflect"
     "strings"
-    "what-changed/model"
+    "github.com/pb33f/openapi-changes/model"
 )
 
 func BuildTreeView(commit *model.Commit) *tview.TreeView {

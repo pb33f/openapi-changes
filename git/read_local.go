@@ -7,13 +7,13 @@ import (
     "bytes"
     "fmt"
     "github.com/pb33f/libopenapi"
+    "github.com/pb33f/openapi-changes/builder"
+    "github.com/pb33f/openapi-changes/model"
     "github.com/pterm/pterm"
     "os/exec"
     "path"
     "strings"
     "time"
-    "what-changed/builder"
-    "what-changed/model"
 )
 
 const (
