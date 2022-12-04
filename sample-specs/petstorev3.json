@@ -160,9 +160,6 @@
                 }
               }
             }
-          },
-          "405": {
-            "description": "Invalid input"
           }
         },
         "security": [
@@ -222,9 +219,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "description": "Invalid status value"
           }
         },
         "security": [
@@ -747,7 +741,7 @@
         "tags": [
           "user"
         ],
-        "summary": "Logs user into the system",
+        "summary": "Logs user into the system, without jazz",
         "description": "",
         "operationId": "loginUser",
         "parameters": [
@@ -757,14 +751,14 @@
             "description": "The user name for login",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           },
           {
             "name": "password",
             "in": "query",
             "description": "The password for login in clear text",
-            "required": false,
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -772,7 +766,7 @@
         ],
         "responses": {
           "200": {
-            "description": "successful operation",
+            "description": "successful operation, even if not jazzy",
             "headers": {
               "X-Rate-Limit": {
                 "description": "calls per hour allowed by the user",
@@ -831,7 +825,7 @@
         ],
         "summary": "Get user by user name",
         "description": "",
-        "operationId": "getUserByName",
+        "operationId": "getUserByNameAndNotJazz",
         "parameters": [
           {
             "name": "username",
@@ -913,11 +907,11 @@
       },
       "delete": {
         "tags": [
-          "user"
+          "jazz"
         ],
         "summary": "Delete user",
         "description": "This can only be done by the logged in user.",
-        "operationId": "deleteUser",
+        "operationId": "deleteUserButNotJazz",
         "parameters": [
           {
             "name": "username",
@@ -960,10 +954,6 @@
             "format": "int32",
             "example": 7
           },
-          "shipDate": {
-            "type": "string",
-            "format": "date-time"
-          },
           "status": {
             "type": "string",
             "description": "Order Status",
@@ -971,7 +961,8 @@
             "enum": [
               "placed",
               "approved",
-              "delivered"
+              "delivered",
+              "burgers"
             ]
           },
           "complete": {
@@ -992,7 +983,7 @@
           },
           "username": {
             "type": "string",
-            "example": "fehguy"
+            "example": "burgers"
           },
           "address": {
             "type": "array",
