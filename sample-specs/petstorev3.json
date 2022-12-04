@@ -117,7 +117,7 @@
           }
         ]
       },
-      "post": {
+      "patch": {
         "tags": [
           "pet"
         ],
@@ -166,7 +166,8 @@
           {
             "petstore_auth": [
               "write:pets",
-              "read:pets"
+              "read:pets",
+              "jammy:jelly"
             ]
           }
         ]
@@ -232,7 +233,7 @@
       }
     },
     "/pet/findByTags": {
-      "get": {
+      "post": {
         "tags": [
           "pet",
           "jazz"
@@ -384,48 +385,6 @@
         "responses": {
           "405": {
             "description": "Invalid input"
-          }
-        },
-        "security": [
-          {
-            "petstore_auth": [
-              "write:pets",
-              "read:pets"
-            ]
-          }
-        ]
-      },
-      "delete": {
-        "tags": [
-          "pet"
-        ],
-        "summary": "Deletes a pet",
-        "description": "",
-        "operationId": "deletePet",
-        "parameters": [
-          {
-            "name": "api_key",
-            "in": "header",
-            "description": "",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "petId",
-            "in": "path",
-            "description": "Pet id to delete",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "description": "Invalid pet value"
           }
         },
         "security": [
@@ -1063,11 +1022,11 @@
           },
           "email": {
             "type": "string",
-            "example": "john@email.com"
+            "example": "john@jazzclubinjazztown.com"
           },
           "password": {
             "type": "string",
-            "example": "12345"
+            "example": "JAZZCLUB"
           },
           "phone": {
             "type": "string",
@@ -1101,8 +1060,7 @@
       },
       "Pet": {
         "required": [
-          "name",
-          "photoUrls"
+          "name"
         ],
         "type": "object",
         "properties": {
@@ -1111,9 +1069,9 @@
             "format": "int64",
             "example": 10
           },
-          "name": {
+          "jazz": {
             "type": "string",
-            "example": "doggie"
+            "example": "too much jazz! this is too much"
           },
           "category": {
             "$ref": "#/components/schemas/Category"
@@ -1145,7 +1103,8 @@
             "enum": [
               "available",
               "pending",
-              "sold"
+              "sold",
+              "jazzedOut"
             ]
           }
         },
