@@ -41,6 +41,8 @@ func Execute(version, commit, date string) {
 func init() {
     cobra.OnInitialize(initConfig)
     rootCmd.AddCommand(GetConsoleCommand())
+    rootCmd.PersistentFlags().BoolP("top", "t", false, "Only show latest changes (last git revision against HEAD)")
+
 }
 
 func initConfig() {

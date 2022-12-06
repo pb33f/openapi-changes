@@ -36,6 +36,9 @@ Second argument is a path to the OpenAPI Spec from the repo root (`sample-specs/
 ```
 View the example changes made to the OpenAPI spec, over time.
 
+> To see just the latest changes (since last revision) use the `-t` flag (top)
+> `./openapi-changes -t console . sample-specs/petstorev3.json`
+
 ### 3. Run the code using original and changes files (left/right)
 
 First argument is the original OpenAPI spec file

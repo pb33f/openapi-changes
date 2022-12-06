@@ -25,7 +25,7 @@ func GetConsoleCommand() *cobra.Command {
         Short:         "Interact with OpenAPI changes in an interactive terminal UI",
         Long: "Navigate though a single change or many changes visually. Explore" +
             " Each change, and see a side by side rendering of each change.",
-        Example: "openapi-changes console -r /path/to/git/repo -f path/to/file/in/repo/openapi.yaml",
+        Example: "openapi-changes console /path/to/git/repo path/to/file/in/repo/openapi.yaml",
         RunE: func(cmd *cobra.Command, args []string) error {
 
             // check for two args (left and right)
@@ -34,6 +34,8 @@ func GetConsoleCommand() *cobra.Command {
                 return nil
             }
             if len(args) == 2 {
+
+                latestFlag, _ := cmd.Flags().GetBool("top")
 
                 // check if the first arg is a directory, if so - process as a git history operation.
                 p := args[0]
@@ -52,7 +54,7 @@ func GetConsoleCommand() *cobra.Command {
                         return err
                     }
 
-                    return runGitHistory(args[0], args[1])
+                    return runGitHistory(args[0], args[1], latestFlag)
 
                 } else {
                     errs := runLeftRightCompare(args[0], args[1])
@@ -69,12 +71,11 @@ func GetConsoleCommand() *cobra.Command {
             return nil
         },
     }
-    cmd.Flags().StringP("repo", "r", "", "Path to git repo root where spec is held")
-    cmd.Flags().StringP("file", "f", "", "Path to file from within repo")
+
     return cmd
 }
 
-func runGitHistory(gitPath, filePath string) error {
+func runGitHistory(gitPath, filePath string, latest bool) error {
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
         pterm.Error.Println(err.Error())
@@ -89,6 +90,10 @@ func runGitHistory(gitPath, filePath string) error {
 
     // populate history with changes and data
     git.PopulateHistoryWithChanges(commitHistory, spinner)
+
+    if latest {
+        commitHistory = commitHistory[:1]
+    }
 
     spinner.Success() // Resolve spinner with success message.
     app := tui.BuildApplication(commitHistory)
