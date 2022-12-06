@@ -26,9 +26,9 @@ go build openapi-changes.go
 
 ### 3. Run the code using example git history
 
-First argument is a path to the git repo (use the local repo via './')
+First argument is a path to the git repo (use the local repo via `.`)
 
-Second argument is a path to the OpenAPI Spec from the repo root (sample-specs/petstorev3.json)
+Second argument is a path to the OpenAPI Spec from the repo root (`sample-specs/petstorev3.json`)
 
 
 ```bash
@@ -49,9 +49,9 @@ See a left / right comparison between two specifications.
 
 ## Terminal UI Controls
 
-* Up / Down to select Revision
-* Enter to select Revision
-* Up / Down to select Change
-* Enter to select Change
-* Esc to focus back on revisions
-* Esc or Ctrl-C to quit.
+* `Up` / `Down` to select Revision
+* `Enter` to select Revision
+* `Up` / `Down` to select Change
+* `Enter` to select Change
+* `Esc` to focus back on revisions
+* `Esc` or `Ctrl-C` to quit.
