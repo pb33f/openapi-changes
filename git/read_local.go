@@ -96,7 +96,15 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.Sp
         }
         commitHistory[c].Data = ou.Bytes()
     }
+    errors := BuildCommitChangelog(commitHistory)
+    if len(errors) > 0 {
+        return errors
+    }
+    printer.UpdateText(fmt.Sprintf("Parsed %d commits", len(commitHistory)))
+    return nil
+}
 
+func BuildCommitChangelog(commitHistory []*model.Commit) []error {
     var errors []error
     for c := len(commitHistory) - 1; c > -1; c-- {
         var oldBits, newBits []byte
@@ -109,8 +117,6 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.Sp
         }
 
         var oldDoc, newDoc libopenapi.Document
-
-        printer.UpdateText(fmt.Sprintf("Processing commit: %s", commitHistory[c].Hash))
 
         var err error
         if len(oldBits) > 0 && len(newBits) > 0 {
@@ -148,9 +154,7 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.Sp
 
         // run vacuum stats
         commitHistory[c].QualityReport = builder.CheckStats(newDoc.GetSpecInfo())
-
     }
-    printer.UpdateText(fmt.Sprintf("Parsed %d commits", len(commitHistory)))
     return nil
 }
 

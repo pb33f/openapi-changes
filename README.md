@@ -21,17 +21,37 @@ cd openapi-changes
 ### 2. Build the code
 
 ```bash
-go build -o openapi-changes main.go
+go build openapi-changes.go
 ```
 
-### 3. Run the code using example
+### 3. Run the code using example git history
+
+First argument is a path to the git repo (use the local repo via './')
+
+Second argument is a path to the OpenAPI Spec from the repo root (sample-specs/petstorev3.json)
+
 
 ```bash
-./openapi-changes console -r . -f sample-specs/petstorev3.json
+./openapi-changes console . sample-specs/petstorev3.json
 ```
-
-> `-r` is the path to the root of the git repo that holds the OpenAPI spec.
-
-> `-f` is the path to the OpenAPI spec (from the root of the repo)
-
 View the example changes made to the OpenAPI spec, over time.
+
+### 3. Run the code using original and changes files (left/right)
+
+First argument is the original OpenAPI spec file
+
+First argument is the new / updated OpenAPI spec file
+
+```bash
+./openapi-changes console sample-specs/petstorev3-original.json sample-specs/petstorev3.json
+```
+See a left / right comparison between two specifications.
+
+## Terminal UI Controls
+
+* Up / Down to select Revision
+* Enter to select Revision
+* Up / Down to select Change
+* Enter to select Change
+* Esc to focus back on revisions
+* Esc or Ctrl-C to quit.

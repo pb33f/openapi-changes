@@ -7,9 +7,13 @@ import (
     "errors"
     "fmt"
     "github.com/pb33f/openapi-changes/git"
+    "github.com/pb33f/openapi-changes/model"
     "github.com/pb33f/openapi-changes/tui"
     "github.com/pterm/pterm"
     "github.com/spf13/cobra"
+    "github.com/twinj/uuid"
+    "os"
+    "time"
 )
 
 func GetConsoleCommand() *cobra.Command {
@@ -24,33 +28,113 @@ func GetConsoleCommand() *cobra.Command {
         Example: "openapi-changes console -r /path/to/git/repo -f path/to/file/in/repo/openapi.yaml",
         RunE: func(cmd *cobra.Command, args []string) error {
 
-            gitPath, _ := cmd.Flags().GetString("repo")
-            filePath, _ := cmd.Flags().GetString("file")
-
-            if gitPath == "" || filePath == "" {
-                err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
-                pterm.Error.Println(err.Error())
-                return err
+            // check for two args (left and right)
+            if len(args) < 2 {
+                pterm.Error.Println("Two arguments are required to compare left and right OpenAPI Specifications.")
+                return nil
             }
+            if len(args) == 2 {
 
-            spinner, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Extracting history for '%s' in repo '%s",
-                filePath, gitPath))
+                // check if the first arg is a directory, if so - process as a git history operation.
+                p := args[0]
+                f, err := os.Stat(p)
+                if err != nil {
+                    pterm.Error.Printf("Cannot open file/repository: '%s'", args[0])
+                    return err
+                }
 
-            // build commit history.
-            commitHistory := git.ExtractHistoryFromFile(gitPath, filePath)
+                if f.IsDir() {
 
-            // populate history with changes and data
-            git.PopulateHistoryWithChanges(commitHistory, spinner)
+                    p = args[1]
+                    f, err = os.Stat(p)
+                    if err != nil {
+                        pterm.Error.Printf("Cannot open file/repository: '%s'", args[1])
+                        return err
+                    }
 
-            spinner.Success() // Resolve spinner with success message.
-            app := tui.BuildApplication(commitHistory)
-            if err := app.Run(); err != nil {
-                panic(err)
+                    return runGitHistory(args[0], args[1])
+
+                } else {
+                    errs := runLeftRightCompare(args[0], args[1])
+                    if len(errs) > 0 {
+                        for e := range errs {
+                            pterm.Error.Println(errs[e].Error())
+                        }
+                        return errors.New("unable to process specifications")
+                    }
+                    return nil
+                }
             }
+            pterm.Error.Println("too many arguments, expecting two (2)")
             return nil
         },
     }
     cmd.Flags().StringP("repo", "r", "", "Path to git repo root where spec is held")
     cmd.Flags().StringP("file", "f", "", "Path to file from within repo")
     return cmd
+}
+
+func runGitHistory(gitPath, filePath string) error {
+    if gitPath == "" || filePath == "" {
+        err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
+        pterm.Error.Println(err.Error())
+        return err
+    }
+
+    spinner, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Extracting history for '%s' in repo '%s",
+        filePath, gitPath))
+
+    // build commit history.
+    commitHistory := git.ExtractHistoryFromFile(gitPath, filePath)
+
+    // populate history with changes and data
+    git.PopulateHistoryWithChanges(commitHistory, spinner)
+
+    spinner.Success() // Resolve spinner with success message.
+    app := tui.BuildApplication(commitHistory)
+    if err := app.Run(); err != nil {
+        panic(err)
+    }
+    return nil
+}
+
+func runLeftRightCompare(left, right string) []error {
+
+    var leftBytes, rightBytes []byte
+    var errs []error
+    var err error
+
+    leftBytes, err = os.ReadFile(left)
+    if err != nil {
+        return []error{err}
+    }
+    rightBytes, err = os.ReadFile(right)
+    if err != nil {
+        return []error{err}
+    }
+
+    commits := []*model.Commit{
+        {
+            Hash:       uuid.NewV4().String()[:6],
+            Message:    fmt.Sprintf("New: %s, Original: %s", right, left),
+            CommitDate: time.Now(),
+            Data:       rightBytes,
+        },
+        {
+            Hash:       uuid.NewV4().String()[:6],
+            Message:    fmt.Sprintf("Original file: %s", left),
+            CommitDate: time.Now(),
+            Data:       leftBytes,
+        },
+    }
+
+    errs = git.BuildCommitChangelog(commits)
+    if len(errs) > 0 {
+        return errs
+    }
+    app := tui.BuildApplication(commits)
+    if err := app.Run(); err != nil {
+        return []error{err}
+    }
+    return nil
 }

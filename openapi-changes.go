@@ -4,8 +4,8 @@
 package main
 
 import (
-    "time"
     "github.com/pb33f/openapi-changes/cmd"
+    "time"
 )
 
 var version string
