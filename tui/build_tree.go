@@ -8,12 +8,12 @@ import (
     "github.com/gdamore/tcell/v2"
     "github.com/pb33f/libopenapi"
     whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
+    "github.com/pb33f/openapi-changes/model"
     "github.com/rivo/tview"
     "golang.org/x/text/cases"
     "golang.org/x/text/language"
     "reflect"
     "strings"
-    "github.com/pb33f/openapi-changes/model"
 )
 
 func BuildTreeView(commit *model.Commit) *tview.TreeView {
@@ -84,10 +84,6 @@ func buildTreeNode(root *tview.TreeNode, object any) *tview.TreeNode {
         case reflect.TypeOf(&whatChangedModel.ComponentsChanges{}):
             node := CreateNode("Components", object)
             DigIntoObject[whatChangedModel.ComponentsChanges](root, node, field)
-
-        case reflect.TypeOf(&whatChangedModel.ItemsChanges{}):
-            node := CreateNode("Items", object)
-            DigIntoObject[whatChangedModel.ItemsChanges](root, node, field)
 
         case reflect.TypeOf(&whatChangedModel.RequestBodyChanges{}):
             node := CreateNode("Request Bodies", object)

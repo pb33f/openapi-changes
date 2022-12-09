@@ -54,7 +54,7 @@ func GetConsoleCommand() *cobra.Command {
                         return err
                     }
 
-                    return runGitHistory(args[0], args[1], latestFlag)
+                    return runGitHistoryConsole(args[0], args[1], latestFlag)
 
                 } else {
                     errs := runLeftRightCompare(args[0], args[1])
@@ -75,7 +75,7 @@ func GetConsoleCommand() *cobra.Command {
     return cmd
 }
 
-func runGitHistory(gitPath, filePath string, latest bool) error {
+func runGitHistoryConsole(gitPath, filePath string, latest bool) error {
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
         pterm.Error.Println(err.Error())
