@@ -50,6 +50,35 @@ First argument is the new / updated OpenAPI spec file
 ```
 See a left / right comparison between two specifications.
 
+## See a summary of changes
+
+Looking to use this tool as part of a CI/CD pipeline? Use the `summary` command instead of the 
+console to print out a summary of changes, including breaking changes.
+
+If any breaking changes are found, then an exit code of 1 is returned that should fail any CI/CD
+pipeline job.
+
+The command functions the same as `console` except results are printed out to the console, it's not
+interactive, not as detailed and will return an exit code of 1 with any breaking changes.
+
+Left / right file comparison:
+
+```bash
+./openapi-changes summary sample-specs/petstorev3-original.json sample-specs/petstorev3.json
+```
+
+or git history for all time:
+
+```bash
+./openapi-changes summary ./ sample-specs/petstorev3.json
+```
+
+or just the latest revision:
+
+```bash
+./openapi-changes -t summary sample-specs/petstorev3-original.json sample-specs/petstorev3.json
+```
+
 ## Terminal UI Controls
 
 * `Up` / `Down` to select Revision
