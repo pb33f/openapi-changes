@@ -4,28 +4,29 @@
 package cmd
 
 import (
+    "encoding/json"
     "errors"
     "fmt"
+    "github.com/pb33f/libopenapi/what-changed/reports"
     "github.com/pb33f/openapi-changes/git"
     "github.com/pb33f/openapi-changes/model"
-    "github.com/pb33f/openapi-changes/tui"
     "github.com/pterm/pterm"
     "github.com/spf13/cobra"
     "github.com/twinj/uuid"
     "os"
+    "path"
     "time"
 )
 
-func GetConsoleCommand() *cobra.Command {
+func GetReportCommand() *cobra.Command {
 
     cmd := &cobra.Command{
         SilenceUsage:  true,
         SilenceErrors: false,
-        Use:           "console",
-        Short:         "Interact with OpenAPI changes in an interactive terminal UI",
-        Long: "Navigate though a single change or many changes visually. Explore" +
-            " Each change, and see a side by side rendering of each change.",
-        Example: "openapi-changes console /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+        Use:           "report",
+        Short:         "Generate a machine readable report for what has changed",
+        Long:          "Generate a report for what has changed between two OpenAPI specs, or a single spec, over time.",
+        Example:       "openapi-changes report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
         RunE: func(cmd *cobra.Command, args []string) error {
 
             // check for two args (left and right)
@@ -55,16 +56,29 @@ func GetConsoleCommand() *cobra.Command {
                         return err
                     }
 
-                    return runGitHistoryConsole(args[0], args[1], latestFlag, includeQuality)
+                    report, er := runGitHistoryReport(args[0], args[1], latestFlag, includeQuality)
+
+                    if er != nil {
+                        pterm.Error.Println(er.Error())
+                        return er
+                    }
+
+                    jsonBytes, _ := json.MarshalIndent(report, "", "  ")
+                    fmt.Println(string(jsonBytes))
+                    return nil
 
                 } else {
-                    errs := runLeftRightCompare(args[0], args[1], includeQuality)
+
+                    report, errs := runLeftRightReport(args[0], args[1], includeQuality)
                     if len(errs) > 0 {
                         for e := range errs {
                             pterm.Error.Println(errs[e].Error())
                         }
                         return errors.New("unable to process specifications")
                     }
+
+                    jsonBytes, _ := json.MarshalIndent(report, "", "  ")
+                    fmt.Println(string(jsonBytes))
                     return nil
                 }
             }
@@ -72,39 +86,57 @@ func GetConsoleCommand() *cobra.Command {
             return nil
         },
     }
-
     return cmd
 }
 
-func runGitHistoryConsole(gitPath, filePath string, latest, quality bool) error {
+type Report struct {
+    Summary map[string]*reports.Changed `json:"reportSummary"`
+    Commit  *model.Commit               `json:"commitDetails"`
+}
+
+type HistoricalReport struct {
+    GitRepoPath   string    `json:"gitRepoPath"`
+    GitFilePath   string    `json:"gitFilePath"`
+    Filename      string    `json:"filename"`
+    DateGenerated string    `json:"dateGenerated"`
+    Reports       []*Report `json:"reports"`
+}
+
+func runGitHistoryReport(gitPath, filePath string, latest bool, quality bool) (*HistoricalReport, error) {
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
         pterm.Error.Println(err.Error())
-        return err
+        return nil, err
     }
-
-    spinner, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Extracting history for '%s' in repo '%s",
-        filePath, gitPath))
 
     // build commit history.
     commitHistory := git.ExtractHistoryFromFile(gitPath, filePath)
 
     // populate history with changes and data
-    git.PopulateHistoryWithChanges(commitHistory, spinner, quality)
+    git.PopulateHistoryWithChanges(commitHistory, nil, quality)
 
     if latest {
         commitHistory = commitHistory[:1]
     }
 
-    spinner.Success() // Resolve spinner with success message.
-    app := tui.BuildApplication(commitHistory)
-    if err := app.Run(); err != nil {
-        panic(err)
+    var reports []*Report
+    for r := range commitHistory {
+        if commitHistory[r].Changes != nil {
+            reports = append(reports, createReport(commitHistory[r]))
+        }
     }
-    return nil
+
+    return &HistoricalReport{
+        GitRepoPath:   gitPath,
+        GitFilePath:   filePath,
+        Filename:      path.Base(filePath),
+        DateGenerated: time.Now().String(),
+        Reports:       reports,
+    }, nil
+
 }
 
-func runLeftRightCompare(left, right string, quality bool) []error {
+func runLeftRightReport(left, right string, quality bool) (*Report, []error) {
 
     var leftBytes, rightBytes []byte
     var errs []error
@@ -112,11 +144,11 @@ func runLeftRightCompare(left, right string, quality bool) []error {
 
     leftBytes, err = os.ReadFile(left)
     if err != nil {
-        return []error{err}
+        return nil, []error{err}
     }
     rightBytes, err = os.ReadFile(right)
     if err != nil {
-        return []error{err}
+        return nil, []error{err}
     }
 
     commits := []*model.Commit{
@@ -136,11 +168,16 @@ func runLeftRightCompare(left, right string, quality bool) []error {
 
     errs = git.BuildCommitChangelog(commits, quality)
     if len(errs) > 0 {
-        return errs
+        return nil, errs
     }
-    app := tui.BuildApplication(commits)
-    if err := app.Run(); err != nil {
-        return []error{err}
+    return createReport(commits[0]), nil
+}
+
+func createReport(commit *model.Commit) *Report {
+    // wipe the bytes out from the specInfo instance in the vacuum report.
+    if commit.QualityReport != nil {
+        commit.QualityReport.SpecInfo.SpecBytes = nil
     }
-    return nil
+    report := reports.CreateOverallReport(commit.Changes)
+    return &Report{report.ChangeReport, commit}
 }

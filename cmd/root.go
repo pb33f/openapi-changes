@@ -42,7 +42,9 @@ func init() {
     cobra.OnInitialize(initConfig)
     rootCmd.AddCommand(GetConsoleCommand())
     rootCmd.AddCommand(GetSummaryCommand())
+    rootCmd.AddCommand(GetReportCommand())
     rootCmd.PersistentFlags().BoolP("top", "t", false, "Only show latest changes (last git revision against HEAD)")
+    rootCmd.PersistentFlags().BoolP("quality", "q", false, "Include a vacuum quality report for each revision")
 
 }
 

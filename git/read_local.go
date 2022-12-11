@@ -83,7 +83,7 @@ func ExtractHistoryFromFile(repoDirectory, filePath string) []*model.Commit {
     return commitHistory
 }
 
-func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.SpinnerPrinter) []error {
+func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.SpinnerPrinter, quality bool) []error {
     for c := range commitHistory {
         cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", commitHistory[c].Hash, commitHistory[c].FilePath))
         var ou, er bytes.Buffer
@@ -96,15 +96,17 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.Sp
         }
         commitHistory[c].Data = ou.Bytes()
     }
-    errors := BuildCommitChangelog(commitHistory)
+    errors := BuildCommitChangelog(commitHistory, quality)
     if len(errors) > 0 {
         return errors
     }
-    printer.UpdateText(fmt.Sprintf("Parsed %d commits", len(commitHistory)))
+    if printer != nil {
+        printer.UpdateText(fmt.Sprintf("Parsed %d commits", len(commitHistory)))
+    }
     return nil
 }
 
-func BuildCommitChangelog(commitHistory []*model.Commit) []error {
+func BuildCommitChangelog(commitHistory []*model.Commit, quality bool) []error {
     var errors []error
     for c := len(commitHistory) - 1; c > -1; c-- {
         var oldBits, newBits []byte
@@ -153,7 +155,9 @@ func BuildCommitChangelog(commitHistory []*model.Commit) []error {
         }
 
         // run vacuum stats
-        commitHistory[c].QualityReport = builder.CheckStats(newDoc.GetSpecInfo())
+        if quality {
+            commitHistory[c].QualityReport = builder.CheckStats(newDoc.GetSpecInfo())
+        }
     }
     return nil
 }

@@ -11,15 +11,15 @@ import (
 )
 
 type Commit struct {
-    Hash          string
-    Message       string
-    CommitDate    time.Time
-    Data          []byte
-    OldData       []byte
-    Document      libopenapi.Document
-    OldDocument   libopenapi.Document
-    Changes       *model.DocumentChanges
-    QualityReport *vacuum_report.VacuumReport
-    RepoDirectory string
-    FilePath      string
+    Hash          string                      `json:"commitHash"`
+    Message       string                      `json:"message"`
+    CommitDate    time.Time                   `json:"committed"`
+    QualityReport *vacuum_report.VacuumReport `json:"qualityReport,omitempty"`
+    Changes       *model.DocumentChanges      `json:"changeReport"`
+    Data          []byte                      `json:"-"`
+    OldData       []byte                      `json:"-"`
+    Document      libopenapi.Document         `json:"-"`
+    OldDocument   libopenapi.Document         `json:"-"`
+    RepoDirectory string                      `json:"-"`
+    FilePath      string                      `json:"-"`
 }

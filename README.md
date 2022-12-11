@@ -79,6 +79,33 @@ or just the latest revision:
 ./openapi-changes -t summary sample-specs/petstorev3-original.json sample-specs/petstorev3.json
 ```
 
+## Generate a machine-readable report
+
+Want to build an app that can use the change report? Then use the `report` command to generate a JSON
+report that is ready for importing into any other app for use. 
+
+All the same options as the other commands above.
+
+Left / right file comparison:
+
+> These examples use `jq` to make the output easier to read on a screen.
+
+```bash
+./openapi-changes report sample-specs/petstorev3-original.json sample-specs/petstorev3.json | jq
+```
+
+or git history for all time:
+
+```bash
+./openapi-changes report ./ sample-specs/petstorev3.json | jq
+```
+
+or just the latest revision:
+
+```bash
+./openapi-changes -t report sample-specs/petstorev3-original.json sample-specs/petstorev3.json | jq
+```
+
 ## Terminal UI Controls
 
 * `Up` / `Down` to select Revision

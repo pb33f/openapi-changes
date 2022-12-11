@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/daveshanley/vacuum v0.0.40
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
-	github.com/pb33f/libopenapi v0.4.1-0.20221209194538-646b7ab01ba9
+	github.com/pb33f/libopenapi v0.4.1-0.20221211155828-5259ab15102a
 	github.com/pterm/pterm v0.12.47
 	github.com/rivo/tview v0.0.0-20221117065207-09f052e6ca98
 	github.com/spf13/cobra v1.6.1

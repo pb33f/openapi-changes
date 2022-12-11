@@ -23,7 +23,7 @@ func GetSummaryCommand() *cobra.Command {
         SilenceErrors: false,
         Use:           "summary",
         Short:         "See a summary of changes",
-        Long:          "explore ",
+        Long:          "print a summary of what changed, view a simple tree of changes and summary",
         Example:       "openapi-changes summary /path/to/git/repo path/to/file/in/repo/openapi.yaml",
         RunE: func(cmd *cobra.Command, args []string) error {
 
@@ -35,6 +35,7 @@ func GetSummaryCommand() *cobra.Command {
             if len(args) == 2 {
 
                 latestFlag, _ := cmd.Flags().GetBool("top")
+                includeQuality, _ := cmd.Flags().GetBool("quality")
 
                 // check if the first arg is a directory, if so - process as a git history operation.
                 p := args[0]
@@ -53,7 +54,7 @@ func GetSummaryCommand() *cobra.Command {
                         return err
                     }
 
-                    err = runGitHistorySummary(args[0], args[1], latestFlag)
+                    err = runGitHistorySummary(args[0], args[1], latestFlag, includeQuality)
 
                     if err != nil {
                         pterm.Error.Println(err.Error())
@@ -61,7 +62,7 @@ func GetSummaryCommand() *cobra.Command {
                     }
                 } else {
 
-                    errs := runLeftRightSummary(args[0], args[1])
+                    errs := runLeftRightSummary(args[0], args[1], includeQuality)
                     if len(errs) > 0 {
                         for e := range errs {
                             pterm.Error.Println(errs[e].Error())
@@ -78,7 +79,7 @@ func GetSummaryCommand() *cobra.Command {
     return cmd
 }
 
-func runLeftRightSummary(left, right string) []error {
+func runLeftRightSummary(left, right string, quality bool) []error {
 
     var leftBytes, rightBytes []byte
     var errs []error
@@ -108,7 +109,7 @@ func runLeftRightSummary(left, right string) []error {
         },
     }
 
-    errs = git.BuildCommitChangelog(commits)
+    errs = git.BuildCommitChangelog(commits, quality)
     if len(errs) > 0 {
         return errs
     }
@@ -119,7 +120,7 @@ func runLeftRightSummary(left, right string) []error {
     return nil
 }
 
-func runGitHistorySummary(gitPath, filePath string, latest bool) error {
+func runGitHistorySummary(gitPath, filePath string, latest, quality bool) error {
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
         pterm.Error.Println(err.Error())
@@ -133,7 +134,7 @@ func runGitHistorySummary(gitPath, filePath string, latest bool) error {
     commitHistory := git.ExtractHistoryFromFile(gitPath, filePath)
 
     // populate history with changes and data
-    git.PopulateHistoryWithChanges(commitHistory, spinner)
+    git.PopulateHistoryWithChanges(commitHistory, spinner, quality)
 
     if latest {
         commitHistory = commitHistory[:1]
@@ -171,7 +172,7 @@ func printSummaryDetails(commitHistory []*model.Commit) error {
             pterm.Printf("Date: %s | Commit: %s\n",
                 commitHistory[c].CommitDate.Format("01/02/06"),
                 commitHistory[c].Message)
-            pterm.DefaultTable.WithHasHeader().WithData(tableData).Render()
+            _ = pterm.DefaultTable.WithHasHeader().WithData(tableData).Render()
             if breaking == 0 {
                 pterm.Info.Printf("Total Changes: %d\n", total)
             } else {
