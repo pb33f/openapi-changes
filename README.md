@@ -2,9 +2,9 @@
 
 See what has changed with your OpenAPI Specification, between a single change, or for all time!
 
-This is a prototype for now, please ignore me!
+> This is **EARLY CODE** and an early tool.
 
-However, if you do want to try out this very early code?
+However, if you do want to try out this early code?
 
 ### 1. Clone the repo
 
