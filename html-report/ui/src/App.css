@@ -1,0 +1,160 @@
+
+
+#main_container {
+  padding: 25px;
+  font-family: var(--font-stack);
+}
+
+
+hr {
+  border: none;
+  border-bottom: 1px dashed var(--secondary-color);
+}
+
+.height-200 {
+  height: 200px;
+}
+
+.height-300 {
+  height: 300px;
+}
+
+.height-400 {
+  height: 400px;
+}
+
+.height-500 {
+  height: 500px;
+}
+
+.width-100 {
+  width: 100px;
+}
+
+.width-150 {
+  width: 150px;
+}
+
+.m-top-20 {
+  margin-top: 20px;
+}
+
+.m-bottom-20 {
+  margin-bottom: 20px;
+}
+
+.width-200 {
+  width: 200px;
+}
+
+.width-300 {
+  width: 300px;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-wrap {
+  flex-flow: wrap;
+}
+
+.flex-center {
+  justify-content: center;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#flow {
+  width: 100%;
+  height: 100vh;
+}
+.App {
+  text-align: center;
+  width: 100%;
+  height: 100%;
+
+}
+
+.node {
+ position: fixed;
+  pointer-events: none;
+}
+
+.node:hover {
+  border: 1px solid red;
+}
+
+.node > svg {
+  height: 1.3em;
+  width: 1.3em;
+  vertical-align: middle;
+}
+
+
+.ant-tabs-tab {
+  border-radius: 0px!important;
+  background: var(--background-color)!important;
+  border: 1px dashed var(--secondary-color-very-lowalpha)!important;
+  border-bottom: 1px dashed var(--secondary-color)!important;
+}
+.ant-tabs-tab-active {
+  /*margin-bottom: 10px!important;*/
+  border: 1px dashed var(--secondary-color)!important;
+  border-bottom: 1px dashed var(--background-color)!important;
+
+}
+.ant-tabs-nav::before {
+  border-bottom: 1px dashed var(--secondary-color)!important;
+}
+
+
+.App-logo {
+height: 40vmin;
+pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+.App-logo {
+animation: App-logo-spin infinite 20s linear;
+}
+}
+
+.App-header {
+background-color: #0d1117;
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+font-size: calc(10px + 2vmin);
+color: white;
+}
+
+.App-link {
+color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+from {
+transform: rotate(0deg);
+}
+to {
+transform: rotate(360deg);
+}
+}

@@ -1,0 +1,841 @@
+{
+  "gitRepoPath": ".",
+  "gitFilePath": "sample-specs/petstorev3.json",
+  "filename": "petstorev3.json",
+  "dateGenerated": "2022-12-17 15:17:40.9785557 -0500 EST m=+0.550274901",
+  "reports": [
+    {
+      "reportSummary": {
+        "paths": {
+          "totalChanges": 10,
+          "breakingChanges": 5
+        }
+      },
+      "commitDetails": {
+        "commitHash": "586a2c3",
+        "message": "And now it's generally wrecked. But what a fun journey.",
+        "committed": "2022-12-04T10:05:00Z",
+        "changeReport": {
+          "paths": {
+            "pathItems": {
+              "/pet/{petId}": {
+                "get": {
+                  "changes": [
+                    {
+                      "context": {
+                        "originalLine": 301,
+                        "originalColumn": 24,
+                        "newLine": 301,
+                        "newColumn": 24
+                      },
+                      "change": 1,
+                      "property": "description",
+                      "original": "Returns a single pet",
+                      "new": "Returns a single pet, and hopefully no more jazz.",
+                      "breaking": false
+                    }
+                  ],
+                  "parameters": [
+                    {
+                      "changes": [
+                        {
+                          "context": {
+                            "originalLine": 308,
+                            "originalColumn": 25,
+                            "newLine": 308,
+                            "newColumn": 25
+                          },
+                          "change": 1,
+                          "property": "required",
+                          "original": "true",
+                          "new": "false",
+                          "breaking": true
+                        }
+                      ],
+                      "schemas": {
+                        "changes": [
+                          {
+                            "context": {
+                              "originalLine": 311,
+                              "originalColumn": 25,
+                              "newLine": 311,
+                              "newColumn": 25
+                            },
+                            "change": 1,
+                            "property": "format",
+                            "original": "int64",
+                            "new": "int32",
+                            "breaking": true
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "securityRequirements": [
+                    {
+                      "changes": [
+                        {
+                          "context": {
+                            "newLine": 346,
+                            "newColumn": 15
+                          },
+                          "change": 3,
+                          "property": "security",
+                          "new": "eat:tacos",
+                          "breaking": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "/pet/{petId}/uploadImage": {
+                "changes": [
+                  {
+                    "context": {
+                      "newLine": 402,
+                      "newColumn": 14
+                    },
+                    "change": 2,
+                    "property": "put",
+                    "breaking": false
+                  },
+                  {
+                    "context": {
+                      "originalLine": 401,
+                      "originalColumn": 15
+                    },
+                    "change": 5,
+                    "property": "post",
+                    "breaking": true
+                  }
+                ]
+              },
+              "/store/order/{orderId}": {
+                "get": {
+                  "responses": {
+                    "changes": [
+                      {
+                        "context": {
+                          "originalLine": 575,
+                          "originalColumn": 18
+                        },
+                        "change": 4,
+                        "property": "codes",
+                        "original": "404",
+                        "breaking": true
+                      }
+                    ],
+                    "response": {
+                      "400": {
+                        "changes": [
+                          {
+                            "context": {
+                              "originalLine": 573,
+                              "originalColumn": 28,
+                              "newLine": 574,
+                              "newColumn": 28
+                            },
+                            "change": 1,
+                            "property": "description",
+                            "original": "Invalid ID supplied",
+                            "new": "Invalid ID supplied and all the jazz has gone.",
+                            "breaking": false
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "delete": {
+                  "parameters": [
+                    {
+                      "changes": [
+                        {
+                          "context": {
+                            "originalLine": 592,
+                            "originalColumn": 25,
+                            "newLine": 590,
+                            "newColumn": 25
+                          },
+                          "change": 1,
+                          "property": "required",
+                          "original": "true",
+                          "new": "false",
+                          "breaking": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "/user/{username}": {
+                "delete": {
+                  "changes": [
+                    {
+                      "context": {
+                        "newLine": 868,
+                        "newColumn": 11
+                      },
+                      "change": 2,
+                      "property": "tags",
+                      "new": "cookies",
+                      "breaking": false
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "reportSummary": {
+        "components": {
+          "totalChanges": 6,
+          "breakingChanges": 2
+        },
+        "paths": {
+          "totalChanges": 5,
+          "breakingChanges": 3
+        }
+      },
+      "commitDetails": {
+        "commitHash": "89e8d64",
+        "message": "Deleting some things, doing a ton of damage.",
+        "committed": "2022-12-04T10:05:10Z",
+        "changeReport": {
+          "paths": {
+            "pathItems": {
+              "/pet": {
+                "changes": [
+                  {
+                    "context": {
+                      "originalLine": 120,
+                      "originalColumn": 15
+                    },
+                    "change": 5,
+                    "property": "post",
+                    "breaking": true
+                  },
+                  {
+                    "context": {
+                      "newLine": 120,
+                      "newColumn": 16
+                    },
+                    "change": 2,
+                    "property": "patch",
+                    "breaking": false
+                  }
+                ]
+              },
+              "/pet/findByTags": {
+                "changes": [
+                  {
+                    "context": {
+                      "originalLine": 235,
+                      "originalColumn": 14
+                    },
+                    "change": 5,
+                    "property": "get",
+                    "breaking": true
+                  },
+                  {
+                    "context": {
+                      "newLine": 236,
+                      "newColumn": 15
+                    },
+                    "change": 2,
+                    "property": "post",
+                    "breaking": false
+                  }
+                ]
+              },
+              "/pet/{petId}": {
+                "changes": [
+                  {
+                    "context": {
+                      "originalLine": 398,
+                      "originalColumn": 17
+                    },
+                    "change": 5,
+                    "property": "delete",
+                    "breaking": true
+                  }
+                ]
+              }
+            }
+          },
+          "components": {
+            "schemas": {
+              "Pet": {
+                "changes": [
+                  {
+                    "context": {
+                      "originalLine": 1105,
+                      "originalColumn": 11
+                    },
+                    "change": 5,
+                    "property": "required",
+                    "original": "photoUrls",
+                    "breaking": true
+                  },
+                  {
+                    "context": {
+                      "newLine": 1072,
+                      "newColumn": 11
+                    },
+                    "change": 3,
+                    "property": "properties",
+                    "new": "jazz",
+                    "breaking": false
+                  },
+                  {
+                    "context": {
+                      "originalLine": 1114,
+                      "originalColumn": 11
+                    },
+                    "change": 4,
+                    "property": "properties",
+                    "original": "name",
+                    "breaking": true
+                  }
+                ],
+                "properties": {
+                  "status": {
+                    "changes": [
+                      {
+                        "context": {
+                          "newLine": 1107,
+                          "newColumn": 15
+                        },
+                        "change": 2,
+                        "property": "enum",
+                        "new": "jazzedOut",
+                        "breaking": false
+                      }
+                    ]
+                  }
+                }
+              },
+              "User": {
+                "properties": {
+                  "email": {
+                    "changes": [
+                      {
+                        "context": {
+                          "originalLine": 1066,
+                          "originalColumn": 24,
+                          "newLine": 1025,
+                          "newColumn": 24
+                        },
+                        "change": 1,
+                        "property": "example",
+                        "original": "john@email.com",
+                        "new": "john@jazzclubinjazztown.com",
+                        "breaking": false
+                      }
+                    ]
+                  },
+                  "password": {
+                    "changes": [
+                      {
+                        "context": {
+                          "originalLine": 1070,
+                          "originalColumn": 24,
+                          "newLine": 1029,
+                          "newColumn": 24
+                        },
+                        "change": 1,
+                        "property": "example",
+                        "original": "12345",
+                        "new": "JAZZCLUB",
+                        "breaking": false
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "reportSummary": {
+        "components": {
+          "totalChanges": 3,
+          "breakingChanges": 1
+        },
+        "paths": {
+          "totalChanges": 10,
+          "breakingChanges": 6
+        }
+      },
+      "commitDetails": {
+        "commitHash": "010bbe9",
+        "message": "Deleting a bunch of stuff is always fun",
+        "committed": "2022-12-04T10:05:44Z",
+        "changeReport": {
+          "paths": {
+            "pathItems": {
+              "/pet": {
+                "post": {
+                  "responses": {
+                    "changes": [
+                      {
+                        "context": {
+                          "originalLine": 164,
+                          "originalColumn": 18
+                        },
+                        "change": 4,
+                        "property": "codes",
+                        "original": "405",
+                        "breaking": true
+                      }
+                    ]
+                  }
+                }
+              },
+              "/pet/findByStatus": {
+                "get": {
+                  "responses": {
+                    "changes": [
+                      {
+                        "context": {
+                          "originalLine": 226,
+                          "originalColumn": 18
+                        },
+                        "change": 4,
+                        "property": "codes",
+                        "original": "400",
+                        "breaking": true
+                      }
+                    ]
+                  }
+                }
+              },
+              "/user/login": {
+                "get": {
+                  "changes": [
+                    {
+                      "context": {
+                        "originalLine": 750,
+                        "originalColumn": 20,
+                        "newLine": 744,
+                        "newColumn": 20
+                      },
+                      "change": 1,
+                      "property": "summary",
+                      "original": "Logs user into the system",
+                      "new": "Logs user into the system, without jazz",
+                      "breaking": false
+                    }
+                  ],
+                  "parameters": [
+                    {
+                      "schemas": {
+                        "changes": [
+                          {
+                            "context": {
+                              "originalLine": 760,
+                              "originalColumn": 23,
+                              "newLine": 754,
+                              "newColumn": 23
+                            },
+                            "change": 1,
+                            "property": "type",
+                            "original": "string",
+                            "new": "integer",
+                            "breaking": true
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "changes": [
+                        {
+                          "context": {
+                            "originalLine": 767,
+                            "originalColumn": 25,
+                            "newLine": 761,
+                            "newColumn": 25
+                          },
+                          "change": 1,
+                          "property": "required",
+                          "original": "false",
+                          "new": "true",
+                          "breaking": true
+                        }
+                      ]
+                    }
+                  ],
+                  "responses": {
+                    "response": {
+                      "200": {
+                        "changes": [
+                          {
+                            "context": {
+                              "originalLine": 775,
+                              "originalColumn": 28,
+                              "newLine": 769,
+                              "newColumn": 28
+                            },
+                            "change": 1,
+                            "property": "description",
+                            "original": "successful operation",
+                            "new": "successful operation, even if not jazzy",
+                            "breaking": false
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              "/user/{username}": {
+                "get": {
+                  "changes": [
+                    {
+                      "context": {
+                        "originalLine": 834,
+                        "originalColumn": 24,
+                        "newLine": 828,
+                        "newColumn": 24
+                      },
+                      "change": 1,
+                      "property": "operationId",
+                      "original": "getUserByName",
+                      "new": "getUserByNameAndNotJazz",
+                      "breaking": true
+                    }
+                  ]
+                },
+                "delete": {
+                  "changes": [
+                    {
+                      "context": {
+                        "originalLine": 916,
+                        "originalColumn": 11
+                      },
+                      "change": 5,
+                      "property": "tags",
+                      "original": "user",
+                      "breaking": false
+                    },
+                    {
+                      "context": {
+                        "newLine": 910,
+                        "newColumn": 11
+                      },
+                      "change": 2,
+                      "property": "tags",
+                      "new": "jazz",
+                      "breaking": false
+                    },
+                    {
+                      "context": {
+                        "originalLine": 920,
+                        "originalColumn": 24,
+                        "newLine": 914,
+                        "newColumn": 24
+                      },
+                      "change": 1,
+                      "property": "operationId",
+                      "original": "deleteUser",
+                      "new": "deleteUserButNotJazz",
+                      "breaking": true
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "components": {
+            "schemas": {
+              "Customer": {
+                "properties": {
+                  "username": {
+                    "changes": [
+                      {
+                        "context": {
+                          "originalLine": 995,
+                          "originalColumn": 24,
+                          "newLine": 986,
+                          "newColumn": 24
+                        },
+                        "change": 1,
+                        "property": "example",
+                        "original": "fehguy",
+                        "new": "burgers",
+                        "breaking": false
+                      }
+                    ]
+                  }
+                }
+              },
+              "Order": {
+                "changes": [
+                  {
+                    "context": {
+                      "originalLine": 963,
+                      "originalColumn": 11
+                    },
+                    "change": 4,
+                    "property": "properties",
+                    "original": "shipDate",
+                    "breaking": true
+                  }
+                ],
+                "properties": {
+                  "status": {
+                    "changes": [
+                      {
+                        "context": {
+                          "newLine": 965,
+                          "newColumn": 15
+                        },
+                        "change": 2,
+                        "property": "enum",
+                        "new": "burgers",
+                        "breaking": false
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "reportSummary": {
+        "components": {
+          "totalChanges": 1,
+          "breakingChanges": 0
+        },
+        "info": {
+          "totalChanges": 4,
+          "breakingChanges": 0
+        },
+        "paths": {
+          "totalChanges": 6,
+          "breakingChanges": 2
+        },
+        "tags": {
+          "totalChanges": 1,
+          "breakingChanges": 0
+        }
+      },
+      "commitDetails": {
+        "commitHash": "7e9906d",
+        "message": "Do you like Jazz? Lets Jazz up this spec a little.",
+        "committed": "2022-12-04T10:05:32Z",
+        "changeReport": {
+          "info": {
+            "changes": [
+              {
+                "context": {
+                  "originalLine": 4,
+                  "originalColumn": 14,
+                  "newLine": 4,
+                  "newColumn": 14
+                },
+                "change": 1,
+                "property": "title",
+                "original": "Swagger Petstore - OpenAPI 3.0",
+                "new": "Swagger Petstore - OpenAPI 3.0, With More Jazz",
+                "breaking": false
+              },
+              {
+                "context": {
+                  "originalLine": 5,
+                  "originalColumn": 20,
+                  "newLine": 5,
+                  "newColumn": 20
+                },
+                "change": 1,
+                "property": "description",
+                "original": "This is a sample Pet Store Server based on the OpenAPI 3.0 specification.  You can find out more about\nSwagger at [http://swagger.io](http://swagger.io). In the third iteration of the pet store, we've switched to the design first approach!\nYou can now help us improve the API whether it's by making changes to the definition itself or to the code.\nThat way, with time, we can improve the API in general, and expose some of the new features in OAS3.\n\nSome useful links:\n- [The Pet Store repository](https://github.com/swagger-api/swagger-petstore)\n- [The source API definition for the Pet Store](https://github.com/swagger-api/swagger-petstore/blob/master/src/main/resources/openapi.yaml)",
+                "new": "Jazz in the morning, Jazz in the evening.",
+                "breaking": false
+              },
+              {
+                "context": {
+                  "originalLine": 6,
+                  "originalColumn": 23,
+                  "newLine": 6,
+                  "newColumn": 23
+                },
+                "change": 1,
+                "property": "termsOfService",
+                "original": "http://swagger.io/terms/",
+                "new": "http://jazzyjazzjazzy.com",
+                "breaking": false
+              }
+            ],
+            "contact": {
+              "changes": [
+                {
+                  "context": {
+                    "originalLine": 8,
+                    "originalColumn": 16,
+                    "newLine": 8,
+                    "newColumn": 16
+                  },
+                  "change": 1,
+                  "property": "email",
+                  "original": "apiteam@swagger.io",
+                  "new": "jazz@swagger.io",
+                  "breaking": false
+                }
+              ]
+            }
+          },
+          "paths": {
+            "pathItems": {
+              "/pet": {
+                "put": {
+                  "changes": [
+                    {
+                      "context": {
+                        "newLine": 56,
+                        "newColumn": 11
+                      },
+                      "change": 2,
+                      "property": "tags",
+                      "new": "jazz",
+                      "breaking": false
+                    },
+                    {
+                      "context": {
+                        "originalLine": 53,
+                        "originalColumn": 20,
+                        "newLine": 58,
+                        "newColumn": 20
+                      },
+                      "change": 1,
+                      "property": "summary",
+                      "original": "Update an existing pet",
+                      "new": "Update an existing pet, but with Jazz",
+                      "breaking": false
+                    }
+                  ],
+                  "responses": {
+                    "changes": [
+                      {
+                        "context": {
+                          "newLine": 107,
+                          "newColumn": 18
+                        },
+                        "change": 3,
+                        "property": "codes",
+                        "new": "418",
+                        "breaking": false
+                      }
+                    ]
+                  },
+                  "requestBodies": {
+                    "changes": [
+                      {
+                        "context": {
+                          "originalLine": 75,
+                          "originalColumn": 23,
+                          "newLine": 80,
+                          "newColumn": 23
+                        },
+                        "change": 1,
+                        "property": "required",
+                        "original": "true",
+                        "new": "false",
+                        "breaking": true
+                      }
+                    ]
+                  }
+                }
+              },
+              "/pet/findByTags": {
+                "get": {
+                  "changes": [
+                    {
+                      "context": {
+                        "newLine": 244,
+                        "newColumn": 11
+                      },
+                      "change": 2,
+                      "property": "tags",
+                      "new": "jazz",
+                      "breaking": false
+                    }
+                  ],
+                  "parameters": [
+                    {
+                      "schemas": {
+                        "items": {
+                          "changes": [
+                            {
+                              "context": {
+                                "originalLine": 250,
+                                "originalColumn": 25,
+                                "newLine": 259,
+                                "newColumn": 25
+                              },
+                              "change": 1,
+                              "property": "type",
+                              "original": "string",
+                              "new": "int",
+                              "breaking": true
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "tags": [
+            {
+              "changes": [
+                {
+                  "context": {
+                    "newLine": 46,
+                    "newColumn": 5
+                  },
+                  "change": 3,
+                  "property": "jazz",
+                  "breaking": false
+                }
+              ]
+            }
+          ],
+          "components": {
+            "securitySchemes": {
+              "petstore_auth": {
+                "oAuthFlow": {
+                  "implicit": {
+                    "changes": [
+                      {
+                        "context": {
+                          "newLine": 1223,
+                          "newColumn": 29
+                        },
+                        "change": 3,
+                        "property": "scopes",
+                        "new": "enjoy more jazz.",
+                        "breaking": false
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
