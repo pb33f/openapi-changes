@@ -18,18 +18,16 @@ export const DrawerComponent = (props: DrawerProps) => {
     return(
         <>
             <Drawer
-                title="Basic Drawer"
+                title="Change Details"
                 placement="bottom"
                 closable={true}
                 onClose={toggleDrawer}
                 open={drawerOpen}
                 bodyStyle={{background: 'var(--background-color)'}}
-                headerStyle={{background: 'var(--background-color)', border: '1px dashed var(--secondary-color)'}}
+                headerStyle={{background: 'var(--background-color-alpha)', border: '1px dashed var(--secondary-color)'}}
                 mask={false}
             >
-                <p>Some contents...</p>
-                <p>Some contents...</p>
-                <p>Some contents...</p>
+                <p>Data in here.</p>
             </Drawer>
         </>
     );
