@@ -14,7 +14,7 @@ export const GraphViewComponent = (props: GraphViewProps) => {
     return (
         <>
          <HorizontalFlow />
-        <DrawerComponent open={drawerOpen} />
+         <DrawerComponent open={drawerOpen} />
 
             </>
     )

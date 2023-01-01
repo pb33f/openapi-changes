@@ -8,8 +8,6 @@ import (
     v3 "github.com/pb33f/libopenapi/datamodel/low/v3"
     wcModel "github.com/pb33f/libopenapi/what-changed/model"
     "github.com/twinj/uuid"
-    "golang.org/x/text/cases"
-    "golang.org/x/text/language"
     "reflect"
     "strings"
 )
@@ -103,7 +101,7 @@ func exploreGraphObject(parent *NodeData[any], object any, nodes *[]*NodeData[an
 
     v := reflect.ValueOf(object).Elem()
     num := v.NumField()
-    upper := cases.Title(language.English)
+
     for i := 0; i < num; i++ {
         height := 40
         width := 150
@@ -175,19 +173,19 @@ func exploreGraphObject(parent *NodeData[any], object any, nodes *[]*NodeData[an
                 DigIntoObject[wcModel.RequestBodyChanges](parent, field, nodes, upper.String(v3.RequestBodyLabel), edges)
 
             case reflect.TypeOf([]*wcModel.TagChanges{}):
-                BuildSliceTreeNode[wcModel.TagChanges](parent, field, nodes, upper.String(v3.TagsLabel), edges)
+                BuildSliceGraphNode[wcModel.TagChanges](parent, field, nodes, upper.String(v3.TagsLabel), edges)
 
             case reflect.TypeOf([]*wcModel.SchemaChanges{}):
-                BuildSliceTreeNode[wcModel.SchemaChanges](parent, field, nodes, strings.ToUpper(strings.ReplaceAll(fName, "Changes", "")), edges)
+                BuildSliceGraphNode[wcModel.SchemaChanges](parent, field, nodes, strings.ToUpper(strings.ReplaceAll(fName, "Changes", "")), edges)
 
             case reflect.TypeOf([]*wcModel.ServerChanges{}):
-                BuildSliceTreeNode[wcModel.ServerChanges](parent, field, nodes, upper.String(v3.ServersLabel), edges)
+                BuildSliceGraphNode[wcModel.ServerChanges](parent, field, nodes, upper.String(v3.ServersLabel), edges)
 
             case reflect.TypeOf([]*wcModel.SecurityRequirementChanges{}):
-                BuildSliceTreeNode[wcModel.SecurityRequirementChanges](parent, field, nodes, "Security Requirements", edges)
+                BuildSliceGraphNode[wcModel.SecurityRequirementChanges](parent, field, nodes, "Security Requirements", edges)
 
             case reflect.TypeOf([]*wcModel.ParameterChanges{}):
-                BuildSliceTreeNode[wcModel.ParameterChanges](parent, field, nodes, upper.String(v3.ParametersLabel), edges)
+                BuildSliceGraphNode[wcModel.ParameterChanges](parent, field, nodes, upper.String(v3.ParametersLabel), edges)
 
             case reflect.TypeOf(&wcModel.SchemaChanges{}):
                 DigIntoObject[wcModel.SchemaChanges](parent, field, nodes, upper.String(v3.SchemaLabel), edges)
@@ -221,57 +219,57 @@ func exploreGraphObject(parent *NodeData[any], object any, nodes *[]*NodeData[an
 
             case reflect.TypeOf(map[string]*wcModel.PathItemChanges{}):
                 if !field.IsZero() && len(field.MapKeys()) > 0 {
-                    BuildTreeMapNode(parent, field, nodes, edges)
+                    BuildGraphMapNode(parent, field, nodes, edges)
                 }
 
             case reflect.TypeOf(map[string]*wcModel.ResponseChanges{}):
                 if !field.IsZero() && len(field.MapKeys()) > 0 {
-                    BuildTreeMapNode(parent, field, nodes, edges)
+                    BuildGraphMapNode(parent, field, nodes, edges)
                 }
 
             case reflect.TypeOf(map[string]*wcModel.SchemaChanges{}):
                 if !field.IsZero() && len(field.MapKeys()) > 0 {
-                    BuildTreeMapNode(parent, field, nodes, edges)
+                    BuildGraphMapNode(parent, field, nodes, edges)
                 }
 
             case reflect.TypeOf(map[string]*wcModel.CallbackChanges{}):
                 if !field.IsZero() && len(field.MapKeys()) > 0 {
-                    BuildTreeMapNode(parent, field, nodes, edges)
+                    BuildGraphMapNode(parent, field, nodes, edges)
                 }
 
             case reflect.TypeOf(map[string]*wcModel.ExampleChanges{}):
                 if !field.IsZero() && len(field.MapKeys()) > 0 {
-                    BuildTreeMapNode(parent, field, nodes, edges)
+                    BuildGraphMapNode(parent, field, nodes, edges)
                 }
 
             case reflect.TypeOf(map[string]*wcModel.EncodingChanges{}):
                 if !field.IsZero() && len(field.MapKeys()) > 0 {
-                    BuildTreeMapNode(parent, field, nodes, edges)
+                    BuildGraphMapNode(parent, field, nodes, edges)
                 }
 
             case reflect.TypeOf(map[string]*wcModel.HeaderChanges{}):
                 if !field.IsZero() && len(field.MapKeys()) > 0 {
-                    BuildTreeMapNode(parent, field, nodes, edges)
+                    BuildGraphMapNode(parent, field, nodes, edges)
                 }
 
             case reflect.TypeOf(map[string]*wcModel.ServerVariableChanges{}):
                 if !field.IsZero() && len(field.MapKeys()) > 0 {
-                    BuildTreeMapNode(parent, field, nodes, edges)
+                    BuildGraphMapNode(parent, field, nodes, edges)
                 }
 
             case reflect.TypeOf(map[string]*wcModel.MediaTypeChanges{}):
                 if !field.IsZero() && len(field.MapKeys()) > 0 {
-                    BuildTreeMapNode(parent, field, nodes, edges)
+                    BuildGraphMapNode(parent, field, nodes, edges)
                 }
 
             case reflect.TypeOf(map[string]*wcModel.SecuritySchemeChanges{}):
                 if !field.IsZero() && len(field.MapKeys()) > 0 {
-                    BuildTreeMapNode(parent, field, nodes, edges)
+                    BuildGraphMapNode(parent, field, nodes, edges)
                 }
 
             case reflect.TypeOf(map[string]*wcModel.LinkChanges{}):
                 if !field.IsZero() && len(field.MapKeys()) > 0 {
-                    BuildTreeMapNode(parent, field, nodes, edges)
+                    BuildGraphMapNode(parent, field, nodes, edges)
                 }
 
             }
@@ -342,7 +340,7 @@ func DigIntoObject[T any](parent *NodeData[any], field reflect.Value, nodes *[]*
     }
 }
 
-func BuildSliceTreeNode[T any](parent *NodeData[any], field reflect.Value, nodes *[]*NodeData[any], label string, edges *[]*EdgeData[any]) {
+func BuildSliceGraphNode[T any](parent *NodeData[any], field reflect.Value, nodes *[]*NodeData[any], label string, edges *[]*EdgeData[any]) {
     if !field.IsZero() {
         for k := 0; k < field.Len(); k++ {
             f := field.Index(k)
@@ -365,7 +363,7 @@ func BuildSliceTreeNode[T any](parent *NodeData[any], field reflect.Value, nodes
     }
 }
 
-func BuildTreeMapNode(parent *NodeData[any], field reflect.Value, nodes *[]*NodeData[any], edges *[]*EdgeData[any]) {
+func BuildGraphMapNode(parent *NodeData[any], field reflect.Value, nodes *[]*NodeData[any], edges *[]*EdgeData[any]) {
     if !field.IsZero() {
 
         for _, e := range field.MapKeys() {

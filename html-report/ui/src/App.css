@@ -63,14 +63,31 @@ hr {
   justify-content: center;
 }
 
+.ant-tree, .ant-tree .ant-tree-switcher-noop {
+  background: none!important;
+}
 
+.ant-tree-show-line .ant-tree-switcher {
+  background: none!important;
+}
 
+.ant-tree .ant-tree-node-content-wrapper {
+  border: 1px solid transparent;
+}
 
+.ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+  border: 1px dashed var(--primary-color);
+  background: none;
+  color: var(--primary-color)!important;
+}
 
+.ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected .tree-title {
+  color: var(--primary-color)!important;
+}
 
-
-
-
+.breaking-change {
+  color: var(--error-color)
+}
 
 
 

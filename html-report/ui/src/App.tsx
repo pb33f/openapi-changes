@@ -7,6 +7,7 @@ import {ReportContainer} from "./components/report_statistics";
 import {GraphViewComponent} from "./components/change_view/GraphView";
 
 import create from 'zustand'
+import {TreeViewComponent} from "./components/change_view/TreeView";
 
 export interface DrawerState {
     drawerOpen: boolean;
@@ -55,7 +56,7 @@ function App() {
                       {
                           label: `Explore Tree`,
                           key: '1',
-                          children: "hi",
+                          children: <TreeViewComponent />,
                       },
                       {
                           label: `Explore Graph`,
