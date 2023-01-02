@@ -13,6 +13,23 @@ hr {
   border-bottom: 1px dashed var(--secondary-color);
 }
 
+.height-100 {
+  height: 100px;
+}
+
+.height-120 {
+  height: 120px;
+}
+
+.height-150 {
+  height: 150px;
+}
+
+.height-180 {
+  height: 180px;
+}
+
+
 .height-200 {
   height: 200px;
 }
@@ -94,7 +111,7 @@ hr {
 
 .tree-holder {
   width: 100%;
-  height: 60vh;
+  height: 73vh;
   position: relative;
   overflow-y: auto;
   flex-grow: 2;
@@ -102,12 +119,12 @@ hr {
 
 
 .tree-scroller {
-  height: 60vh;
+  height: 73vh;
   overflow-y: auto
 }
 
 .diff-view {
-  height: 60vh;
+  height: 73vh;
   overflow-y: auto
 }
 
@@ -125,6 +142,13 @@ hr {
   background: var(--secondary-color-lowalpha);
 }
 
+.committed-date {
+  text-align: center;
+}
+
+.report-container {
+  margin-bottom: 10px;
+}
 
 
 #flow {

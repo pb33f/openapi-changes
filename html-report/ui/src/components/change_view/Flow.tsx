@@ -30,22 +30,8 @@ const HorizontalFlow = () => {
     const [nodes] = useState<NodeData[]>(nodeData)
     const [edges] = useState<EdgeData[]>(edgeData)
 
-    function handleNodeClick(e: React.MouseEvent<SVGElement>, data: NodeData) {
-       setCurrentChange(data.data)
-        if (!drawerOpen) {
-            toggleDrawer();
-        }
-    }
+   const [selections, setSelections] = useState<string[]>([]);
 
-
-    const {selections, onCanvasClick, onClick, onKeyDown, clearSelections} = useSelection({
-        nodes,
-        edges,
-        selections: ['1'],
-        onSelection: (s) => {
-            console.info('Selection', s);
-        }
-    });
 
     return (
         <TransformWrapper
@@ -60,10 +46,11 @@ const HorizontalFlow = () => {
                 ref.instance.wrapperComponent?.classList.remove("dragging")
             }
         >
+
             <TransformComponent
                 wrapperStyle={{
-                    width: "95vw",
-                    height: "58vh",
+                    width: "97vw",
+                    height: "73vh",
                     overflow: "hidden"
                 }}
             >
@@ -71,22 +58,33 @@ const HorizontalFlow = () => {
                     fit={true}
                     nodes={nodes}
                     zoomable={false}
-                    animated={false}
-                    readonly={true}
+                    animated={true}
                     dragEdge={null}
                     dragNode={null}
+                    onCanvasClick={(event) => {
+                        setSelections([]);
+                        if (drawerOpen) {
+                            toggleDrawer();
+                        }
+                    }}
                     edges={edges}
                     defaultPosition={CanvasPosition.CENTER}
                     selections={selections}
                     direction="RIGHT"
                     arrow={<MarkerArrow style={{fill: 'var(--secondary-color)'}}/>}
-                    edge={props => <Edge {...props}
-                                         style={{stroke: 'var(--secondary-color)'}}
-                    />}
-                    node={props => <CustomNode {...props} onClick={handleNodeClick}
+                    edge={props => <Edge {...props} style={{stroke: 'var(--secondary-color)'}}/>}
+                    node={props => <CustomNode {...props}
+                        onClick={(event: any, node: NodeData) => {
+                            setCurrentChange(node.data)
+                            setSelections([node.id])
+                            if (!drawerOpen) {
+                                toggleDrawer();
+                            }
+                        }}
                     />}
                 />
             </TransformComponent>
+
         </TransformWrapper>
     );
 };

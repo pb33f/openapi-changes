@@ -41,6 +41,7 @@ function App() {
                 <div>
 
                     <Tabs
+                        destroyInactiveTabPane={true}
                         defaultActiveKey="1"
                         type="card"
                         onChange={closeDrawer}

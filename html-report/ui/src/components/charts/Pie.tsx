@@ -8,14 +8,14 @@ Chart.register(ArcElement,  Tooltip, Legend, Title);
 
 function PieChart(props: any) {
     return (
-        <div className="chart-container height-300">
+        <div className="chart-container height-100">
             <h2 style={{ textAlign: "center" }}></h2>
             <Doughnut
                 data={props.chartData}
                 options={{
                     plugins: {
                         title: {
-                            display: true,
+                            display: false,
                             text: "Making shit look good.",
                             font: {
                                 size: 12,
@@ -23,11 +23,12 @@ function PieChart(props: any) {
                             }
                         },
                         legend: {
+                            display: false,
                             position: 'bottom',
                             labels: {
                                 // This more specific font property overrides the global property
                                 font: {
-                                    size: 14,
+                                    size: 10,
                                     family: "Menlo, Monaco, Roboto Mono, Lucida Console, Liberation Mono"
                                 }
                             }

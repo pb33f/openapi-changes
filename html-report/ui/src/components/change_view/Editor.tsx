@@ -8,6 +8,24 @@ const modifiedSpec = data.modifiedSpec
 
 export interface EditorComponentProps {
     currentChange: Change | null;
+    height?: string;
+}
+
+const updatePosition = (currentChange: Change, editorRef: any, col: number, line: number) => {
+    if (currentChange.context.originalLine && !currentChange.context.newLine) {
+        editorRef.current.setPosition({column: 1, lineNumber: 1});
+        editorRef.current.revealLinesInCenter(1, 1);
+        editorRef.current.getOriginalEditor().setPosition({column: col, lineNumber: line})
+        editorRef.current.getOriginalEditor().revealPositionInCenter({column: col, lineNumber: line})
+        editorRef.current.getOriginalEditor().revealLinesInCenter(line, line);
+        editorRef.current.getOriginalEditor().focus();
+    } else {
+        editorRef.current.getOriginalEditor().revealLinesInCenter(1, 1);
+        editorRef.current.getOriginalEditor().setPosition({column: 1, lineNumber: 1})
+        editorRef.current.setPosition({column: col, lineNumber: line});
+        editorRef.current.revealLinesInCenter(line, line);
+        editorRef.current.focus();
+    }
 }
 
 export const EditorComponent = (props: EditorComponentProps) => {
@@ -21,6 +39,7 @@ export const EditorComponent = (props: EditorComponentProps) => {
     useEffect(() => {
         if (currentChange) {
             if (editorRef.current) {
+                console.log('lllllll');
                 let line: number;
                 let col: number;
                 if (currentChange.context.originalLine && !currentChange.context.newLine) {
@@ -31,19 +50,9 @@ export const EditorComponent = (props: EditorComponentProps) => {
                     col = currentChange.context.newColumn
                 }
                 if (col != null || line != null) {
-                    if (currentChange.context.originalLine && !currentChange.context.newLine) {
-                        editorRef.current.setPosition({column: 1, lineNumber: 1});
-                        editorRef.current.revealLinesInCenter(1, 1);
-                        editorRef.current.getOriginalEditor().revealLinesInCenter(line, line);
-                        editorRef.current.getOriginalEditor().setPosition({column: col, lineNumber: line})
-                        editorRef.current.getOriginalEditor().focus();
-                    } else {
-                        editorRef.current.getOriginalEditor().revealLinesInCenter(1, 1);
-                        editorRef.current.getOriginalEditor().setPosition({column: 1, lineNumber: 1})
-                        editorRef.current.revealLinesInCenter(line, line);
-                        editorRef.current.setPosition({column: col, lineNumber: line});
-                        editorRef.current.focus();
-                    }
+                    setTimeout(()=> {
+                        updatePosition(currentChange, editorRef, col, line)
+                    })
                 }
             }
         }
@@ -80,17 +89,38 @@ export const EditorComponent = (props: EditorComponentProps) => {
         };
         monaco.editor.defineTheme("pb33f", options);
         monaco.editor.setTheme('pb33f');
+
+        if (currentChange) {
+            let line: number;
+            let col: number;
+            if (currentChange.context.originalLine && !currentChange.context.newLine) {
+                line = currentChange.context.originalLine
+                col = currentChange.context.originalColumn
+            } else {
+                line = currentChange.context.newLine
+                col = currentChange.context.newColumn
+            }
+            if (col != null || line != null) {
+                setTimeout(()=> {
+                    updatePosition(currentChange, editorRef, col, line)
+                })
+            }
+        }
     }
 
     const options = {
         readOnly: false,
         minimap: {enabled: false},
     };
+    let height = props.height
+    if (!height) {
+        height = "73vh"
+    }
 
     return (
         <DiffEditor
             width="100%"
-            height="60vh"
+            height={height}
             original={orig}
             modified={mod}
             onMount={handleEditorDidMount}

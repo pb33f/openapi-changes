@@ -9,45 +9,29 @@ import {ReportSummary} from "./ReportSummary";
 export const Data = [
     {
         id: 1,
-        year: 2016,
-        userGain: 80000,
-        userLost: 823
+        type: "Modifications",
+        value: 12
+
     },
     {
         id: 2,
-        year: 2017,
-        userGain: 45677,
-        userLost: 345
+        type: "Additions",
+        value: 24
     },
     {
         id: 3,
-        year: 2018,
-        userGain: 78888,
-        userLost: 555
+        type: "Errors",
+        value: 12
     },
-    {
-        id: 4,
-        year: 2019,
-        userGain: 90000,
-        userLost: 4555
-    },
-    {
-        id: 5,
-        year: 2020,
-        userGain: 4300,
-        userLost: 234
-    }
 ];
 
 
 export const ReportContainer: React.FC = () => {
-
-    // const [chartData, setChartData] = useState();
-    const [chartData, setChartData] = useState({
-        labels: Data.map((data) => data.year),
+    const [chartData] = useState({
+        labels: Data.map((data) => data.type),
         datasets: [
             {
-                data: Data.map((data) => data.userGain),
+                data: Data.map((data) => data.value),
                 borderColor: "rgb(30,30,30)",
                 borderWidth: 1
             },
@@ -55,18 +39,19 @@ export const ReportContainer: React.FC = () => {
         ]
     });
 
-
-    return(
-        <Row >
-            <Col span={6}>
-                <PieChart chartData={chartData} />
-            </Col>
-            <Col span={6}>
-                <PieChart chartData={chartData} />
-            </Col>
-            <Col span={12}>
-                <ReportSummary />
-            </Col>
-        </Row>
+    return (
+        <div className="report-container">
+            <Row>
+                <Col span={4}>
+                    <PieChart chartData={chartData}/>
+                </Col>
+                <Col span={4}>
+                    <PieChart chartData={chartData}/>
+                </Col>
+                <Col span={16}>
+                    <ReportSummary/>
+                </Col>
+            </Row>
+        </div>
     )
 }
