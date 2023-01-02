@@ -52,7 +52,7 @@ export const EditorComponent = (props: EditorComponentProps) => {
                 if (col != null || line != null) {
                     setTimeout(()=> {
                         updatePosition(currentChange, editorRef, col, line)
-                    })
+                    }, 10)
                 }
             }
         }
@@ -103,7 +103,7 @@ export const EditorComponent = (props: EditorComponentProps) => {
             if (col != null || line != null) {
                 setTimeout(()=> {
                     updatePosition(currentChange, editorRef, col, line)
-                })
+                },10)
             }
         }
     }

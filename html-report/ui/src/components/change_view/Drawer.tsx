@@ -19,16 +19,19 @@ export const DrawerComponent = (props: DrawerProps) => {
                 title={currentChange?.property}
 
                 placement="bottom"
-                height="60vh"
+                height="33vh"
                 closable={true}
                 onClose={toggleDrawer}
                 open={drawerOpen}
                 bodyStyle={{background: 'var(--background-color)'}}
-                headerStyle={{background: 'var(--background-color)', border: '1px dashed var(--secondary-color)'}}
+                headerStyle={{
+                    background: 'var(--background-color)',
+                    border: '1px dashed var(--secondary-color)',
+                    height: '20px'}}
                 mask={false}
             >
                 <p>{currentChange?.new}</p>
-                <EditorComponent currentChange={currentChange} height="48vh"/>
+                <EditorComponent currentChange={currentChange} height="21.8vh"/>
             </Drawer>
         </>
     );
