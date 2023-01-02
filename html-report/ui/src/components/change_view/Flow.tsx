@@ -8,68 +8,53 @@ import {
     Node,
     NodeChildProps,
     NodeData,
-    NodeProps,
+    NodeProps, Port,
     useSelection
 } from 'reaflow';
-import nodeData from './nodes.json';
-import edgeData from './edges.json';
+import data from '../../../data.json';
 import * as Styled from "./styled";
 import {TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
 import {VscDiffAdded, VscDiffRemoved, VscEdit} from "react-icons/vsc";
-import {DrawerState, useChangeStore} from "./App";
+import {Change} from "@/model/change";
+import {ChangeState, DrawerState, useChangeStore, useDrawerStore} from "@/model/store";
 
-export interface Change {
-    breaking: boolean;
-    change: number;
-    context: ChangeContext;
-    new: string;
-    original:string;
-    property: string;
-}
 
-export interface ChangeContext {
-    newColumn: number;
-    newLine: number;
-    originalLine: number;
-    originalCol: number;
-}
-
+const nodeData = data.graph.nodes
+const edgeData = data.graph.edges
 
 const HorizontalFlow = () => {
 
+    const drawerOpen = useDrawerStore((state: DrawerState) => state.drawerOpen)
+    const setCurrentChange = useChangeStore((state: ChangeState) => state.setCurrentChange)
+    const toggleDrawer = useDrawerStore((state: DrawerState) => state.toggleDrawer)
+    const [nodes] = useState<NodeData[]>(nodeData)
+    const [edges] = useState<EdgeData[]>(edgeData)
 
-    const toggleDrawer = useChangeStore((state: DrawerState) => state.toggleDrawer)
+    function handleNodeClick(e: React.MouseEvent<SVGElement>, data: NodeData) {
+       setCurrentChange(data.data)
+        if (!drawerOpen) {
+            toggleDrawer();
+        }
+    }
 
 
-
-    const [nodes, setNodes] = useState<NodeData[]>(nodeData)
-    const [edges, setEdges] = useState<EdgeData[]>(edgeData)
-
-    const { selections, onCanvasClick, onClick, onKeyDown, clearSelections } = useSelection({
+    const {selections, onCanvasClick, onClick, onKeyDown, clearSelections} = useSelection({
         nodes,
         edges,
         selections: ['1'],
-        onDataChange: (n, e) => {
-            console.info('Data changed', n, e);
-            setNodes(n);
-            setEdges(e);
-        },
         onSelection: (s) => {
             console.info('Selection', s);
         }
     });
 
-
     return (
-
         <TransformWrapper
             maxScale={2}
             minScale={0.05}
             initialScale={1}
-            wheel={{ step: 0.08 }}
-            zoomAnimation={{ animationType: "linear" }}
-            doubleClick={{ disabled: true }}
-
+            wheel={{step: 0.08}}
+            zoomAnimation={{animationType: "linear"}}
+            doubleClick={{disabled: true}}
             onPanning={ref => ref.instance.wrapperComponent?.classList.add("dragging")}
             onPanningStop={ref =>
                 ref.instance.wrapperComponent?.classList.remove("dragging")
@@ -82,25 +67,25 @@ const HorizontalFlow = () => {
                     overflow: "hidden"
                 }}
             >
-
-
-        <Canvas
-            fit={false}
-            nodes={nodes}
-            zoom={0.9}
-            edges={edges}
-            defaultPosition={CanvasPosition.TOP}
-            selections={selections}
-            direction="RIGHT"
-            arrow={<MarkerArrow style={{ fill: '#b685ff' }} />}
-            edge={props => <Edge {...props}
-                                 style={{ stroke: '#b685ff'}}
-            />}
-            node={props => <CustomNode {...props}  onClick={toggleDrawer}
-
-
-            />}
-        />
+                <Canvas
+                    fit={true}
+                    nodes={nodes}
+                    zoomable={false}
+                    animated={false}
+                    readonly={true}
+                    dragEdge={null}
+                    dragNode={null}
+                    edges={edges}
+                    defaultPosition={CanvasPosition.CENTER}
+                    selections={selections}
+                    direction="RIGHT"
+                    arrow={<MarkerArrow style={{fill: 'var(--secondary-color)'}}/>}
+                    edge={props => <Edge {...props}
+                                         style={{stroke: 'var(--secondary-color)'}}
+                    />}
+                    node={props => <CustomNode {...props} onClick={handleNodeClick}
+                    />}
+                />
             </TransformComponent>
         </TransformWrapper>
     );
@@ -111,8 +96,8 @@ export const CustomNode = (nodeProps: NodeProps) => {
 
 
     return (
-        <Node {...nodeProps} label={<React.Fragment />}
-            style={{ stroke: '#0d1117', fill: '#0d1117' }}
+        <Node {...nodeProps} label={<React.Fragment/>}
+              style={{stroke: '#0d1117', fill: 'transparent'}}
         >
             {(props: NodeChildProps) => {
 
@@ -140,59 +125,50 @@ export const CustomNode = (nodeProps: NodeProps) => {
                             break;
                     }
 
-                    // todo start here tomorrow.
                     let originalVal;
                     let newVal;
                     let height = props.height;
                     let width = props.width;
                     if (change.new) {
                         newVal = (<div className='changed'>{change.new}</div>);
-                        //height += 50
                     }
                     if (change.original) {
                         originalVal = (<div className='original'>{change.original}</div>);
                     }
-                    if (change.original !== "" && change.new !== "") {
+                    if (change.new) {
                         originalVal = null;
                     }
-
 
                     return (
                         <Styled.StyledForeignObject
                             width={width}
                             height={height}
-                            x={0}
-                            y={0}
                             ref={ref}
                             isObject
                             isBreaking={change.breaking}
-                        ><div className='node'>
-                            {changeIcon} {change.property}<br/>
-                            {originalVal}
-                            {newVal}
-                        </div></Styled.StyledForeignObject>
-
-                    )
-
-
+                        >
+                            <div className='node'>
+                                {changeIcon} {change.property}<br/>
+                                {originalVal}
+                                {newVal}
+                            </div>
+                        </Styled.StyledForeignObject>
+                    );
                 } else {
-
                     return (
                         <Styled.StyledForeignObject
                             width={props.width}
                             height={props.height}
-                            x={0}
-                            y={0}
                             ref={ref}
-                        ><div className='node'>{props.node.text}</div>
+                        >
+                            <div className='node'>{props.node.text}</div>
                         </Styled.StyledForeignObject>
 
                     )
-
                 }
             }}
 
-            </Node>
+        </Node>
     )
 }
 
@@ -204,8 +180,8 @@ export interface CustomNodeProps {
     hasCollapse?: boolean;
 }
 
-const ObjectNode: React.FC<CustomNodeProps> = ({ node, x, y }) => {
-    const { text, width, height, data } = node;
+const ObjectNode: React.FC<CustomNodeProps> = ({node, x, y}) => {
+    const {text, width, height, data} = node;
     const ref = React.useRef(null);
 
     if (data.isEmpty) return null;
@@ -219,7 +195,7 @@ const ObjectNode: React.FC<CustomNodeProps> = ({ node, x, y }) => {
             ref={ref}
             isObject
         >
-          Well, this is a surprise.
+            Well, this is a surprise.
         </Styled.StyledForeignObject>
     );
 };

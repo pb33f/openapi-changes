@@ -12,25 +12,14 @@ import (
     "strings"
 )
 
+type GraphResult struct {
+    Nodes []*NodeData[any] `json:"nodes"`
+    Edges []*EdgeData[any] `json:"edges"`
+}
+
 type CanvasDirection string
 type CanvasPosition string
 type PortSide string
-
-const (
-    LEFT_DIR  CanvasDirection = "LEFT"
-    RIGHT_DIR CanvasDirection = "RIGHT"
-    UP        CanvasDirection = "UP"
-    DOWN      CanvasDirection = "DOWN"
-    CENTER    CanvasPosition  = "CENTER"
-    TOP       CanvasPosition  = "TOP"
-    LEFT      CanvasPosition  = "LEFT"
-    RIGHT     CanvasPosition  = "RIGHT"
-    BOTTOM    CanvasPosition  = "BOTTOM"
-    NORTH     PortSide        = "NORTH"
-    SOUTH     PortSide        = "SOUTH"
-    EAST      PortSide        = "EAST"
-    WEST      PortSide        = "WEST"
-)
 
 type NodeData[T any] struct {
     Id                string      `json:"id,omitempty"`
@@ -80,13 +69,21 @@ type EdgeData[T any] struct {
     SelectionDisabled  string `json:"selectionDisabled,omitempty"`
 }
 
+const DefaultHeight = 25
+const LeafHeight = 45
+const DefaultWidth = 150
+const MaxWidth = 250
+const TextLimit = 20
+const TextSizeBumpIncrement = 5
+const TextWidthSizeBumpIncrement = 10
+
 func BuildGraph(obj any) ([]*NodeData[any], []*EdgeData[any]) {
 
     // todo: start here tomorrow.
     var nodes []*NodeData[any]
     var edges []*EdgeData[any]
 
-    initHeight := 20
+    initHeight := DefaultHeight
     n := &NodeData[any]{
         Id:     "root",
         Text:   "Document",
@@ -97,14 +94,15 @@ func BuildGraph(obj any) ([]*NodeData[any], []*EdgeData[any]) {
     return nodes, edges
 }
 
-func exploreGraphObject(parent *NodeData[any], object any, nodes *[]*NodeData[any], edges *[]*EdgeData[any]) {
+func exploreGraphObject(parent *NodeData[any], object any, nodes *[]*NodeData[any],
+    edges *[]*EdgeData[any]) {
 
     v := reflect.ValueOf(object).Elem()
     num := v.NumField()
 
     for i := 0; i < num; i++ {
-        height := 40
-        width := 150
+        height := LeafHeight
+        width := DefaultWidth
         fName := v.Type().Field(i).Name
         field := v.FieldByName(fName)
         if !field.IsZero() {
@@ -123,16 +121,27 @@ func exploreGraphObject(parent *NodeData[any], object any, nodes *[]*NodeData[an
                     if (newWidth < origWidth) && (origWidth > width) {
                         width = origWidth
                     }
-                    if width > 250 {
-                        width = 250 // time to truncate, this is too wide.
+                    if width > MaxWidth {
+                        width = MaxWidth // time to truncate, this is too wide.
                     }
 
                     // shrink if there are no values to show
                     if topChanges[x].New == "" && topChanges[x].Original == "" {
-                        height = 20
+                        height = DefaultHeight
                     }
 
                     n := buildNode(topChanges[x].Property, width, height, topChanges[x])
+
+                    if strings.ToLower(topChanges[x].Property) == "codes" {
+                        switch topChanges[x].ChangeType {
+                        case wcModel.Modified, wcModel.PropertyRemoved, wcModel.ObjectRemoved:
+                            n.Text = "CUNT"
+                            break
+                        case wcModel.ObjectAdded, wcModel.PropertyAdded:
+                            n.Text = "WANK"
+                        }
+                    }
+
                     if parent != nil {
                         e := &EdgeData[any]{
                             Id:   fmt.Sprintf("%s-to-%s", parent.Id, n.Id),
@@ -161,7 +170,8 @@ func exploreGraphObject(parent *NodeData[any], object any, nodes *[]*NodeData[an
                 DigIntoObject[wcModel.PathsChanges](parent, field, nodes, upper.String(v3.PathsLabel), edges)
 
             case reflect.TypeOf(&wcModel.OperationChanges{}):
-                DigIntoObject[wcModel.OperationChanges](parent, field, nodes, strings.ToUpper(strings.ReplaceAll(fName, "Changes", "")), edges)
+                DigIntoObject[wcModel.OperationChanges](parent, field, nodes,
+                    strings.ToUpper(strings.ReplaceAll(fName, "Changes", "")), edges)
 
             case reflect.TypeOf(&wcModel.ServerChanges{}):
                 DigIntoObject[wcModel.ServerChanges](parent, field, nodes, upper.String(v3.ServerLabel), edges)
@@ -176,16 +186,19 @@ func exploreGraphObject(parent *NodeData[any], object any, nodes *[]*NodeData[an
                 BuildSliceGraphNode[wcModel.TagChanges](parent, field, nodes, upper.String(v3.TagsLabel), edges)
 
             case reflect.TypeOf([]*wcModel.SchemaChanges{}):
-                BuildSliceGraphNode[wcModel.SchemaChanges](parent, field, nodes, strings.ToUpper(strings.ReplaceAll(fName, "Changes", "")), edges)
+                BuildSliceGraphNode[wcModel.SchemaChanges](parent, field, nodes,
+                    strings.ToUpper(strings.ReplaceAll(fName, "Changes", "")), edges)
 
             case reflect.TypeOf([]*wcModel.ServerChanges{}):
                 BuildSliceGraphNode[wcModel.ServerChanges](parent, field, nodes, upper.String(v3.ServersLabel), edges)
 
             case reflect.TypeOf([]*wcModel.SecurityRequirementChanges{}):
-                BuildSliceGraphNode[wcModel.SecurityRequirementChanges](parent, field, nodes, "Security Requirements", edges)
+                BuildSliceGraphNode[wcModel.SecurityRequirementChanges](parent, field, nodes,
+                    "Security Requirements", edges)
 
             case reflect.TypeOf([]*wcModel.ParameterChanges{}):
-                BuildSliceGraphNode[wcModel.ParameterChanges](parent, field, nodes, upper.String(v3.ParametersLabel), edges)
+                BuildSliceGraphNode[wcModel.ParameterChanges](parent, field, nodes,
+                    upper.String(v3.ParametersLabel), edges)
 
             case reflect.TypeOf(&wcModel.SchemaChanges{}):
                 DigIntoObject[wcModel.SchemaChanges](parent, field, nodes, upper.String(v3.SchemaLabel), edges)
@@ -283,31 +296,19 @@ func buildId(label string) string {
 }
 
 func calcWidth(label string) int {
-    l := 150
-
-    if len(label) > 20 {
-        num := len(label[19:])
-        l += 10 * num
+    l := DefaultWidth
+    if len(label) > TextLimit {
+        num := len(label[TextLimit-1:])
+        l += TextWidthSizeBumpIncrement * num
     }
     return l
 }
 
-func addIcon(node *NodeData[any]) {
-    node.Icon = &IconData{
-        Url:    "",
-        Height: nil,
-        Width:  nil,
-    }
-
-}
-
 func buildNode(text string, width, height int, data any) *NodeData[any] {
-
-    if len(text) > 20 {
-        num := len(text[20:])
-        width += 5 * num
+    if len(text) > TextLimit {
+        num := len(text[TextLimit:])
+        width += TextSizeBumpIncrement * num
     }
-
     d := &NodeData[any]{
         Id:     buildId(text),
         Text:   text,
@@ -320,12 +321,13 @@ func buildNode(text string, width, height int, data any) *NodeData[any] {
     return d
 }
 
-func DigIntoObject[T any](parent *NodeData[any], field reflect.Value, nodes *[]*NodeData[any], label string, edges *[]*EdgeData[any]) {
+func DigIntoObject[T any](parent *NodeData[any], field reflect.Value, nodes *[]*NodeData[any],
+    label string, edges *[]*EdgeData[any]) {
+
     if !field.IsZero() {
         lowerLabel := strings.ToLower(label)
-        n := buildNode(lowerLabel, calcWidth(lowerLabel), 20, nil)
+        n := buildNode(lowerLabel, calcWidth(lowerLabel), DefaultHeight, nil)
         if parent != nil {
-            // n.Parent = parent.Id
             e := &EdgeData[any]{
                 Id:   fmt.Sprintf("%s-to-%s", parent.Id, n.Id),
                 From: parent.Id,
@@ -340,14 +342,15 @@ func DigIntoObject[T any](parent *NodeData[any], field reflect.Value, nodes *[]*
     }
 }
 
-func BuildSliceGraphNode[T any](parent *NodeData[any], field reflect.Value, nodes *[]*NodeData[any], label string, edges *[]*EdgeData[any]) {
+func BuildSliceGraphNode[T any](parent *NodeData[any], field reflect.Value, nodes *[]*NodeData[any],
+    label string, edges *[]*EdgeData[any]) {
+
     if !field.IsZero() {
         for k := 0; k < field.Len(); k++ {
             f := field.Index(k)
             lowerLabel := strings.ToLower(label)
-            n := buildNode(lowerLabel, calcWidth(lowerLabel), 20, nil)
+            n := buildNode(lowerLabel, calcWidth(lowerLabel), DefaultHeight, nil)
             if parent != nil {
-                //n.Parent = parent.Id
                 e := &EdgeData[any]{
                     Id:   fmt.Sprintf("%s-to-%s", parent.Id, n.Id),
                     From: parent.Id,
@@ -356,24 +359,23 @@ func BuildSliceGraphNode[T any](parent *NodeData[any], field reflect.Value, node
                 *edges = append(*edges, e)
             }
             *nodes = append(*nodes, n)
-
             obj := f.Elem().Interface().(T)
             exploreGraphObject(n, &obj, nodes, edges)
         }
     }
 }
 
-func BuildGraphMapNode(parent *NodeData[any], field reflect.Value, nodes *[]*NodeData[any], edges *[]*EdgeData[any]) {
-    if !field.IsZero() {
+func BuildGraphMapNode(parent *NodeData[any], field reflect.Value, nodes *[]*NodeData[any],
+    edges *[]*EdgeData[any]) {
 
+    if !field.IsZero() {
         for _, e := range field.MapKeys() {
             v := field.MapIndex(e)
             switch t := v.Interface().(type) {
             default:
                 lowerLabel := strings.ToLower(e.String())
-                n := buildNode(lowerLabel, calcWidth(lowerLabel), 20, nil)
+                n := buildNode(lowerLabel, calcWidth(lowerLabel), DefaultHeight, nil)
                 if parent != nil {
-                    // n.Parent = parent.Id
                     ed := &EdgeData[any]{
                         Id:   fmt.Sprintf("%s-to-%s", parent.Id, n.Id),
                         From: parent.Id,

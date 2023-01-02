@@ -19,9 +19,20 @@ func TestBuildTree(t *testing.T) {
     changes, _ := libopenapi.CompareDocuments(oldDoc, newDoc)
 
     tree := BuildTree(changes)
+    nodes, edges := BuildGraph(changes)
+    graph := &GraphResult{nodes, edges}
 
-    treeJson, _ := json.Marshal(tree)
+    // build a report DTO
+    reportDTO := &HTMLReport{
+        OriginalSpec:    string(oldBits),
+        ModifiedSpec:    string(newBits),
+        DocumentChanges: changes,
+        TreeNodes:       tree,
+        Graph:           graph,
+    }
 
-    _ = os.WriteFile("../html-report/ui/src/components/change_view/tree.json", treeJson, 0664)
+    dto, _ := json.Marshal(reportDTO)
+
+    _ = os.WriteFile("../html-report/ui/data.json", dto, 0664)
 
 }

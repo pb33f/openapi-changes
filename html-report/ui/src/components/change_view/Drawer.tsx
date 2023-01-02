@@ -1,9 +1,6 @@
-import React, {useState} from "react";
-import {Col, Drawer, Row} from "antd";
-import PieChart from "../charts/Pie";
-import {ReportSummary} from "../report_statistics/ReportSummary";
-import {Data} from "../report_statistics";
-import {DrawerState, useChangeStore} from "../../App";
+import React from "react";
+import {Drawer} from "antd";
+import {ChangeState, DrawerState, useChangeStore, useDrawerStore} from "@/model/store";
 
 
 export interface DrawerProps {
@@ -11,14 +8,14 @@ export interface DrawerProps {
 }
 
 export const DrawerComponent = (props: DrawerProps) => {
-
-    const drawerOpen = useChangeStore((state: DrawerState) => state.drawerOpen)
-    const toggleDrawer = useChangeStore((state: DrawerState) => state.toggleDrawer)
+    const drawerOpen = useDrawerStore((state: DrawerState) => state.drawerOpen)
+    const toggleDrawer = useDrawerStore((state: DrawerState) => state.toggleDrawer)
+    const currentChange = useChangeStore((state: ChangeState) => state.currentChange)
 
     return(
         <>
             <Drawer
-                title="Change Details"
+                title={currentChange?.property}
                 placement="bottom"
                 closable={true}
                 onClose={toggleDrawer}
@@ -27,7 +24,7 @@ export const DrawerComponent = (props: DrawerProps) => {
                 headerStyle={{background: 'var(--background-color-alpha)', border: '1px dashed var(--secondary-color)'}}
                 mask={false}
             >
-                <p>Data in here.</p>
+                <p>{currentChange?.new}</p>
             </Drawer>
         </>
     );

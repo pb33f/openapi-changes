@@ -1,6 +1,8 @@
 import {DrawerComponent, DrawerProps} from "./Drawer";
-import HorizontalFlow, {Change} from "../../Flow";
-import {DrawerState, useChangeStore} from "../../App";
+import HorizontalFlow from "./Flow";
+import React from "react";
+import {Change} from "@/model/change";
+import {DrawerState, useDrawerStore} from "@/model/store";
 
 export interface GraphViewProps {
     selectedChange?: Change
@@ -8,16 +10,12 @@ export interface GraphViewProps {
 }
 
 export const GraphViewComponent = (props: GraphViewProps) => {
-
-    const drawerOpen = useChangeStore((state: DrawerState) => state.drawerOpen)
+    const drawerOpen = useDrawerStore((state: DrawerState) => state.drawerOpen)
 
     return (
         <>
          <HorizontalFlow />
          <DrawerComponent open={drawerOpen} />
-
-            </>
+        </>
     )
-
-
 }

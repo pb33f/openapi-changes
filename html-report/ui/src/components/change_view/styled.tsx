@@ -12,22 +12,23 @@ export const StyledForeignObject = styled.foreignObject<{
   overflow: hidden;
   color: ${({ isBreaking }) => {
       if (isBreaking) {
-          return "red";
+          return "var(--error-color)";
       }
-      return "#62c4ff";
+      return "var(--primary-color)";
   }};
   pointer-events: none;
   padding-top: 2px;
   padding-left: 5px;
-  //border: 1px solid ${isBreaking => isBreaking ? "#62c4ff" : "red"};
-  border: 1px solid  ${({ isBreaking }) => isBreaking && "red"};
+  //border: 1px solid ${isBreaking => isBreaking ? "var(--primary-color)" : "var(--error-color)"};
+  border: 1px solid  ${({ isBreaking }) => isBreaking && "var(--error-color)"};
 
   border-radius: 2px;
-  cursor: pointer;
+
 
 
   :hover {
     border: 1px solid orange;
+    cursor: pointer;
   }
   
   
@@ -42,6 +43,6 @@ export const StyledForeignObject = styled.foreignObject<{
     
   .changed, .original {
     margin-top: 5px;
-    font-size: 0.7em;
+    font-size: 0.9em;
   }
 `;
