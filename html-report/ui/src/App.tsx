@@ -37,8 +37,9 @@ function App() {
                     </Col>
                 </Row>
                 <hr/>
+                <Row>
 
-                <div>
+                    <Col span={24}>
 
                     <Tabs
                         destroyInactiveTabPane={true}
@@ -59,12 +60,17 @@ function App() {
                             }
                         ]}
                     />
-                </div>
+                    </Col>
+                </Row>
 
                 <hr/>
-            </div>
 
-            foot.
+            <Row>
+                <Col span={24}>
+                    foot.
+                </Col>
+               </Row>
+            </div>
         </ConfigProvider>
     );
 }

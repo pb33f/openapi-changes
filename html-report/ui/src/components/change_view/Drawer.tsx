@@ -31,7 +31,7 @@ export const DrawerComponent = (props: DrawerProps) => {
                 mask={false}
             >
                 <p>{currentChange?.new}</p>
-                <EditorComponent currentChange={currentChange} height="21.8vh"/>
+                <EditorComponent currentChange={currentChange} height="23vh"/>
             </Drawer>
         </>
     );

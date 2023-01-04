@@ -131,17 +131,6 @@ func exploreGraphObject(parent *NodeData[any], object any, nodes *[]*NodeData[an
                     }
 
                     n := buildNode(topChanges[x].Property, width, height, topChanges[x])
-
-                    if strings.ToLower(topChanges[x].Property) == "codes" {
-                        switch topChanges[x].ChangeType {
-                        case wcModel.Modified, wcModel.PropertyRemoved, wcModel.ObjectRemoved:
-                            n.Text = "CUNT"
-                            break
-                        case wcModel.ObjectAdded, wcModel.PropertyAdded:
-                            n.Text = "WANK"
-                        }
-                    }
-
                     if parent != nil {
                         e := &EdgeData[any]{
                             Id:   fmt.Sprintf("%s-to-%s", parent.Id, n.Id),
