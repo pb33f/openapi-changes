@@ -1,0 +1,55 @@
+
+.ant-tree, .ant-tree .ant-tree-switcher-noop {
+    background: none!important;
+}
+
+.ant-tree-show-line .ant-tree-switcher {
+    background: none!important;
+}
+
+.ant-tree .ant-tree-node-content-wrapper {
+    border: 1px solid transparent;
+}
+
+.ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+    border: 1px dashed var(--primary-color);
+    background: none;
+    color: var(--primary-color)!important;
+}
+
+.ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected .tree-title {
+    color: var(--primary-color)!important;
+}
+
+.tree-holder {
+    width: 100%;
+    height: calc(100vh - 350px);
+    position: relative;
+    overflow: auto;
+    flex-grow: 2;
+}
+
+
+.tree-scroller {
+    height: calc(100vh - 350px);
+    overflow-y: auto
+}
+
+.diff-view {
+    height: calc(100vh - 350px);
+    overflow-y: auto
+}
+
+
+.tree-scroller::-webkit-scrollbar {
+    width: 8px;
+}
+
+.tree-scroller::-webkit-scrollbar-track {
+    background-color: var(--invert-font-color);
+}
+
+.tree-scroller::-webkit-scrollbar-thumb {
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    background: var(--secondary-color-lowalpha);
+}

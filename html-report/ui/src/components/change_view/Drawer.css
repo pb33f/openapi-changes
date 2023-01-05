@@ -1,0 +1,79 @@
+
+.drawer-title {
+    display: flex;
+    flex-direction: row;
+    font-weight: normal;
+}
+
+.drawer-title-icon {
+    height: 21px;
+    width: 21px;
+    margin-top: 2px;
+}
+
+.drawer-breaking-icon-title {
+    margin-top: 0;
+    margin-right: 5px;
+    display: block;
+    color: var(--error-color);
+}
+
+.drawer-breaking-icon-container {
+    display: flex;
+    flex-direction: row;
+    position: absolute;
+    right: 20px;
+}
+
+.drawer-breaking-icon {
+    font-size: 22px;
+    margin-left: 20px;
+    color: var(--error-color);
+}
+
+.drawer-title-property {
+    margin-left: 10px;
+    display: block;
+    font-weight: normal;
+}
+.drawer-title-changed {
+    font-weight: bold;
+}
+
+.drawer-verb {
+    font-size: 18px;
+    margin-top: 2px;
+}
+
+.ant-drawer-body {
+    padding-top: 10px!important;
+    padding-bottom: 0!important;
+}
+
+.original-modified-container {
+    margin-bottom: 10px;
+    color: var(--dark-font-color);
+}
+
+.original-change-value {
+    color: var(--primary-color);
+    display: inline-block;
+}
+
+.property-word {
+    display: inline-block;
+}
+
+.new-change-value {
+    color: var(--secondary-color);
+    font-style: italic;
+    display: inline-block;
+    //max-width: 100px;
+    text-overflow: ellipsis;
+}
+
+.fill-word {
+    color: var(--dark-font-color);
+    font-weight: lighter;
+    display: inline-block;
+}

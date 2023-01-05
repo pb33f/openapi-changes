@@ -45,6 +45,7 @@
     --vacuum-online-results-background: linear-gradient(180deg, rgba(13, 17, 23,1) 0%, rgba(223, 222, 225, 0.12) 50%);
     --page-width: 65em;
     --font-color: #e8e9ed;
+    --dark-font-color: #787878;
     --invert-font-color: #222225;
     --global-padding: 10px;
     --secondary-color: #b685ff;
@@ -61,6 +62,7 @@
     --error-color: #ff3c74;
     --error-font-color: #ff246b;
     --error-color-lowalpha: rgba(255, 60, 116, 0.4);
+    --error-color-verylowalpha: #100005;
     --progress-bar-background: #0a0a0a;
     --progress-bar-fill: #62c4ff;
     --code-bg-color: none;

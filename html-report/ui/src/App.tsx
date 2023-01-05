@@ -25,51 +25,52 @@ function App() {
             }}
         >
             <div id="main_container">
+                <section className="report-header">
+                    <Row>
+                        <Col span={24}>
+                            <Header/>
+                        </Col>
+                    </Row>
+                    <hr/>
+                    <Row>
+                        <Col span={24}>
+                            <ReportContainer/>
+                        </Col>
+                    </Row>
+                    <hr/>
+               </section>
                 <Row>
                     <Col span={24}>
-                        <Header/>
+
+                        <Tabs
+                            destroyInactiveTabPane={true}
+                            defaultActiveKey="2"
+                            type="card"
+                            onChange={closeDrawer}
+                            centered={true}
+                            items={[
+                                {
+                                    label: `Explore Tree`,
+                                    key: '1',
+                                    children: <TreeViewComponent/>,
+                                },
+                                {
+                                    label: `Explore Graph`,
+                                    key: '2',
+                                    children: <GraphViewComponent drawerProps={{open: true}}/>,
+                                }
+                            ]}
+                        />
                     </Col>
                 </Row>
+
                 <hr/>
+
                 <Row>
                     <Col span={24}>
-                        <ReportContainer/>
+                        foot.
                     </Col>
                 </Row>
-                <hr/>
-                <Row>
-
-                    <Col span={24}>
-
-                    <Tabs
-                        destroyInactiveTabPane={true}
-                        defaultActiveKey="1"
-                        type="card"
-                        onChange={closeDrawer}
-                        centered={true}
-                        items={[
-                            {
-                                label: `Explore Tree`,
-                                key: '1',
-                                children: <TreeViewComponent/>,
-                            },
-                            {
-                                label: `Explore Graph`,
-                                key: '2',
-                                children: <GraphViewComponent drawerProps={{open: true}}/>,
-                            }
-                        ]}
-                    />
-                    </Col>
-                </Row>
-
-                <hr/>
-
-            <Row>
-                <Col span={24}>
-                    foot.
-                </Col>
-               </Row>
             </div>
         </ConfigProvider>
     );

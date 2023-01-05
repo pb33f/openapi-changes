@@ -2,10 +2,9 @@ import styled from "styled-components";
 
 // @ts-ignore
 export const StyledForeignObject = styled.foreignObject<{
-    hasCollapse?: boolean;
-    hideCollapse?: boolean;
     isObject?: boolean;
-    isBreaking?: boolean
+    isBreaking?: boolean;
+    isClickable?: boolean;
 }>`
   text-align: ${({ isObject }) => !isObject && "center"};
   font-size: 12px;
@@ -20,7 +19,17 @@ export const StyledForeignObject = styled.foreignObject<{
   padding-top: 2px;
   padding-left: 5px;
   //border: 1px solid ${isBreaking => isBreaking ? "var(--primary-color)" : "var(--error-color)"};
-  border: 1px solid  ${({ isBreaking }) => isBreaking && "var(--error-color)"};
+  border: ${({ isBreaking, isClickable }) => {
+      if(isBreaking) {
+          return "2px solid var(--error-color)"
+      }
+      if (!isClickable) {
+          return '1px dashed var(--primary-color-lowalpha)';
+      } else {
+        return '1px solid var(--primary-color)';
+      }
+  }
+};
 
   border-radius: 2px;
 
@@ -28,8 +37,15 @@ export const StyledForeignObject = styled.foreignObject<{
 
   :hover {
     border: 1px solid orange;
-    cursor: pointer;
+    cursor:  ${({ isClickable }) => {
+      if (isClickable) {
+        return "pointer";
+      }
+      return "none";
+    }};
   }
+  
+  
   
   
 

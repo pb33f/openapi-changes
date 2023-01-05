@@ -1,13 +1,13 @@
 import Tree from "antd/es/tree";
 import data from '../../../data.json'
 import * as React from "react";
-import {useEffect, useState} from "react";
+import {useState} from "react";
 import {Badge} from "antd";
 import {DownOutlined, EditOutlined, MinusSquareOutlined, PlusSquareOutlined} from "@ant-design/icons";
 import {EditorComponent} from "./Editor";
 import {Allotment} from "allotment";
 import {BeefyTreeNode} from "@/model/beefy-tree-node";
-import {ChangeState, DrawerState, useChangeStore, useDrawerStore} from "@/model/store";
+import {ChangeState, useChangeStore} from "@/model/store";
 
 const treeData: BeefyTreeNode[] = [data.tree]
 

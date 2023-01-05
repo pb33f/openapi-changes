@@ -310,6 +310,11 @@ func buildNode(text string, width, height int, data any) *NodeData[any] {
     return d
 }
 
+func disableNode(node *NodeData[any]) {
+    d := true
+    node.Disabled = &d
+}
+
 func DigIntoObject[T any](parent *NodeData[any], field reflect.Value, nodes *[]*NodeData[any],
     label string, edges *[]*EdgeData[any]) {
 
@@ -324,6 +329,7 @@ func DigIntoObject[T any](parent *NodeData[any], field reflect.Value, nodes *[]*
             }
             *edges = append(*edges, e)
         }
+        disableNode(n)
         *nodes = append(*nodes, n)
 
         obj := field.Elem().Interface().(T)
@@ -347,6 +353,7 @@ func BuildSliceGraphNode[T any](parent *NodeData[any], field reflect.Value, node
                 }
                 *edges = append(*edges, e)
             }
+            disableNode(n)
             *nodes = append(*nodes, n)
             obj := f.Elem().Interface().(T)
             exploreGraphObject(n, &obj, nodes, edges)
@@ -372,6 +379,7 @@ func BuildGraphMapNode(parent *NodeData[any], field reflect.Value, nodes *[]*Nod
                     }
                     *edges = append(*edges, ed)
                 }
+                disableNode(n)
                 *nodes = append(*nodes, n)
                 exploreGraphObject(n, t, nodes, edges)
             }

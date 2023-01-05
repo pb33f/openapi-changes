@@ -17,6 +17,9 @@ import {TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
 import {VscDiffAdded, VscDiffRemoved, VscEdit} from "react-icons/vsc";
 import {Change} from "@/model/change";
 import {ChangeState, DrawerState, useChangeStore, useDrawerStore} from "@/model/store";
+import {CheckPropIsVerb, GetVerbColor} from "@/components/change_view/Verb";
+import {Tag} from "antd";
+import './Flow.css';
 
 
 const nodeData = data.graph.nodes
@@ -26,18 +29,19 @@ const HorizontalFlow = () => {
 
     const drawerOpen = useDrawerStore((state: DrawerState) => state.drawerOpen)
     const setCurrentChange = useChangeStore((state: ChangeState) => state.setCurrentChange)
+    const currentChange = useChangeStore((state: ChangeState) => state.currentChange)
     const toggleDrawer = useDrawerStore((state: DrawerState) => state.toggleDrawer)
     const [nodes] = useState<NodeData[]>(nodeData)
     const [edges] = useState<EdgeData[]>(edgeData)
 
-   const [selections, setSelections] = useState<string[]>([]);
+    const [selections, setSelections] = useState<string[]>([]);
 
 
     return (
         <TransformWrapper
             maxScale={2}
             minScale={0.05}
-            initialScale={1}
+            initialScale={0.8}
             wheel={{step: 0.08}}
             zoomAnimation={{animationType: "linear"}}
             doubleClick={{disabled: true}}
@@ -49,8 +53,8 @@ const HorizontalFlow = () => {
 
             <TransformComponent
                 wrapperStyle={{
-                    width: "97vw",
-                    height: "73vh",
+                    width: "100%",
+                    height: "calc(100vh - 350px)",
                     overflow: "hidden"
                 }}
             >
@@ -58,6 +62,7 @@ const HorizontalFlow = () => {
                     fit={true}
                     nodes={nodes}
                     zoomable={false}
+                    readonly={false}
                     animated={true}
                     dragEdge={null}
                     dragNode={null}
@@ -72,15 +77,21 @@ const HorizontalFlow = () => {
                     selections={selections}
                     direction="RIGHT"
                     arrow={<MarkerArrow style={{fill: 'var(--secondary-color)'}}/>}
-                    edge={props => <Edge {...props} style={{stroke: 'var(--secondary-color)'}}/>}
+                    edge={props => <Edge {...props} className='edge' style={{stroke: 'var(--secondary-color)'}}/>}
                     node={props => <CustomNode {...props}
-                        onClick={(event: any, node: NodeData) => {
-                            setCurrentChange(node.data)
-                            setSelections([node.id])
-                            if (!drawerOpen) {
-                                toggleDrawer();
-                            }
-                        }}
+                                               onClick={(event: any, node: NodeData) => {
+
+
+                                                   // check node has changes, if not, ignore click
+                                                   if (node.data) {
+                                                       setCurrentChange(node.data)
+                                                       setSelections([node.id])
+                                                       if (!drawerOpen) {
+                                                           toggleDrawer();
+
+                                                       }
+                                                   }
+                                               }}
                     />}
                 />
             </TransformComponent>
@@ -137,6 +148,12 @@ export const CustomNode = (nodeProps: NodeProps) => {
                         originalVal = null;
                     }
 
+                    let changeProperty: JSX.Element = (<>{change.property}</>);
+                    if (CheckPropIsVerb(change.property)) {
+                        changeProperty = (<Tag color={GetVerbColor(change.property)}
+                                               className='graph-verb'>{change.property.toUpperCase()}</Tag>)
+                    }
+
                     return (
                         <Styled.StyledForeignObject
                             width={width}
@@ -144,22 +161,32 @@ export const CustomNode = (nodeProps: NodeProps) => {
                             ref={ref}
                             isObject
                             isBreaking={change.breaking}
+                            isClickable={true}
                         >
                             <div className='node'>
-                                {changeIcon} {change.property}<br/>
+                                {changeIcon} {changeProperty}<br/>
                                 {originalVal}
                                 {newVal}
                             </div>
                         </Styled.StyledForeignObject>
                     );
                 } else {
+
+                    // not a leaf node,
+
+                    let changeProperty: JSX.Element = (<>{props.node.text}</>);
+                    if (CheckPropIsVerb(props.node.text)) {
+                        changeProperty = (<Tag color={GetVerbColor(props.node.text)}
+                                               className='graph-verb'>{props.node.text.toUpperCase()}</Tag>)
+                    }
+
                     return (
                         <Styled.StyledForeignObject
                             width={props.width}
                             height={props.height}
                             ref={ref}
                         >
-                            <div className='node'>{props.node.text}</div>
+                            <div className='node'>{changeProperty}</div>
                         </Styled.StyledForeignObject>
 
                     )

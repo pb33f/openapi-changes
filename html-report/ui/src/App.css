@@ -24,7 +24,6 @@ hr {
 .height-150 {
   height: 150px;
 }
-
 .height-180 {
   height: 180px;
 }
@@ -82,65 +81,19 @@ hr {
   justify-content: center;
 }
 
-.ant-tree, .ant-tree .ant-tree-switcher-noop {
-  background: none!important;
+section.report-header {
+  height: 220px;
+  overflow: hidden;
 }
 
-.ant-tree-show-line .ant-tree-switcher {
-  background: none!important;
-}
 
-.ant-tree .ant-tree-node-content-wrapper {
-  border: 1px solid transparent;
-}
 
-.ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
-  border: 1px dashed var(--primary-color);
-  background: none;
-  color: var(--primary-color)!important;
-}
-
-.ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected .tree-title {
-  color: var(--primary-color)!important;
-}
 
 .breaking-change {
   color: var(--error-color)
 }
 
 
-.tree-holder {
-  width: 100%;
-  height: 73vh;
-  position: relative;
-  overflow-y: auto;
-  flex-grow: 2;
-}
-
-
-.tree-scroller {
-  height: 73vh;
-  overflow-y: auto
-}
-
-.diff-view {
-  height: 73vh;
-  overflow-y: auto
-}
-
-
-.tree-scroller::-webkit-scrollbar {
-  width: 8px;
-}
-
-.tree-scroller::-webkit-scrollbar-track {
-  background-color: var(--invert-font-color);
-}
-
-.tree-scroller::-webkit-scrollbar-thumb {
-  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
-  background: var(--secondary-color-lowalpha);
-}
 
 .committed-date {
   text-align: center;
@@ -194,38 +147,3 @@ hr {
   border-bottom: 1px dashed var(--secondary-color)!important;
 }
 
-
-.App-logo {
-height: 40vmin;
-pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-.App-logo {
-animation: App-logo-spin infinite 20s linear;
-}
-}
-
-.App-header {
-background-color: #0d1117;
-min-height: 100vh;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-font-size: calc(10px + 2vmin);
-color: white;
-}
-
-.App-link {
-color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-from {
-transform: rotate(0deg);
-}
-to {
-transform: rotate(360deg);
-}
-}

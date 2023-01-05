@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from "react";
 import data from '../../../data.json'
 import {DiffEditor, Monaco} from "@monaco-editor/react"
 import {Change} from '@/model';
+import './Tree.css'
 
 const originalSpec = data.originalSpec
 const modifiedSpec = data.modifiedSpec
@@ -11,20 +12,43 @@ export interface EditorComponentProps {
     height?: string;
 }
 
-const updatePosition = (currentChange: Change, editorRef: any, col: number, line: number) => {
-    if (currentChange.context.originalLine && !currentChange.context.newLine) {
+const updatePosition = (currentChange: Change, editorRef: any, origCol: number, origLine: number,
+                        newCol: number, newLine: number) => {
+
+    // if this is a removal
+    if (origLine && !newLine) {
+
         editorRef.current.setPosition({column: 1, lineNumber: 1});
         editorRef.current.revealLinesInCenter(1, 1);
-        editorRef.current.getOriginalEditor().setPosition({column: col, lineNumber: line})
-        editorRef.current.getOriginalEditor().revealPositionInCenter({column: col, lineNumber: line})
-        editorRef.current.getOriginalEditor().revealLinesInCenter(line, line);
+
+
+        editorRef.current.getOriginalEditor().setPosition({column: origCol, lineNumber: origLine})
+        editorRef.current.getOriginalEditor().revealPositionInCenter({column: origCol, lineNumber: origLine})
+        editorRef.current.getOriginalEditor().revealLinesInCenter(origLine, origLine);
         editorRef.current.getOriginalEditor().focus();
+
+
+
+
     } else {
-        editorRef.current.getOriginalEditor().revealLinesInCenter(1, 1);
-        editorRef.current.getOriginalEditor().setPosition({column: 1, lineNumber: 1})
-        editorRef.current.setPosition({column: col, lineNumber: line});
-        editorRef.current.revealLinesInCenter(line, line);
-        editorRef.current.focus();
+
+        if (origLine) {
+            editorRef.current.getOriginalEditor()
+                .revealLinesInCenter(origCol, origLine);
+            editorRef.current.getOriginalEditor()
+                .setPosition({column: origCol, lineNumber: origLine})
+        } else {
+            editorRef.current.getOriginalEditor().revealLinesInCenter(1, 1);
+            editorRef.current.getOriginalEditor().setPosition({column: 1, lineNumber: 1})
+        }
+        if (newLine) {
+            editorRef.current.setPosition({column: newCol, lineNumber: newLine});
+            editorRef.current.revealLinesInCenter(newLine, newLine);
+            editorRef.current.focus();
+        } else {
+            editorRef.current.getOriginalEditor().revealLinesInCenter(1, 1);
+            editorRef.current.getOriginalEditor().setPosition({column: 1, lineNumber: 1})
+        }
     }
 }
 
@@ -39,21 +63,14 @@ export const EditorComponent = (props: EditorComponentProps) => {
     useEffect(() => {
         if (currentChange) {
             if (editorRef.current) {
-                console.log('lllllll');
-                let line: number;
-                let col: number;
-                if (currentChange.context.originalLine && !currentChange.context.newLine) {
-                    line = currentChange.context.originalLine
-                    col = currentChange.context.originalColumn
-                } else {
-                    line = currentChange.context.newLine
-                    col = currentChange.context.newColumn
-                }
-                if (col != null || line != null) {
                     setTimeout(()=> {
-                        updatePosition(currentChange, editorRef, col, line)
-                    }, 10)
-                }
+                        updatePosition(currentChange, editorRef,
+                            currentChange.context.originalColumn,
+                            currentChange.context.originalLine,
+                            currentChange.context.newColumn,
+                            currentChange.context.newLine)
+                    }, 1)
+
             }
         }
     });
@@ -79,12 +96,12 @@ export const EditorComponent = (props: EditorComponentProps) => {
                 'editor.foreground': '#ffffff',
                 'editor.background': '#0d1117',
                 'editorCursor.foreground': '#62C4FFFF',
-                'editor.lineHighlightBackground': '#E400FB98',
+                'editor.lineHighlightBackground': '#E400FB4D',
                 'editorLineNumber.foreground': '#6368747F',
-                'editorLineNumber.activeForeground': '#e400fb',
+                'editorLineNumber.activeForeground': '#E400FB',
                 'editor.inactiveSelectionBackground': '#FF3C742D',
-                'diffEditor.removedTextBackground': '#FF3C741D',
-                'diffEditor.insertedTextBackground': '#62C4FF2D',
+                'diffEditor.removedTextBackground': '#FF3C741A',
+                'diffEditor.insertedTextBackground': '#62C4FF1A',
             }
         };
         monaco.editor.defineTheme("pb33f", options);
@@ -101,9 +118,14 @@ export const EditorComponent = (props: EditorComponentProps) => {
                 col = currentChange.context.newColumn
             }
             if (col != null || line != null) {
+                // ensure the position update happens after the mounting and subsequent rendering has occurred
                 setTimeout(()=> {
-                    updatePosition(currentChange, editorRef, col, line)
-                },10)
+                    updatePosition(currentChange, editorRef,
+                        currentChange.context.originalColumn,
+                        currentChange.context.originalLine,
+                        currentChange.context.newColumn,
+                        currentChange.context.newLine)
+                },1);
             }
         }
     }
@@ -114,7 +136,7 @@ export const EditorComponent = (props: EditorComponentProps) => {
     };
     let height = props.height
     if (!height) {
-        height = "73vh"
+        height = "calc(100vh - 350px)"
     }
 
     return (
