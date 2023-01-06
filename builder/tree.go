@@ -30,6 +30,7 @@ type TreeNode struct {
     TotalChanges    int             `json:"totalChanges,omitempty"`
     BreakingChanges int             `json:"breakingChanges,omitempty"`
     Change          *wcModel.Change `json:"change,omitempty"`
+    Disabled        bool            `json:"disabled,omitempty"`
     Children        []*TreeNode     `json:"children,omitempty"`
 }
 
@@ -57,7 +58,7 @@ func exploreTreeObject(parent *TreeNode, object any) {
             case reflect.TypeOf(&wcModel.PropertyChanges{}):
                 topChanges := field.Elem().Interface().(wcModel.PropertyChanges).Changes
                 for x := range topChanges {
-                    title := upper.String(topChanges[x].Property)
+                    title := topChanges[x].Property
                     if strings.ToLower(topChanges[x].Property) == "codes" {
                         switch topChanges[x].ChangeType {
                         case wcModel.Modified, wcModel.PropertyRemoved, wcModel.ObjectRemoved:
@@ -271,9 +272,6 @@ func extractChangeCount(change reports.HasChanges) (int, int) {
 
 func DigIntoTreeNode[T any](parent *TreeNode, field reflect.Value, label string, tc, br int) {
     if !field.IsZero() {
-        if strings.ToLower(label) == "codes" {
-            fmt.Sprint("codes")
-        }
         e := &TreeNode{
             TitleString:     label,
             Key:             uuid.NewV4().String(),
@@ -281,6 +279,7 @@ func DigIntoTreeNode[T any](parent *TreeNode, field reflect.Value, label string,
             Selectable:      false,
             TotalChanges:    tc,
             BreakingChanges: br,
+            Disabled:        false,
         }
         parent.Children = append(parent.Children, e)
         obj := field.Elem().Interface().(T)
@@ -292,14 +291,12 @@ func DigIntoTreeNodeSlice[T any](parent *TreeNode, field reflect.Value, label st
     if !field.IsZero() {
         for k := 0; k < field.Len(); k++ {
             f := field.Index(k)
-            if strings.ToLower(label) == "codes" {
-                fmt.Sprint("codes")
-            }
             e := &TreeNode{
                 TitleString: label,
                 Key:         uuid.NewV4().String(),
                 IsLeaf:      false,
-                Selectable:  true,
+                Selectable:  false,
+                Disabled:    false,
             }
             obj := f.Elem().Interface().(T)
             ch, br := countChanges(obj)
@@ -328,7 +325,8 @@ func BuildTreeMapNode(parent *TreeNode, field reflect.Value) {
                     TitleString: e.String(),
                     Key:         uuid.NewV4().String(),
                     IsLeaf:      false,
-                    Selectable:  true,
+                    Selectable:  false,
+                    Disabled:    false,
                 }
                 ch, br := countChanges(t)
                 if ch > -1 {

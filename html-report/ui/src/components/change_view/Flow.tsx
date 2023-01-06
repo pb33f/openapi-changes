@@ -29,7 +29,7 @@ const HorizontalFlow = () => {
 
     const drawerOpen = useDrawerStore((state: DrawerState) => state.drawerOpen)
     const setCurrentChange = useChangeStore((state: ChangeState) => state.setCurrentChange)
-    const currentChange = useChangeStore((state: ChangeState) => state.currentChange)
+    const setSelectedKeysInState = useChangeStore((state: ChangeState) => state.setSelectedChangeKeys)
     const toggleDrawer = useDrawerStore((state: DrawerState) => state.toggleDrawer)
     const [nodes] = useState<NodeData[]>(nodeData)
     const [edges] = useState<EdgeData[]>(edgeData)
@@ -86,6 +86,7 @@ const HorizontalFlow = () => {
                                                    if (node.data) {
                                                        setCurrentChange(node.data)
                                                        setSelections([node.id])
+                                                       setSelectedKeysInState([node.id])
                                                        if (!drawerOpen) {
                                                            toggleDrawer();
 

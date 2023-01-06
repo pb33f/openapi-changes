@@ -69,7 +69,7 @@ export const EditorComponent = (props: EditorComponentProps) => {
                             currentChange.context.originalLine,
                             currentChange.context.newColumn,
                             currentChange.context.newLine)
-                    }, 1)
+                    }, 10)
 
             }
         }
@@ -125,7 +125,7 @@ export const EditorComponent = (props: EditorComponentProps) => {
                         currentChange.context.originalLine,
                         currentChange.context.newColumn,
                         currentChange.context.newLine)
-                },1);
+                },10);
             }
         }
     }

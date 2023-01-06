@@ -9,7 +9,9 @@ body {
   display: flex;
   flex-direction: column;
 }
-
+html {
+  scroll-behavior: smooth;
+}
 
 body::-webkit-scrollbar {
   width: 8px;

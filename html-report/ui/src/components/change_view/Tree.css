@@ -29,6 +29,10 @@
     flex-grow: 2;
 }
 
+.tree-title-dull {
+    color: var(--dark-font-color);
+}
+
 .treeview-origmod-cols {
     margin-bottom: 10px;
     margin-left: 13px;
@@ -45,6 +49,8 @@
     border: 1px dashed var(--secondary-color);
     overflow-x: auto;
 }
+
+
 
 .change-details::-webkit-scrollbar {
     width: 8px;
@@ -66,6 +72,10 @@
 .change-details-breaking {
     border: 1px dashed var(--error-color);
     background-color: var(--error-color-verylowalpha);
+}
+
+.tree-verb {
+    font-size: 14px;
 }
 
 .tree-scroller {

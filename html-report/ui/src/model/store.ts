@@ -1,5 +1,6 @@
 import create from "zustand";
 import {Change} from "./change";
+import React from "react";
 
 export interface DrawerState {
     drawerOpen: boolean;
@@ -10,7 +11,11 @@ export interface DrawerState {
 
 export interface ChangeState {
     currentChange: Change | null;
+    selectedChangeKeys: React.Key[];
+
+    treeMapLookup: Map<String, String>;
     setCurrentChange: (change: Change) => void;
+    setSelectedChangeKeys: (key: React.Key[]) => void;
 }
 
 
@@ -24,5 +29,8 @@ export const useDrawerStore = create<DrawerState>((set) => ({
 
 export const useChangeStore = create<ChangeState>((set) => ({
     currentChange: null,
-    setCurrentChange: (currentChange) => set({currentChange})
+    selectedChangeKeys: [],
+    treeMapLookup: new Map<String, String>(),
+    setCurrentChange: (currentChange) => set({currentChange}),
+    setSelectedChangeKeys: (selectedChangeKeys) => set({selectedChangeKeys})
 }));

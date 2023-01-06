@@ -5,6 +5,8 @@ import {Tag} from "antd";
 export interface VerbProps {
     method: string | undefined;
     className?: string;
+
+    disabled?: boolean
 }
 
 export const Verb = (props: VerbProps) => {
@@ -15,14 +17,20 @@ export const Verb = (props: VerbProps) => {
     if (props.className) {
         className = props.className;
     }
-    return (
-        <Tag color={GetVerbColor(props.method)} className={className}>{props.method.toUpperCase()}</Tag>
-    )
+    if (!props.disabled) {
+        return (
+            <Tag className={className}>{props.method.toUpperCase()}</Tag>
+        )
+    } else {
+        return (
+            <Tag color={GetVerbColor(props.method)} className={className}>{props.method.toUpperCase()}</Tag>
+        )
+    }
 
 }
 
 export const CheckPropIsVerb = (prop: string | undefined): boolean => {
-    switch (prop) {
+    switch (prop?.toLowerCase()) {
         case 'post':
         case 'put':
         case 'patch':
@@ -39,7 +47,7 @@ export const CheckPropIsVerb = (prop: string | undefined): boolean => {
 
 export const GetVerbColor = (verb: string): string => {
     const base = 'var(--secondary-color)';
-    switch (verb) {
+    switch (verb.toLowerCase()) {
         case 'post':
             return 'green';
         case 'put':
