@@ -62,7 +62,7 @@
     --error-color: #ff3c74;
     --error-font-color: #ff246b;
     --error-color-lowalpha: rgba(255, 60, 116, 0.4);
-    --error-color-verylowalpha: #100005;
+    --error-color-verylowalpha: #0c0000;
     --progress-bar-background: #0a0a0a;
     --progress-bar-fill: #62c4ff;
     --code-bg-color: none;

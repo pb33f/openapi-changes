@@ -1,43 +1,65 @@
 
 .drawer-title {
-    display: flex;
-    flex-direction: row;
+    /*display: flex;*/
+    /*flex-direction: row;*/
     font-weight: normal;
+    max-width: calc(100% - 90px);
 }
 
 .drawer-title-icon {
     height: 21px;
     width: 21px;
-    margin-top: 2px;
+    margin-top: 3px;
+    float: left;
 }
 
 .drawer-breaking-icon-title {
     margin-top: 0;
     margin-right: 5px;
-    display: block;
+    font-size: 12px;
+    vertical-align: text-bottom;
     color: var(--error-color);
 }
 
 .drawer-breaking-icon-container {
-    display: flex;
-    flex-direction: row;
     position: absolute;
-    right: 20px;
+    right: 10px;
+    top: 3px;
+    width: 90px;
 }
 
 .drawer-breaking-icon {
     font-size: 22px;
-    margin-left: 20px;
     color: var(--error-color);
 }
 
 .drawer-title-property {
-    margin-left: 10px;
+    margin-left: 30px;
     display: block;
     font-weight: normal;
+    vertical-align: top;
+    font-size: 13px;
+    padding-top: 3px;
 }
+
+.drawer-title-property-verb {
+    margin-left: 30px;
+    display: block;
+    font-weight: normal;
+    vertical-align: top;
+    font-size: 13px;
+    padding-top: 0;
+}
+
 .drawer-title-changed {
-    font-weight: bold;
+    /*font-weight: bold;*/
+    /*display: inline-block;*/
+    /*vertical-align: bottom;*/
+}
+
+.drawer-title-changed .ant-tag {
+    font-size: 12px;
+    vertical-align: center;
 }
 
 .drawer-verb {
@@ -50,6 +72,14 @@
     padding-bottom: 0!important;
 }
 
+.ant-drawer-header {
+    padding: 0!important;
+}
+
+
+.ant-drawer-header-title {
+    padding: 5px 5px 7px 5px;
+}
 .original-modified-container {
     margin-bottom: 10px;
     color: var(--dark-font-color);
@@ -57,23 +87,23 @@
 
 .original-change-value {
     color: var(--primary-color);
-    display: inline-block;
+    /*display: inline-block;*/
 }
 
 .property-word {
-    display: inline-block;
+    /*display: inline-block;*/
 }
 
 .new-change-value {
     color: var(--secondary-color);
     font-style: italic;
-    display: inline-block;
-    //max-width: 100px;
+    /*display: inline-block;*/
+    max-width: 100px;
     text-overflow: ellipsis;
 }
 
 .fill-word {
     color: var(--dark-font-color);
     font-weight: lighter;
-    display: inline-block;
+    /*display: inline-block;*/
 }

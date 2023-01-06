@@ -127,7 +127,7 @@ func exploreGraphObject(parent *NodeData[any], object any, nodes *[]*NodeData[an
 
                     // shrink if there are no values to show
                     if topChanges[x].New == "" && topChanges[x].Original == "" {
-                        height = DefaultHeight
+                        height = DefaultHeight + 2 // add a little extra because borders are thick.
                     }
 
                     n := buildNode(topChanges[x].Property, width, height, topChanges[x])

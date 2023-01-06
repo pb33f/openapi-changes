@@ -173,7 +173,6 @@ export const CustomNode = (nodeProps: NodeProps) => {
                 } else {
 
                     // not a leaf node,
-
                     let changeProperty: JSX.Element = (<>{props.node.text}</>);
                     if (CheckPropIsVerb(props.node.text)) {
                         changeProperty = (<Tag color={GetVerbColor(props.node.text)}

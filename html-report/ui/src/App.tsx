@@ -44,7 +44,7 @@ function App() {
 
                         <Tabs
                             destroyInactiveTabPane={true}
-                            defaultActiveKey="2"
+                            defaultActiveKey="1"
                             type="card"
                             onChange={closeDrawer}
                             centered={true}

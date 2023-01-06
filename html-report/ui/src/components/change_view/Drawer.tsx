@@ -6,7 +6,7 @@ import {VscDiffAdded, VscDiffRemoved, VscEdit} from "react-icons/vsc";
 import {WarningFilled} from "@ant-design/icons";
 import {CheckPropIsVerb, Verb} from "@/components/change_view/Verb";
 import './Drawer.css';
-
+import {Change} from "@/model";
 
 
 export interface DrawerProps {
@@ -26,10 +26,15 @@ export const DrawerComponent = (props: DrawerProps) => {
         headerBackground = 'var(--error-color-verylowalpha)'
     }
 
-    return(
+    let change: JSX.Element | undefined;
+    if (currentChange) {
+        change = <OriginalModifiedCols change={currentChange}/>
+    }
+
+    return (
         <>
             <Drawer
-                title={<DrawerTitleComponent/>}
+                title={<ChangeTitleComponent/>}
                 placement="bottom"
                 height="400px"
                 closable={true}
@@ -39,19 +44,11 @@ export const DrawerComponent = (props: DrawerProps) => {
                 headerStyle={{
                     background: headerBackground,
                     border: headerBorder,
-                    height: '30px'}}
+                    height: '30px'
+                }}
                 mask={false}
             >
-
-                <Row className='original-modified-container'>
-                    <Col span={12}>{currentChange?.context.originalLine ?
-                        'Original Specification (' + currentChange.context.originalLine+':'
-                        + currentChange.context.originalColumn + ')' : '(Not present in original specification)'}</Col>
-                    <Col span={12}>{currentChange?.context.newLine ?
-                        'Modified Specification(' + currentChange.context.newLine+':'
-                        + currentChange.context.newColumn + ')' : '(Removed from modified specification)'}</Col>
-                </Row>
-
+                {change}
                 <EditorComponent currentChange={currentChange} height="320px"/>
             </Drawer>
         </>
@@ -59,13 +56,29 @@ export const DrawerComponent = (props: DrawerProps) => {
 }
 
 
+export interface OriginalModifiedColsProps {
+    change: Change
+    className?: string;
+}
 
+export const OriginalModifiedCols: React.FC<OriginalModifiedColsProps> = (props: OriginalModifiedColsProps) => {
+    return (
+        <Row className={props.className ? props.className : 'original-modified-container'}>
+            <Col span={12}>{props.change.context.originalLine ?
+                'Original Specification (' + props.change.context.originalLine + ':'
+                + props.change.context.originalColumn + ')' : '(Not present in original specification)'}</Col>
+            <Col span={12}>{props.change?.context.newLine ?
+                'Modified Specification(' + props.change.context.newLine + ':'
+                + props.change.context.newColumn + ')' : '(Removed from modified specification)'}</Col>
+        </Row>
+    )
+}
 
-export const DrawerTitleComponent = () => {
+export const ChangeTitleComponent = () => {
 
     const truncate = (str: string): string => {
         if (str?.length > 50) {
-            return str.substring(0, 50) + '...';
+            return str.substring(0, 40) + '...';
         }
         return str
     }
@@ -74,20 +87,19 @@ export const DrawerTitleComponent = () => {
     let changeIcon = <VscEdit className='drawer-title-icon'/>
     let changeType = "modified"
     let changeProperty: JSX.Element | null
-    let originalVal:any = ""
-    let newVal:any = ""
+    let originalVal: any = ""
+    let newVal: any = ""
     originalVal = currentChange?.original;
     newVal = currentChange?.new;
 
-
     changeProperty = (
         <span>
-            <span className='property-word'>{currentChange?.property}</span> <span className='fill-word'>changed from</span>&nbsp;'<span className='original-change-value'>{truncate(originalVal)}</span>'&nbsp;
+            <span className='property-word'>{currentChange?.property}</span>&nbsp;
+            <span className='fill-word'>changed from</span>&nbsp;'<span
+            className='original-change-value'>{truncate(originalVal)}</span>'&nbsp;
             <span className='fill-word'>to</span> '<span className='new-change-value'>{truncate(newVal)}</span>'
         </span>
     );
-
-
 
     switch (currentChange?.change) {
         case 2:
@@ -95,8 +107,9 @@ export const DrawerTitleComponent = () => {
             changeIcon = <VscDiffAdded className='drawer-title-icon'/>
             changeProperty = (
                 <span>
-                    <span className='original-change-value'>{currentChange?.new ? currentChange?.new : '' }</span>&nbsp;
-                    <span className='fill-word'>to</span> <span className='new-change-value'>{currentChange?.property}</span>
+                    <span className='original-change-value'>{currentChange?.new ? currentChange?.new : ''}</span>&nbsp;
+                    <span className='fill-word'>to</span> <span
+                    className='new-change-value'>{currentChange?.property}</span>
                 </span>);
             break;
         case 3:
@@ -104,8 +117,9 @@ export const DrawerTitleComponent = () => {
             changeIcon = <VscDiffAdded className='drawer-title-icon'/>
             changeProperty = (
                 <span>
-                    <span className='original-change-value'>{currentChange?.new ? currentChange?.new : '' }</span>&nbsp;
-                    <span className='fill-word'>to</span> <span className='new-change-value'>{currentChange?.property}</span>
+                    <span className='original-change-value'>{currentChange?.new ? currentChange?.new : ''}</span>&nbsp;
+                    <span className='fill-word'>to</span> <span
+                    className='new-change-value'>{currentChange?.property}</span>
                 </span>);
             break;
         case 4:
@@ -114,7 +128,8 @@ export const DrawerTitleComponent = () => {
             changeProperty = (
                 <span>
                     <span className='original-change-value'>{currentChange?.original}</span>&nbsp;
-                    <span className='fill-word'>from</span> <span className='new-change-value'>{currentChange?.property}</span>
+                    <span className='fill-word'>from</span> <span
+                    className='new-change-value'>{currentChange?.property}</span>
                 </span>);
             break;
         case 5:
@@ -123,7 +138,8 @@ export const DrawerTitleComponent = () => {
             changeProperty = (
                 <span>
                     <span className='original-change-value'>{currentChange?.original}</span>&nbsp;
-                    <span className='fill-word'>from</span> <span className='new-change-value'>{currentChange?.property}</span>
+                    <span className='fill-word'>from</span> <span
+                    className='new-change-value'>{currentChange?.property}</span>
                 </span>);
             break;
     }
@@ -132,7 +148,7 @@ export const DrawerTitleComponent = () => {
     if (currentChange?.breaking) {
         breaking = (
             <div className="drawer-breaking-icon-container">
-                <span className='drawer-breaking-icon-title'>[ breaking change ]</span>
+                <span className='drawer-breaking-icon-title'>breaking</span>
                 <WarningFilled className="drawer-breaking-icon"/>
             </div>
         )
@@ -142,13 +158,16 @@ export const DrawerTitleComponent = () => {
         changeProperty = <Verb method={currentChange?.property}/>
     }
 
-
-    return (
-        <section className='drawer-title'>
-            {changeIcon} <span className='drawer-title-property'>{changeType}:&nbsp;
+    if (currentChange) {
+        return (
+            <section className='drawer-title'>
+                {changeIcon} <span className={CheckPropIsVerb(currentChange?.property) ? 'drawer-title-property-verb' :'drawer-title-property'}>{changeType}:&nbsp;
                 <span className="drawer-title-changed">{changeProperty}</span>
             </span>
-            {breaking}
-        </section>
-    )
+                {breaking}
+            </section>
+        )
+    } else {
+        return null;
+    }
 }
