@@ -1,13 +1,18 @@
 
 
+#root {
+  flex: 1 0 auto;
+}
+
 #main_container {
   padding: 25px 25px 0 25px;
   font-family: var(--font-stack);
+  flex: 1 0 auto;
+  width: calc(100vw - 50px);
 }
 
-#root {
-  height: 100vh
-}
+
+
 hr {
   border: none;
   border-bottom: 1px dashed var(--secondary-color);
@@ -81,11 +86,6 @@ hr {
   justify-content: center;
 }
 
-section.report-header {
-  height: 220px;
-  overflow: hidden;
-}
-
 
 
 
@@ -94,14 +94,6 @@ section.report-header {
 }
 
 
-
-.committed-date {
-  text-align: center;
-}
-
-.report-container {
-  margin-bottom: 10px;
-}
 
 
 #flow {
@@ -147,3 +139,11 @@ section.report-header {
   border-bottom: 1px dashed var(--secondary-color)!important;
 }
 
+
+@media only screen and (max-width: 1000px) {
+
+  footer {
+    font-size: 0.7em;
+  }
+
+}

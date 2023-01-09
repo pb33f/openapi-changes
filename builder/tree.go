@@ -34,7 +34,29 @@ type TreeNode struct {
     Children        []*TreeNode     `json:"children,omitempty"`
 }
 
-func BuildTree(obj any) *TreeNode {
+type ChangeStatistics struct {
+    Total            int               `json:"total"`
+    TotalBreaking    int               `json:"totalBreaking"`
+    Added            int               `json:"added"`
+    Modified         int               `json:"modified"`
+    Removed          int               `json:"removed"`
+    BreakingAdded    int               `json:"breakingAdded"`
+    BreakingModified int               `json:"breakingModified"`
+    BreakingRemoved  int               `json:"breakingRemoved"`
+    Commit           *CommitStatistics `json:"commit,omitempty"`
+}
+
+type CommitStatistics struct {
+    CommitDate        string `json:"date,omitempty"`
+    CommitMessage     string `json:"message,omitempty"`
+    CommitAuthor      string `json:"author,omitempty"`
+    CommitAuthorEmail string `json:"authorEmail,omitempty"`
+    CommitHash        string `json:"hash,omitempty"`
+}
+
+var count *ChangeStatistics
+
+func BuildTree(obj any) (*TreeNode, *ChangeStatistics) {
 
     n := &TreeNode{
         TitleString: "Document",
@@ -42,8 +64,9 @@ func BuildTree(obj any) *TreeNode {
         IsLeaf:      false,
         Selectable:  false,
     }
+    count = &ChangeStatistics{}
     exploreTreeObject(n, obj)
-    return n
+    return n, count
 }
 
 func exploreTreeObject(parent *TreeNode, object any) {
@@ -68,6 +91,30 @@ func exploreTreeObject(parent *TreeNode, object any) {
                             title = topChanges[x].New
                         }
                     }
+
+                    switch topChanges[x].ChangeType {
+                    case wcModel.Modified:
+                        count.Modified++
+                        if topChanges[x].Breaking {
+                            count.BreakingModified++
+                        }
+                        break
+                    case wcModel.PropertyRemoved, wcModel.ObjectRemoved:
+                        count.Removed++
+                        if topChanges[x].Breaking {
+                            count.BreakingRemoved++
+                        }
+                        break
+                    case wcModel.ObjectAdded, wcModel.PropertyAdded:
+                        count.Added++
+                        if topChanges[x].Breaking {
+                            count.BreakingAdded++
+                        }
+                    }
+                    if topChanges[x].Breaking {
+                        count.TotalBreaking++
+                    }
+                    count.Total++
 
                     parent.Children = append(parent.Children, &TreeNode{
                         TitleString: title,

@@ -13,3 +13,24 @@ export interface Change {
     original: string;
     property: string;
 }
+
+export interface ChangeStatistics {
+    total: number,
+    totalBreaking: number,
+    added: number,
+    modified: number,
+    removed: number,
+    breakingAdded: number,
+    breakingModified: number,
+    breakingRemoved: number
+    commit: CommitStatistics;
+
+}
+
+export interface CommitStatistics {
+    date: string;
+    author: string;
+    authorEmail: string;
+    message: string;
+    hash: string;
+}

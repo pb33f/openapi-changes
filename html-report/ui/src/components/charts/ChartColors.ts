@@ -7,6 +7,12 @@ export const ChartColors: string[] = [
     "rgba(98, 196, 255, 0.5)"
 ]
 
+export const BinaryChartColors: string[] = [
+    "rgba(98, 196, 255, 1)",
+    "#ff246b",
+]
+
+
 const cache = new Map();
 let width: any = null;
 let height: any = null;

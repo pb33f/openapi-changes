@@ -10,6 +10,8 @@ const modifiedSpec = data.modifiedSpec
 export interface EditorComponentProps {
     currentChange: Change | null;
     height?: string;
+
+    inlineEditor?: boolean
 }
 
 const updatePosition = (currentChange: Change, editorRef: any, origCol: number, origLine: number,
@@ -52,13 +54,14 @@ const updatePosition = (currentChange: Change, editorRef: any, origCol: number, 
     }
 }
 
-export const EditorComponent = (props: EditorComponentProps) => {
+export function EditorComponent(props: EditorComponentProps) {
 
     const editorRef = useRef<any>(null);
     const monacoRef = useRef<any>(null);
     const [mod] = useState(modifiedSpec);
     const [orig] = useState(originalSpec);
     const currentChange = props.currentChange
+    const [sbs] = React.useState(props.inlineEditor)
 
     useEffect(() => {
         if (currentChange) {
@@ -80,6 +83,7 @@ export const EditorComponent = (props: EditorComponentProps) => {
         monacoRef.current = monaco;
         const options = {
             base: 'vs-dark',
+            renderSideBySide: false,
             inherit: true,
             rules: [
 
@@ -130,18 +134,30 @@ export const EditorComponent = (props: EditorComponentProps) => {
         }
     }
 
-    const options = {
+    const options: any = {
         readOnly: false,
         minimap: {enabled: false},
     };
+    if (sbs) {
+        console.log('loading split');
+        options.renderSideBySide = false
+    } else {
+        console.log('loading side by side')
+        options.renderSideBySide = true
+    }
     let height = props.height
     if (!height) {
-        height = "calc(100vh - 350px)"
+        if(sbs) {
+            height = "calc(100vh - 610px)"
+        } else {
+            height = "calc(100vh - 350px)"
+        }
+
     }
+    console.log(height)
 
     return (
         <DiffEditor
-            width="100%"
             height={height}
             original={orig}
             modified={mod}

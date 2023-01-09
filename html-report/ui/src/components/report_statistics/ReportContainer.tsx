@@ -4,34 +4,87 @@ import {Header} from "../header";
 import PieChart from "../charts/Pie";
 import {ChartColors} from "../charts/ChartColors";
 import {ReportSummary} from "./ReportSummary";
+import data from '../../../data.json'
+import {BeefyTreeNode, ChangeStatistics} from "@/model";
+import './ReportContainer.css'
 
+const stats: ChangeStatistics = data.statistics
 
-export const Data = [
+const overallChanges = [
     {
-        id: 1,
         type: "Modifications",
-        value: 12
+        value: stats.modified
 
     },
     {
-        id: 2,
         type: "Additions",
-        value: 24
+        value: stats.added
     },
     {
-        id: 3,
-        type: "Errors",
-        value: 12
+        type: "Removals",
+        value: stats.removed
     },
 ];
 
+const breakingChanges = [
+    {
+        type: "Modifications",
+        value: stats.breakingModified
+
+    },
+    {
+        type: "Additions",
+        value: stats.breakingAdded
+    },
+    {
+        type: "Removals",
+        value: stats.breakingRemoved
+    },
+];
+
+const totalChanges = [
+    {
+        type: "Total Changes",
+        value: stats.total
+
+    },
+    {
+        type: "Breaking",
+        value: stats.totalBreaking
+    },
+
+];
 
 export const ReportContainer: React.FC = () => {
-    const [chartData] = useState({
-        labels: Data.map((data) => data.type),
+    const [overallData] = useState({
+        labels: overallChanges.map((data) => data.type),
         datasets: [
             {
-                data: Data.map((data) => data.value),
+                data: overallChanges.map((data) => data.value),
+                borderColor: "rgb(30,30,30)",
+                borderWidth: 1
+            },
+
+        ]
+    });
+
+    const [breakingData] = useState({
+        labels: breakingChanges.map((data) => data.type),
+        datasets: [
+            {
+                data: breakingChanges.map((data) => data.value),
+                borderColor: "rgb(30,30,30)",
+                borderWidth: 1
+            },
+
+        ]
+    });
+
+    const [totalData] = useState({
+        labels: totalChanges.map((data) => data.type),
+        datasets: [
+            {
+                data: totalChanges.map((data) => data.value),
                 borderColor: "rgb(30,30,30)",
                 borderWidth: 1
             },
@@ -41,17 +94,10 @@ export const ReportContainer: React.FC = () => {
 
     return (
         <div className="report-container">
-            <Row>
-                <Col span={4}>
-                    <PieChart chartData={chartData}/>
-                </Col>
-                <Col span={4}>
-                    <PieChart chartData={chartData}/>
-                </Col>
-                <Col span={16}>
-                    <ReportSummary/>
-                </Col>
-            </Row>
+            <PieChart chartData={overallData} title='Changes by type'/>
+            <PieChart chartData={breakingData} title='Breaking change types'/>
+            <PieChart chartData={totalData} title='Overall changes' isBinary/>
+            <ReportSummary changeStats={stats}/>
         </div>
     )
 }

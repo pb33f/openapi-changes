@@ -5,10 +5,18 @@ body {
   background-color: var(--background-color);
   font-family: var(--font-stack);
   color: var(--font-color);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
+
+a, a:visited, a:active {
+  color: var(--primary-color);
+}
+
+
+a:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
 html {
   scroll-behavior: smooth;
 }

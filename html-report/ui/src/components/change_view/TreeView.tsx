@@ -87,12 +87,41 @@ const TreeTitleNode = (props: TreeTitleNodeProps) => {
     )
 }
 
-export const TreeViewComponent = () => {
 
-    const treeRef = useRef<any>();
+export function TreeViewComponent() {
+
+    const [sbs, setSbs] = React.useState(() => window.innerWidth < 1000);
+
+
+    let timer: any
+
+    const changeSize = (state: boolean) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            if (state) {
+                console.log('single view');
+            } else {
+                console.log('split view');
+            }
+            setSbs(state)
+
+        }, 100)
+    }
+
+    const watchSize = () => {
+        if (window.innerWidth < 1000) {
+            changeSize(true)
+        } else {
+            changeSize(false)
+        }
+
+    }
 
 
     visitNode(treeData[0])
+
+
+    const treeRef = useRef<any>();
 
 
     const currentChange = useChangeStore((state: ChangeState) => state.currentChange)
@@ -117,10 +146,14 @@ export const TreeViewComponent = () => {
         setCurrentChange(info.node.change);
     };
 
+
+    let listener: boolean
+
     const treeContainer = useCallback((node: any) => {
+
         let lookupKey: String | undefined;
         if (selectedKeys.toString() !== selectedKeysInState.toString()) {
-            if (typeof selectedKeysInState[0] ==='string') {
+            if (typeof selectedKeysInState[0] === 'string') {
                 lookupKey = lookupMap.get(selectedKeysInState[0])
                 if (lookupKey) {
                     // @ts-ignore
@@ -131,12 +164,18 @@ export const TreeViewComponent = () => {
         if (node !== null) {
             if (height != node.getBoundingClientRect().height) {
                 setHeight(node.getBoundingClientRect().height)
+                //setHeight(500);
             }
         }
         if (lookupKey && treeRef) {
             treeRef.current.scrollTo({key: lookupKey, align: 'top'})
         }
-    },[]);
+        if (!listener) {
+            listener = true;
+            console.log('setting listener');
+            window.addEventListener('resize', watchSize);
+        }
+    }, []);
 
 
     let change: JSX.Element | undefined;
@@ -147,7 +186,8 @@ export const TreeViewComponent = () => {
     let unselectedView = (<section className='tree-nothing-selected'>
         <div className='nothing-selected-icon'>
             <span className='icon'><GoDiff/></span><br/>
-            Select a change from the tree to see more.</div>
+            Select a change from the tree to see more.
+        </div>
     </section>);
 
     let selectedView = (<section className='tree-selected-change'>
@@ -157,7 +197,7 @@ export const TreeViewComponent = () => {
             {change}
 
             <div className='diff-view'>
-                <EditorComponent currentChange={currentChange}/>
+                <EditorComponent inlineEditor={sbs} currentChange={currentChange}/>
             </div>
         </section>
     )
@@ -167,10 +207,40 @@ export const TreeViewComponent = () => {
         view = selectedView;
     }
 
-    return (
-        <div className='tree-holder'>
-            <Allotment minSize={100}>
-                <Allotment.Pane preferredSize={450}>
+    if (!sbs) {
+
+        return (
+            <div className='tree-holder'>
+                <Allotment minSize={100}>
+                    <Allotment.Pane preferredSize={450}>
+                        <div className='tree-scroller' ref={treeContainer}>
+                            <Tree
+                                showIcon
+                                ref={treeRef}
+                                rootClassName="tree"
+                                showLine
+                                height={height}
+                                switcherIcon={<DownOutlined/>}
+                                defaultExpandAll
+                                onExpand={onExpand}
+                                onSelect={onSelect}
+                                selectedKeys={selectedKeys}
+                                treeData={treeData}
+                            />
+                        </div>
+                    </Allotment.Pane>
+                    <Allotment.Pane>
+
+                        {view}
+
+                    </Allotment.Pane>
+                </Allotment>
+            </div>
+        )
+    } else {
+        return (
+            <section>
+                <div className='tree-holder'>
                     <div className='tree-scroller' ref={treeContainer}>
                         <Tree
                             showIcon
@@ -186,11 +256,11 @@ export const TreeViewComponent = () => {
                             treeData={treeData}
                         />
                     </div>
-                </Allotment.Pane>
-                <Allotment.Pane>
+                </div>
+
                     {view}
-                </Allotment.Pane>
-            </Allotment>
-        </div>
-    )
+
+            </section>
+        )
+    }
 }

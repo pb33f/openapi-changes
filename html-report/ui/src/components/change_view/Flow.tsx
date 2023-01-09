@@ -37,11 +37,17 @@ const HorizontalFlow = () => {
     const [selections, setSelections] = useState<string[]>([]);
 
 
+    let scale = 0.8;
+    if (window.innerWidth < 1000) {
+        scale = 0.3
+    }
+
+
     return (
         <TransformWrapper
             maxScale={2}
             minScale={0.05}
-            initialScale={0.8}
+            initialScale={scale}
             wheel={{step: 0.08}}
             zoomAnimation={{animationType: "linear"}}
             doubleClick={{disabled: true}}

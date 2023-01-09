@@ -11,4 +11,5 @@ type HTMLReport struct {
     DocumentChanges *wcModel.DocumentChanges `json:"documentChanges"`
     TreeNodes       *TreeNode                `json:"tree"`
     Graph           *GraphResult             `json:"graph"`
+    Statistics      *ChangeStatistics        `json:"statistics"`
 }

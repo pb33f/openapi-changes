@@ -3,32 +3,54 @@ import {Doughnut, Pie} from "react-chartjs-2";
 import {Chart, ArcElement,  Tooltip, Legend, Title} from 'chart.js'
 import {color, getHoverColor} from 'chart.js/helpers'
 
-import {ChartColors, CreateRadialGradient} from "./ChartColors";
+import {BinaryChartColors, ChartColors, CreateRadialGradient} from "./ChartColors";
 Chart.register(ArcElement,  Tooltip, Legend, Title);
 
-function PieChart(props: any) {
+export interface PieChartProps {
+    chartData: any
+    title: string
+
+    isBinary?: boolean
+}
+
+
+function PieChart(props: PieChartProps) {
+
+    let colors = ChartColors;
+    if (props.isBinary) {
+        colors = BinaryChartColors
+    }
+
+    let showLegend: boolean = true;
+    if (window.innerWidth < 1000) {
+        showLegend = false
+    }
+
     return (
-        <div className="chart-container height-100">
-            <h2 style={{ textAlign: "center" }}></h2>
+        <div className="chart-container">
             <Doughnut
                 data={props.chartData}
                 options={{
+                    layout: {
+                      autoPadding: true,
+                    },
                     plugins: {
                         title: {
-                            display: false,
-                            text: "Making shit look good.",
-                            font: {
-                                size: 12,
-                                family: "Menlo, Monaco, Roboto Mono, Lucida Console, Liberation Mono"
-                            }
+                            display: true,
+                            text: props.title,
                         },
                         legend: {
-                            display: false,
-                            position: 'bottom',
+                            align: 'center',
+                            display: showLegend,
+                            position: 'right',
+                            //maxWidth: 0,
+                            maxHeight: 40,
+
                             labels: {
+                                usePointStyle: true,
                                 // This more specific font property overrides the global property
                                 font: {
-                                    size: 10,
+                                    size: 8,
                                     family: "Menlo, Monaco, Roboto Mono, Lucida Console, Liberation Mono"
                                 }
                             }
@@ -38,7 +60,7 @@ function PieChart(props: any) {
                     elements: {
                         arc: {
                             backgroundColor: function (context) {
-                                let c = ChartColors[context.dataIndex];
+                                let c = colors[context.dataIndex];
                                 if (!c) {
                                     return;
                                 }

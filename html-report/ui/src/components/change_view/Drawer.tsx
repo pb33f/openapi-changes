@@ -62,14 +62,35 @@ export interface OriginalModifiedColsProps {
 }
 
 export const OriginalModifiedCols: React.FC<OriginalModifiedColsProps> = (props: OriginalModifiedColsProps) => {
+
+    let origLine = (<span>{props.change.context.originalLine}</span>)
+    if (props.change.context.originalLine) {
+        origLine = (
+            <span className="orig-col">
+                <strong>Original</strong> Specification
+                (line: <span
+                className='linenumber-highlight'>{props.change.context.originalLine}</span>, col: {props.change.context.originalColumn})
+            </span>)
+    } else {
+        origLine = (<span className="orig-col">(Not available in original specification)</span>)
+    }
+
+    let modLine = (<span>{props.change.context.newLine}</span>)
+    if (props.change.context.newLine) {
+        modLine = (
+            <span className="mod-col">
+                <strong>Modified</strong> Specification (line: <span
+                className='linenumber-highlight'>{props.change.context.newLine}</span>, col: {props.change.context.newColumn}))
+            </span>)
+    } else {
+        modLine = (<span className="mod-col" >(Not available in modified specification)</span>)
+    }
+
+
     return (
         <Row className={props.className ? props.className : 'original-modified-container'}>
-            <Col span={12}>{props.change.context.originalLine ?
-                'Original Specification (' + props.change.context.originalLine + ':'
-                + props.change.context.originalColumn + ')' : '(Not present in original specification)'}</Col>
-            <Col span={12}>{props.change?.context.newLine ?
-                'Modified Specification(' + props.change.context.newLine + ':'
-                + props.change.context.newColumn + ')' : '(Removed from modified specification)'}</Col>
+            <Col span={12}>{origLine}</Col>
+            <Col span={12}>{modLine}</Col>
         </Row>
     )
 }
@@ -161,7 +182,8 @@ export const ChangeTitleComponent = () => {
     if (currentChange) {
         return (
             <section className='drawer-title'>
-                {changeIcon} <span className={CheckPropIsVerb(currentChange?.property) ? 'drawer-title-property-verb' :'drawer-title-property'}>{changeType}:&nbsp;
+                {changeIcon} <span
+                className={CheckPropIsVerb(currentChange?.property) ? 'drawer-title-property-verb' : 'drawer-title-property'}>{changeType}:&nbsp;
                 <span className="drawer-title-changed">{changeProperty}</span>
             </span>
                 {breaking}

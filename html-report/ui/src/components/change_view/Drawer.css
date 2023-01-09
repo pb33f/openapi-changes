@@ -3,7 +3,7 @@
     /*display: flex;*/
     /*flex-direction: row;*/
     font-weight: normal;
-    max-width: calc(100% - 90px);
+    position: relative;
 }
 
 .drawer-title-icon {
@@ -24,7 +24,7 @@
 .drawer-breaking-icon-container {
     position: absolute;
     right: 10px;
-    top: 3px;
+    top: 1px;
     width: 90px;
 }
 
@@ -106,4 +106,16 @@
     color: var(--dark-font-color);
     font-weight: lighter;
     /*display: inline-block;*/
+}
+
+.linenumber-highlight {
+    color: var(--secondary-color)
+}
+@media only screen and (max-width: 1000px) {
+
+    .drawer-title{
+        max-height: 20px;
+        overflow: hidden;
+
+    }
 }
