@@ -91,20 +91,12 @@ const TreeTitleNode = (props: TreeTitleNodeProps) => {
 export function TreeViewComponent() {
 
     const [sbs, setSbs] = React.useState(() => window.innerWidth < 1000);
-
-
     let timer: any
 
     const changeSize = (state: boolean) => {
         clearTimeout(timer);
         timer = setTimeout(() => {
-            if (state) {
-                console.log('single view');
-            } else {
-                console.log('split view');
-            }
             setSbs(state)
-
         }, 100)
     }
 
@@ -117,13 +109,9 @@ export function TreeViewComponent() {
 
     }
 
-
     visitNode(treeData[0])
 
-
     const treeRef = useRef<any>();
-
-
     const currentChange = useChangeStore((state: ChangeState) => state.currentChange)
     const setCurrentChange = useChangeStore((state: ChangeState) => state.setCurrentChange)
     const selectedKeysInState = useChangeStore((state: ChangeState) => state.selectedChangeKeys)
@@ -172,7 +160,6 @@ export function TreeViewComponent() {
         }
         if (!listener) {
             listener = true;
-            console.log('setting listener');
             window.addEventListener('resize', watchSize);
         }
     }, []);

@@ -27,7 +27,7 @@
     white-space: nowrap;
     font-size: 0.8rem;
     height: 60px;
-    max-width: calc(100vw - 555px);
+    max-width: 750px;
     max-height: 50px;
     border: 1px dashed var(--secondary-color-very-lowalpha);
     background-color: var(--rule-item-background);

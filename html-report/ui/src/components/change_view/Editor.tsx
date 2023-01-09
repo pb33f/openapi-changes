@@ -139,22 +139,19 @@ export function EditorComponent(props: EditorComponentProps) {
         minimap: {enabled: false},
     };
     if (sbs) {
-        console.log('loading split');
         options.renderSideBySide = false
     } else {
-        console.log('loading side by side')
         options.renderSideBySide = true
     }
     let height = props.height
     if (!height) {
         if(sbs) {
-            height = "calc(100vh - 610px)"
+            height = "calc(100vh - 607px)"
         } else {
             height = "calc(100vh - 350px)"
         }
 
     }
-    console.log(height)
 
     return (
         <DiffEditor

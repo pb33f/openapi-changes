@@ -23,12 +23,6 @@ interface TreeGraphMap {
     graphNode: NodeData | null;
 }
 
-
-export function Rap() {
-    console.log('smash  the system.');
-    return (<div>This is a test</div>)
-}
-
 function App() {
     const closeDrawer = useDrawerStore((state: DrawerState) => state.closeDrawer)
     const nodeMap: Map<String, TreeGraphMap> = new Map<String, TreeGraphMap>();
