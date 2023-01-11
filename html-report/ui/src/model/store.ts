@@ -9,6 +9,13 @@ export interface DrawerState {
     openDrawer: () => void
 }
 
+export interface NavState {
+    navOpen: boolean;
+    closeNav: () => void
+    openNav: () => void
+}
+
+
 export interface ChangeState {
     currentChange: Change | null;
     selectedChangeKeys: React.Key[];
@@ -25,6 +32,12 @@ export const useDrawerStore = create<DrawerState>((set) => ({
     toggleDrawer: () => set((state) => ({drawerOpen: !state.drawerOpen})),
     openDrawer: () => set((state) => ({drawerOpen: true})),
     closeDrawer: () => set((state) => ({drawerOpen: false})),
+}));
+
+export const useNavStore = create<NavState>((set) => ({
+    navOpen: false,
+    openNav: () => set((state) => ({navOpen: true})),
+    closeNav: () => set((state) => ({navOpen: false})),
 }));
 
 export const useChangeStore = create<ChangeState>((set) => ({

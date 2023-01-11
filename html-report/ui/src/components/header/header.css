@@ -1,10 +1,12 @@
 header {
     font-size: 1.5rem;
-    padding-bottom: 20px;
     font-family: var(--font-stack);
 }
 
 header > a {
     color: var(--primary-color);
     font-weight: bold;
+    text-decoration: none;
+    float: right;
+    margin-top: 10px;
 }

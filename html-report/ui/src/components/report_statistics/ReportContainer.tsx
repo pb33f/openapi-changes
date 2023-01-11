@@ -44,7 +44,7 @@ const breakingChanges = [
 
 const totalChanges = [
     {
-        type: "Total Changes",
+        type: "Total",
         value: stats.total
 
     },

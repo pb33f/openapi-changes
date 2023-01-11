@@ -6,10 +6,14 @@ package git
 import (
     "bytes"
     "fmt"
+    "github.com/go-git/go-git/v5"
+    "github.com/go-git/go-git/v5/plumbing"
+    "github.com/go-git/go-git/v5/plumbing/object"
     "github.com/pb33f/libopenapi"
     "github.com/pb33f/openapi-changes/builder"
     "github.com/pb33f/openapi-changes/model"
     "github.com/pterm/pterm"
+    "io"
     "os/exec"
     "path"
     "strings"
@@ -80,6 +84,71 @@ func ExtractHistoryFromFile(repoDirectory, filePath string) []*model.Commit {
                 })
         }
     }
+    return commitHistory
+}
+
+func ExtractHistoryUsingLib(repoDirectory, filePath string) []*model.Commit {
+    var commitHistory []*model.Commit
+    var err error
+
+    r, e := git.PlainOpen(repoDirectory)
+    if e != nil {
+        return commitHistory
+    }
+
+    var ref *plumbing.Reference
+    ref, err = r.Head()
+    if err != nil {
+        return commitHistory
+    }
+
+    var commitIterator object.CommitIter
+    commitIterator, err = r.Log(&git.LogOptions{
+        From:     ref.Hash(),
+        FileName: &filePath,
+    })
+    if err != nil {
+        return commitHistory
+    }
+
+    // Iterate over all commits and save file for each
+    var commit *object.Commit
+    for {
+        commit, err = commitIterator.Next()
+        if err == io.EOF {
+            break
+        }
+        if err != nil {
+            return commitHistory
+        }
+        var srcFile *object.File
+        srcFile, err = commit.File(filePath)
+
+        buf := new(bytes.Buffer)
+
+        var reader io.ReadCloser
+        reader, err = srcFile.Blob.Reader()
+        if err != nil {
+            return commitHistory
+        }
+        _, err = buf.ReadFrom(reader)
+        if err != nil {
+            return commitHistory
+        }
+
+        commitHistory = append(commitHistory,
+            &model.Commit{
+                CommitDate:    commit.Author.When,
+                Hash:          commit.Hash.String(),
+                Message:       commit.Message,
+                Author:        commit.Author.Name,
+                AuthorEmail:   commit.Author.Email,
+                RepoDirectory: repoDirectory,
+                FilePath:      filePath,
+                Data:          buf.Bytes(),
+            })
+    }
+    commitIterator.Close()
     return commitHistory
 }
 

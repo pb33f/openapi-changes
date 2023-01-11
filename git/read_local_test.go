@@ -5,6 +5,8 @@ package git
 
 import (
     "github.com/stretchr/testify/assert"
+    "os"
+    "path/filepath"
     "testing"
 )
 
@@ -17,6 +19,14 @@ func TestExtractHistoryFromFile(t *testing.T) {
     history := ExtractHistoryFromFile("./", "read_local.go")
     assert.NotNil(t, history)
     assert.Equal(t, "adding read_local.go to test repo code", history[len(history)-1].Message)
+}
+
+func TestExtractHistoryUsingLib(t *testing.T) {
+    cwd, _ := os.Getwd()
+    dir, _ := filepath.Split(cwd)
+    history := ExtractHistoryUsingLib(dir, "sample-specs/petstorev3.json")
+    assert.NotNil(t, history)
+    assert.Equal(t, "And now it's generally wrecked. But what a fun journey.\n", history[0].Message)
 }
 
 func TestExtractHistoryFromFile_Fail(t *testing.T) {

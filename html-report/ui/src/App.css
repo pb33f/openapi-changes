@@ -5,7 +5,7 @@
 }
 
 #main_container {
-  padding: 25px 25px 0 25px;
+  padding: 5px 25px 0 25px;
   font-family: var(--font-stack);
   flex: 1 0 auto;
   width: calc(100vw - 50px);

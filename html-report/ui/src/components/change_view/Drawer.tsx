@@ -31,6 +31,10 @@ export const DrawerComponent = (props: DrawerProps) => {
         change = <OriginalModifiedCols change={currentChange}/>
     }
 
+    let inline = false;
+    if (window.innerWidth < 1000) {
+        inline = true
+    }
     return (
         <>
             <Drawer
@@ -49,7 +53,7 @@ export const DrawerComponent = (props: DrawerProps) => {
                 mask={false}
             >
                 {change}
-                <EditorComponent currentChange={currentChange} height="320px"/>
+                <EditorComponent currentChange={currentChange} height="320px" inlineEditor={inline}/>
             </Drawer>
         </>
     );
