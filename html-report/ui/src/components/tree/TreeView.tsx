@@ -4,16 +4,16 @@ import * as React from "react";
 import {ReactNode, useCallback, useEffect, useRef, useState} from "react";
 import {Badge} from "antd";
 import {DownOutlined, EditOutlined, MinusSquareOutlined, PlusSquareOutlined} from "@ant-design/icons";
-import {EditorComponent} from "./Editor";
+import {EditorComponent} from "@/components/editor/Editor";
 import {Allotment} from "allotment";
 import {BeefyTreeNode} from "@/model/beefy-tree-node";
 import {ChangeState, useChangeStore} from "@/model/store";
-import {ChangeTitleComponent, OriginalModifiedCols} from "@/components/change_view/Drawer";
+import {ChangeTitleComponent, OriginalModifiedCols} from "@/components/drawer/Drawer";
 import {GoDiff} from "react-icons/go";
-import {CheckPropIsVerb, Verb} from "@/components/change_view/Verb";
+import {CheckPropIsVerb, Verb} from "@/components/verb/Verb";
 import {Change} from "@/model";
 
-const treeData: BeefyTreeNode[] = [data.tree]
+const treeData: BeefyTreeNode[] = [data.reportItems[0].tree]
 
 const visitNode = (node: BeefyTreeNode) => {
     node.title = <TreeTitleNode

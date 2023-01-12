@@ -5,52 +5,115 @@ package builder
 
 import (
     "encoding/json"
-    "github.com/pb33f/libopenapi"
+    "github.com/pb33f/openapi-changes/git"
+    "github.com/pb33f/openapi-changes/model"
+    "github.com/stretchr/testify/assert"
     "os"
+    "path/filepath"
     "testing"
+    "time"
 )
 
 func TestBuildTree(t *testing.T) {
 
-    oldBits, _ := os.ReadFile("../sample-specs/petstorev3-original.json")
-    newBits, _ := os.ReadFile("../sample-specs/petstorev3.json")
-    oldDoc, _ := libopenapi.NewDocument(oldBits)
-    newDoc, _ := libopenapi.NewDocument(newBits)
-    changes, _ := libopenapi.CompareDocuments(oldDoc, newDoc)
+    cwd, _ := os.Getwd()
+    dir, _ := filepath.Split(cwd)
 
-    tree, stats := BuildTree(changes)
+    history := git.ExtractHistoryUsingLib(dir, "sample-specs/petstorev3.json")
+    assert.NotNil(t, history)
+    assert.Equal(t, "And now it's generally wrecked. But what a fun journey.\n", history[0].Message)
 
-    nodes, edges := BuildGraph(changes)
-    graph := &GraphResult{nodes, edges}
-
-    // inject some commit data to stats
-
-    message := "Added a few descriptions to operations and swapped out some tags on customer API and then updated" +
-        " some of the examples on the customer API that help explain more about the return objects. Also included" +
-        " a new title and bumped the version up"
-
-    commit := &CommitStatistics{
-        CommitDate:        "01/09/23 1:23 PM",
-        CommitMessage:     message,
-        CommitAuthor:      "daveshanley",
-        CommitAuthorEmail: "dave@quobix.com",
-        CommitHash:        "62b8sn",
+    // build out the commit change log and ensure everything is in the right place.
+    errors := git.PopulateHistoryWithChanges(history, nil, false)
+    assert.Len(t, errors, 0)
+    for x := range history {
+        if x != len(history)-1 { // last item is first commit, it can't be diffed.
+            assert.NotNil(t, history[x].Changes)
+            assert.NotNil(t, history[x].OldData)
+        }
     }
 
-    stats.Commit = commit
+    var reportItems []*model.HTMLReportItem
 
-    // build a report DTO
-    reportDTO := &HTMLReport{
-        OriginalSpec:    string(oldBits),
-        ModifiedSpec:    string(newBits),
-        DocumentChanges: changes,
-        Statistics:      stats,
-        TreeNodes:       tree,
-        Graph:           graph,
+    // build out report items
+    for x := range history {
+
+        historyItem := history[x]
+
+        if historyItem.Changes != nil {
+
+            tree, stats := BuildTree(historyItem.Changes)
+            nodes, edges := BuildGraph(historyItem.Changes)
+            graph := &model.GraphResult{nodes, edges}
+
+            commit := &model.CommitStatistics{
+                Date:        historyItem.CommitDate.Format("Mon, 2 Jan 2006 15:04:05 -0400"),
+                Message:     historyItem.Message,
+                Author:      historyItem.Author,
+                AuthorEmail: historyItem.AuthorEmail,
+                Hash:        historyItem.Hash,
+            }
+
+            stats.Commit = commit
+
+            // build a report DTO
+            reportDTO := &model.HTMLReportItem{
+                OriginalSpec:    string(historyItem.OldData),
+                ModifiedSpec:    string(historyItem.Data),
+                DocumentChanges: historyItem.Changes,
+                Statistics:      stats,
+                TreeNodes:       tree,
+                Graph:           graph,
+            }
+            reportItems = append(reportItems, reportDTO)
+        }
     }
 
-    dto, _ := json.Marshal(reportDTO)
+    report := &model.HTMLReport{
+        DateGenerated: time.Now().Format("Mon, 2 Jan 2006 15:04:05 -0400"),
+        ReportItems:   reportItems,
+    }
 
-    _ = os.WriteFile("../html-report/ui/data.json", dto, 0664)
+    //oldBits, _ := os.ReadFile("../sample-specs/petstorev3-original.json")
+    //newBits, _ := os.ReadFile("../sample-specs/petstorev3.json")
+    //oldDoc, _ := libopenapi.NewDocument(oldBits)
+    //newDoc, _ := libopenapi.NewDocument(newBits)
+    //changes, _ := libopenapi.CompareDocuments(oldDoc, newDoc)
+    //
+    //tree, stats := BuildTree(changes)
+    //
+    //nodes, edges := BuildGraph(changes)
+    //graph := &GraphResult{nodes, edges}
+    //
+    //// inject some commit data to stats
+    //
+    //message := "Added a few descriptions to operations and swapped out some tags on customer API and then updated" +
+    //    " some of the examples on the customer API that help explain more about the return objects. Also included" +
+    //    " a new title and bumped the version up"
+    //
+    //commit := &CommitStatistics{
+    //    Date:        "01/09/23 1:23 PM",
+    //    Message:     message,
+    //    Author:      "daveshanley",
+    //    AuthorEmail: "dave@quobix.com",
+    //    Hash:        "62b8sn",
+    //}
+    //
+    //stats.Commit = commit
+    //
+    //// build a report DTO
+    //reportDTO := &HTMLReportItem{
+    //    OriginalSpec:    string(oldBits),
+    //    ModifiedSpec:    string(newBits),
+    //    DocumentChanges: changes,
+    //    Statistics:      stats,
+    //    TreeNodes:       tree,
+    //    Graph:           graph,
+    //}
+
+    dto, _ := json.MarshalIndent(report, "", "  ")
+
+    err := os.WriteFile("../html-report/ui/data.json", dto, 0664)
+    assert.NoError(t, err)
 
 }

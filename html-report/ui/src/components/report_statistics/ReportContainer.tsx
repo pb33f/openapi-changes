@@ -8,7 +8,7 @@ import data from '../../../data.json'
 import {BeefyTreeNode, ChangeStatistics} from "@/model";
 import './ReportContainer.css'
 
-const stats: ChangeStatistics = data.statistics
+const stats: ChangeStatistics = data.reportItems[0].statistics
 
 const overallChanges = [
     {

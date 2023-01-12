@@ -5,6 +5,7 @@ body {
   background-color: var(--background-color);
   font-family: var(--font-stack);
   color: var(--font-color);
+  padding: 20px 20px 0 20px;
 }
 
 a, a:visited, a:active {

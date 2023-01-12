@@ -1,5 +1,5 @@
-import {DrawerComponent, DrawerProps} from "./Drawer";
-import HorizontalFlow from "./Flow";
+import {DrawerComponent, DrawerProps} from "@/components/drawer/Drawer";
+import HorizontalFlow from "@/components/graph/Flow";
 import React from "react";
 import {Change} from "@/model/change";
 import {DrawerState, useDrawerStore} from "@/model/store";

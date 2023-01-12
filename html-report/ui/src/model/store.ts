@@ -1,6 +1,8 @@
 import create from "zustand";
 import {Change} from "./change";
 import React from "react";
+import {CanvasDirection} from "reaflow/dist/layout/elkLayout";
+import {ReactZoomPanPinchRef } from "react-zoom-pan-pinch";
 
 export interface DrawerState {
     drawerOpen: boolean;
@@ -14,6 +16,17 @@ export interface NavState {
     closeNav: () => void
     openNav: () => void
 }
+
+export interface GraphState {
+    view: CanvasDirection;
+    setDirection: (direction: CanvasDirection) => void;
+
+    zoomPanPinch: ReactZoomPanPinchRef | undefined;
+
+    setZoomPanPinch: (ref: ReactZoomPanPinchRef) => void;
+
+}
+
 
 
 export interface ChangeState {
@@ -46,4 +59,12 @@ export const useChangeStore = create<ChangeState>((set) => ({
     treeMapLookup: new Map<String, String>(),
     setCurrentChange: (currentChange) => set({currentChange}),
     setSelectedChangeKeys: (selectedChangeKeys) => set({selectedChangeKeys})
+}));
+
+
+export const useGraphStore = create<GraphState>((set) => ({
+    view: 'DOWN',
+    zoomPanPinch: undefined as ReactZoomPanPinchRef | undefined,
+    setDirection: (direction: CanvasDirection) => set({view: direction}),
+    setZoomPanPinch: zoomPanPinch => set({ zoomPanPinch }),
 }));

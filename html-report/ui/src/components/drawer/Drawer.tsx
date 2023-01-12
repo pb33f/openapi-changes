@@ -1,10 +1,10 @@
 import React from "react";
 import {Col, Drawer, Row} from "antd";
 import {ChangeState, DrawerState, useChangeStore, useDrawerStore} from "@/model/store";
-import {EditorComponent} from "@/components/change_view/Editor";
+import {EditorComponent} from "@/components/editor/Editor";
 import {VscDiffAdded, VscDiffRemoved, VscEdit} from "react-icons/vsc";
 import {WarningFilled} from "@ant-design/icons";
-import {CheckPropIsVerb, Verb} from "@/components/change_view/Verb";
+import {CheckPropIsVerb, Verb} from "@/components/verb/Verb";
 import './Drawer.css';
 import {Change} from "@/model";
 

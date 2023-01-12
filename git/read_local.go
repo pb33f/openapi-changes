@@ -10,7 +10,7 @@ import (
     "github.com/go-git/go-git/v5/plumbing"
     "github.com/go-git/go-git/v5/plumbing/object"
     "github.com/pb33f/libopenapi"
-    "github.com/pb33f/openapi-changes/builder"
+    // "github.com/pb33f/openapi-changes/builder"
     "github.com/pb33f/openapi-changes/model"
     "github.com/pterm/pterm"
     "io"
@@ -225,7 +225,7 @@ func BuildCommitChangelog(commitHistory []*model.Commit, quality bool) []error {
 
         // run vacuum stats
         if quality {
-            commitHistory[c].QualityReport = builder.CheckStats(newDoc.GetSpecInfo())
+            commitHistory[c].QualityReport = CheckStats(newDoc.GetSpecInfo())
         }
     }
     return nil

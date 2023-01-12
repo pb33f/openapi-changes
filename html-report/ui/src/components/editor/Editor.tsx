@@ -2,10 +2,10 @@ import React, {useEffect, useRef, useState} from "react";
 import data from '../../../data.json'
 import {DiffEditor, Monaco} from "@monaco-editor/react"
 import {Change} from '@/model';
-import './Tree.css'
+import '@/components/tree/Tree.css'
 
-const originalSpec = data.originalSpec
-const modifiedSpec = data.modifiedSpec
+const originalSpec = data.reportItems[0].originalSpec
+const modifiedSpec = data.reportItems[0].modifiedSpec
 
 export interface EditorComponentProps {
     currentChange: Change | null;

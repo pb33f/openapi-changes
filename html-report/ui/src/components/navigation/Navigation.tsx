@@ -1,7 +1,7 @@
 import {NavState, useNavStore} from "@/model/store";
 import {Button, Drawer, Timeline} from "antd";
 import React from "react";
-import {ChangeTitleComponent} from "@/components/change_view/Drawer";
+import {ChangeTitleComponent} from "@/components/drawer/Drawer";
 import {ClockCircleOutlined, WarningFilled} from "@ant-design/icons";
 
 import './Navigation.css';

@@ -1,4 +1,4 @@
-// Copyright 2022 Princess B33f Heavy Industries / Dave Shanley
+// Copyright 2022-2023 Princess B33f Heavy Industries / Dave Shanley
 // SPDX-License-Identifier: MIT
 
 package git
@@ -27,6 +27,16 @@ func TestExtractHistoryUsingLib(t *testing.T) {
     history := ExtractHistoryUsingLib(dir, "sample-specs/petstorev3.json")
     assert.NotNil(t, history)
     assert.Equal(t, "And now it's generally wrecked. But what a fun journey.\n", history[0].Message)
+
+    // build out the commit change log and ensure everything is in the right place.
+    errors := PopulateHistoryWithChanges(history, nil, false)
+    assert.Len(t, errors, 0)
+    for x := range history {
+        if x != len(history)-1 { // last item is first commit, it can't be diffed.
+            assert.NotNil(t, history[x].Changes)
+            assert.NotNil(t, history[x].OldData)
+        }
+    }
 }
 
 func TestExtractHistoryFromFile_Fail(t *testing.T) {

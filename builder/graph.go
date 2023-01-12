@@ -7,67 +7,11 @@ import (
     "fmt"
     v3 "github.com/pb33f/libopenapi/datamodel/low/v3"
     wcModel "github.com/pb33f/libopenapi/what-changed/model"
+    "github.com/pb33f/openapi-changes/model"
     "github.com/twinj/uuid"
     "reflect"
     "strings"
 )
-
-type GraphResult struct {
-    Nodes []*NodeData[any] `json:"nodes"`
-    Edges []*EdgeData[any] `json:"edges"`
-}
-
-type CanvasDirection string
-type CanvasPosition string
-type PortSide string
-
-type NodeData[T any] struct {
-    Id                string      `json:"id,omitempty"`
-    Disabled          *bool       `json:"disabled,omitempty"`
-    Text              any         `json:"text,omitempty"`
-    Height            *int        `json:"height,omitempty"`
-    Width             *int        `json:"width,omitempty"`
-    Parent            string      `json:"parent,omitempty"`
-    Ports             []*PortData `json:"ports,omitempty"`
-    Icon              *IconData   `json:"icon,omitempty"`
-    NodePadding       []int       `json:"nodePadding,omitempty"`
-    Data              T           `json:"data,omitempty"`
-    ClassName         string      `json:"className,omitempty"`
-    LayoutOptions     any         `json:"layoutOptions,omitempty"`
-    SelectionDisabled *bool       `json:"selectionDisabled,omitempty"`
-}
-
-type IconData struct {
-    Url    string `json:"url,omitempty"`
-    Height *int   `json:"height,omitempty"`
-    Width  *int   `json:"width,omitempty"`
-}
-
-type PortData struct {
-    Id        string         `json:"id,omitempty"`
-    Height    *int           `json:"height,omitempty"`
-    Width     *int           `json:"weight,omitempty"`
-    Hidden    bool           `json:"hidden,omitempty"`
-    ClassName string         `json:"className,omitempty"`
-    Alignment CanvasPosition `json:"alignment,omitempty"`
-    Side      PortSide       `json:"side,omitempty"`
-}
-
-type EdgeData[T any] struct {
-    Id                 string `json:"id,omitempty"`
-    Disabled           *bool  `json:"disabled,omitempty"`
-    Text               string `json:"text,omitempty"`
-    From               string `json:"from,omitempty"`
-    To                 string `json:"to,omitempty"`
-    FromPort           string `json:"fromPort,omitempty"`
-    ToPort             string `json:"toPort,omitempty"`
-    Data               T      `json:"data,omitempty"`
-    ClassName          string `json:"className,omitempty"`
-    ContainerClassName string `json:"containerClassName,omitempty"`
-    ArrowHeadType      any    `json:"arrowHeadType,omitempty"`
-    Parent             string `json:"parent,omitempty"`
-    SelectionDisabled  string `json:"selectionDisabled,omitempty"`
-}
 
 const DefaultHeight = 25
 const LeafHeight = 45
@@ -77,14 +21,14 @@ const TextLimit = 20
 const TextSizeBumpIncrement = 5
 const TextWidthSizeBumpIncrement = 10
 
-func BuildGraph(obj any) ([]*NodeData[any], []*EdgeData[any]) {
+func BuildGraph(obj any) ([]*model.NodeData[any], []*model.EdgeData[any]) {
 
     // todo: start here tomorrow.
-    var nodes []*NodeData[any]
-    var edges []*EdgeData[any]
+    var nodes []*model.NodeData[any]
+    var edges []*model.EdgeData[any]
 
     initHeight := DefaultHeight
-    n := &NodeData[any]{
+    n := &model.NodeData[any]{
         Id:     "root",
         Text:   "Document",
         Height: &initHeight,
@@ -94,8 +38,8 @@ func BuildGraph(obj any) ([]*NodeData[any], []*EdgeData[any]) {
     return nodes, edges
 }
 
-func exploreGraphObject(parent *NodeData[any], object any, nodes *[]*NodeData[any],
-    edges *[]*EdgeData[any]) {
+func exploreGraphObject(parent *model.NodeData[any], object any, nodes *[]*model.NodeData[any],
+    edges *[]*model.EdgeData[any]) {
 
     v := reflect.ValueOf(object).Elem()
     num := v.NumField()
@@ -132,7 +76,7 @@ func exploreGraphObject(parent *NodeData[any], object any, nodes *[]*NodeData[an
 
                     n := buildNode(topChanges[x].Property, width, height, topChanges[x])
                     if parent != nil {
-                        e := &EdgeData[any]{
+                        e := &model.EdgeData[any]{
                             Id:   fmt.Sprintf("%s-to-%s", parent.Id, n.Id),
                             From: parent.Id,
                             To:   n.Id,
@@ -293,12 +237,12 @@ func calcWidth(label string) int {
     return l
 }
 
-func buildNode(text string, width, height int, data any) *NodeData[any] {
+func buildNode(text string, width, height int, data any) *model.NodeData[any] {
     if len(text) > TextLimit {
         num := len(text[TextLimit:])
         width += TextSizeBumpIncrement * num
     }
-    d := &NodeData[any]{
+    d := &model.NodeData[any]{
         Id:     buildId(text),
         Text:   text,
         Width:  &width,
@@ -310,19 +254,19 @@ func buildNode(text string, width, height int, data any) *NodeData[any] {
     return d
 }
 
-func disableNode(node *NodeData[any]) {
+func disableNode(node *model.NodeData[any]) {
     d := true
     node.Disabled = &d
 }
 
-func DigIntoObject[T any](parent *NodeData[any], field reflect.Value, nodes *[]*NodeData[any],
-    label string, edges *[]*EdgeData[any]) {
+func DigIntoObject[T any](parent *model.NodeData[any], field reflect.Value, nodes *[]*model.NodeData[any],
+    label string, edges *[]*model.EdgeData[any]) {
 
     if !field.IsZero() {
         lowerLabel := strings.ToLower(label)
         n := buildNode(lowerLabel, calcWidth(lowerLabel), DefaultHeight, nil)
         if parent != nil {
-            e := &EdgeData[any]{
+            e := &model.EdgeData[any]{
                 Id:   fmt.Sprintf("%s-to-%s", parent.Id, n.Id),
                 From: parent.Id,
                 To:   n.Id,
@@ -337,8 +281,8 @@ func DigIntoObject[T any](parent *NodeData[any], field reflect.Value, nodes *[]*
     }
 }
 
-func BuildSliceGraphNode[T any](parent *NodeData[any], field reflect.Value, nodes *[]*NodeData[any],
-    label string, edges *[]*EdgeData[any]) {
+func BuildSliceGraphNode[T any](parent *model.NodeData[any], field reflect.Value, nodes *[]*model.NodeData[any],
+    label string, edges *[]*model.EdgeData[any]) {
 
     if !field.IsZero() {
         for k := 0; k < field.Len(); k++ {
@@ -346,7 +290,7 @@ func BuildSliceGraphNode[T any](parent *NodeData[any], field reflect.Value, node
             lowerLabel := strings.ToLower(label)
             n := buildNode(lowerLabel, calcWidth(lowerLabel), DefaultHeight, nil)
             if parent != nil {
-                e := &EdgeData[any]{
+                e := &model.EdgeData[any]{
                     Id:   fmt.Sprintf("%s-to-%s", parent.Id, n.Id),
                     From: parent.Id,
                     To:   n.Id,
@@ -361,8 +305,8 @@ func BuildSliceGraphNode[T any](parent *NodeData[any], field reflect.Value, node
     }
 }
 
-func BuildGraphMapNode(parent *NodeData[any], field reflect.Value, nodes *[]*NodeData[any],
-    edges *[]*EdgeData[any]) {
+func BuildGraphMapNode(parent *model.NodeData[any], field reflect.Value, nodes *[]*model.NodeData[any],
+    edges *[]*model.EdgeData[any]) {
 
     if !field.IsZero() {
         for _, e := range field.MapKeys() {
@@ -372,7 +316,7 @@ func BuildGraphMapNode(parent *NodeData[any], field reflect.Value, nodes *[]*Nod
                 lowerLabel := strings.ToLower(e.String())
                 n := buildNode(lowerLabel, calcWidth(lowerLabel), DefaultHeight, nil)
                 if parent != nil {
-                    ed := &EdgeData[any]{
+                    ed := &model.EdgeData[any]{
                         Id:   fmt.Sprintf("%s-to-%s", parent.Id, n.Id),
                         From: parent.Id,
                         To:   n.Id,

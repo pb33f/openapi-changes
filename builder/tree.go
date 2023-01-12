@@ -8,6 +8,7 @@ import (
     v3 "github.com/pb33f/libopenapi/datamodel/low/v3"
     wcModel "github.com/pb33f/libopenapi/what-changed/model"
     "github.com/pb33f/libopenapi/what-changed/reports"
+    "github.com/pb33f/openapi-changes/model"
     "github.com/twinj/uuid"
     "golang.org/x/text/cases"
     "golang.org/x/text/language"
@@ -21,55 +22,22 @@ func init() {
     upper = cases.Title(language.English)
 }
 
-type TreeNode struct {
-    TitleString     string          `json:"titleString"`
-    Title           string          `json:"title,omitempty"`
-    Key             string          `json:"key"`
-    IsLeaf          bool            `json:"isLeaf,omitempty"`
-    Selectable      bool            `json:"selectable,omitempty"`
-    TotalChanges    int             `json:"totalChanges,omitempty"`
-    BreakingChanges int             `json:"breakingChanges,omitempty"`
-    Change          *wcModel.Change `json:"change,omitempty"`
-    Disabled        bool            `json:"disabled,omitempty"`
-    Children        []*TreeNode     `json:"children,omitempty"`
-}
+var count *model.ChangeStatistics
 
-type ChangeStatistics struct {
-    Total            int               `json:"total"`
-    TotalBreaking    int               `json:"totalBreaking"`
-    Added            int               `json:"added"`
-    Modified         int               `json:"modified"`
-    Removed          int               `json:"removed"`
-    BreakingAdded    int               `json:"breakingAdded"`
-    BreakingModified int               `json:"breakingModified"`
-    BreakingRemoved  int               `json:"breakingRemoved"`
-    Commit           *CommitStatistics `json:"commit,omitempty"`
-}
+func BuildTree(obj any) (*model.TreeNode, *model.ChangeStatistics) {
 
-type CommitStatistics struct {
-    CommitDate        string `json:"date,omitempty"`
-    CommitMessage     string `json:"message,omitempty"`
-    CommitAuthor      string `json:"author,omitempty"`
-    CommitAuthorEmail string `json:"authorEmail,omitempty"`
-    CommitHash        string `json:"hash,omitempty"`
-}
-
-var count *ChangeStatistics
-
-func BuildTree(obj any) (*TreeNode, *ChangeStatistics) {
-
-    n := &TreeNode{
+    n := &model.TreeNode{
         TitleString: "Document",
         Key:         "root",
         IsLeaf:      false,
         Selectable:  false,
     }
-    count = &ChangeStatistics{}
+    count = &model.ChangeStatistics{}
     exploreTreeObject(n, obj)
     return n, count
 }
 
-func exploreTreeObject(parent *TreeNode, object any) {
+func exploreTreeObject(parent *model.TreeNode, object any) {
 
     v := reflect.ValueOf(object).Elem()
     num := v.NumField()
@@ -116,7 +84,7 @@ func exploreTreeObject(parent *TreeNode, object any) {
                     }
                     count.Total++
 
-                    parent.Children = append(parent.Children, &TreeNode{
+                    parent.Children = append(parent.Children, &model.TreeNode{
                         TitleString: title,
                         Key:         uuid.NewV4().String(),
                         Change:      topChanges[x],
@@ -317,9 +285,9 @@ func extractChangeCount(change reports.HasChanges) (int, int) {
     return change.TotalChanges(), change.TotalBreakingChanges()
 }
 
-func DigIntoTreeNode[T any](parent *TreeNode, field reflect.Value, label string, tc, br int) {
+func DigIntoTreeNode[T any](parent *model.TreeNode, field reflect.Value, label string, tc, br int) {
     if !field.IsZero() {
-        e := &TreeNode{
+        e := &model.TreeNode{
             TitleString:     label,
             Key:             uuid.NewV4().String(),
             IsLeaf:          false,
@@ -334,11 +302,11 @@ func DigIntoTreeNode[T any](parent *TreeNode, field reflect.Value, label string,
     }
 }
 
-func DigIntoTreeNodeSlice[T any](parent *TreeNode, field reflect.Value, label string) {
+func DigIntoTreeNodeSlice[T any](parent *model.TreeNode, field reflect.Value, label string) {
     if !field.IsZero() {
         for k := 0; k < field.Len(); k++ {
             f := field.Index(k)
-            e := &TreeNode{
+            e := &model.TreeNode{
                 TitleString: label,
                 Key:         uuid.NewV4().String(),
                 IsLeaf:      false,
@@ -359,7 +327,7 @@ func DigIntoTreeNodeSlice[T any](parent *TreeNode, field reflect.Value, label st
     }
 }
 
-func BuildTreeMapNode(parent *TreeNode, field reflect.Value) {
+func BuildTreeMapNode(parent *model.TreeNode, field reflect.Value) {
     if !field.IsZero() {
         for _, e := range field.MapKeys() {
             v := field.MapIndex(e)
@@ -368,7 +336,7 @@ func BuildTreeMapNode(parent *TreeNode, field reflect.Value) {
                 if strings.ToLower(e.String()) == "codes" {
                     fmt.Sprint("codes")
                 }
-                tn := &TreeNode{
+                tn := &model.TreeNode{
                     TitleString: e.String(),
                     Key:         uuid.NewV4().String(),
                     IsLeaf:      false,
