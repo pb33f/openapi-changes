@@ -1,9 +1,8 @@
 import React from 'react';
 import {Statistic} from 'antd';
 import {EditOutlined, MinusSquareOutlined, PlusSquareOutlined} from "@ant-design/icons";
-import {Change, ChangeStatistics} from "@/model";
+import {ChangeStatistics} from "@/model";
 import './ReportContainer.css'
-
 
 export interface ReportSummaryProps {
     changeStats: ChangeStatistics

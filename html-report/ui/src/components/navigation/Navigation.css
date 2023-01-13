@@ -1,3 +1,57 @@
 .timeline-container {
     margin-top: 10px;
 }
+
+.navigation-timeline {
+    margin-top: 20px;
+}
+
+.nav-change-container {
+    background-color: var(--rule-item-background);
+    padding: 5px;
+    border: 1px solid var(--rule-item-border);
+}
+.nav-change-container:hover {
+    border: 1px solid var(--primary-color);
+    cursor: pointer;
+}
+
+.nav-change-container:active {
+    border: 1px solid var(--secondary-color);
+    background-color: var(--rule-recommended-background);
+}
+
+.navigation-changes-chart {
+    margin-bottom: 20px;
+}
+
+.nav-change-date {
+    font-size: 11px;
+    display: block;
+    border-bottom: 1px solid var(--rule-recommended-background);
+    margin-bottom: 5px;
+    padding-bottom: 5px;
+}
+
+.timeline-change-stat-title {
+    color: var(--dark-font-color);
+    font-size: 12px;
+}
+.timeline-change-stat-title-breaking {
+    color: var(--error-font-color);
+    font-size: 12px;
+}
+
+
+.nav-change-statistics {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 0 10px 0 10px;
+}
+
+.nav-doc-created {
+    font-size: 11px;
+    color: var(--secondary-color)
+}
+

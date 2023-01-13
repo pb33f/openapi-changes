@@ -1,39 +1,27 @@
 import React, {useEffect, useRef, useState} from "react";
-import data from '../../../data.json'
 import {DiffEditor, Monaco} from "@monaco-editor/react"
 import {Change} from '@/model';
 import '@/components/tree/Tree.css'
+import {ReportState, useReportStore} from "@/model/store";
 
-const originalSpec = data.reportItems[0].originalSpec
-const modifiedSpec = data.reportItems[0].modifiedSpec
 
 export interface EditorComponentProps {
     currentChange: Change | null;
     height?: string;
-
     inlineEditor?: boolean
 }
 
 const updatePosition = (currentChange: Change, editorRef: any, origCol: number, origLine: number,
                         newCol: number, newLine: number) => {
-
     // if this is a removal
     if (origLine && !newLine) {
-
         editorRef.current.setPosition({column: 1, lineNumber: 1});
         editorRef.current.revealLinesInCenter(1, 1);
-
-
         editorRef.current.getOriginalEditor().setPosition({column: origCol, lineNumber: origLine})
         editorRef.current.getOriginalEditor().revealPositionInCenter({column: origCol, lineNumber: origLine})
         editorRef.current.getOriginalEditor().revealLinesInCenter(origLine, origLine);
         editorRef.current.getOriginalEditor().focus();
-
-
-
-
     } else {
-
         if (origLine) {
             editorRef.current.getOriginalEditor()
                 .revealLinesInCenter(origCol, origLine);
@@ -55,7 +43,8 @@ const updatePosition = (currentChange: Change, editorRef: any, origCol: number, 
 }
 
 export function EditorComponent(props: EditorComponentProps) {
-
+    const originalSpec: string = useReportStore((report: ReportState) => report.selectedReportItem.originalSpec);
+    const modifiedSpec: string = useReportStore((report: ReportState) => report.selectedReportItem.modifiedSpec);
     const editorRef = useRef<any>(null);
     const monacoRef = useRef<any>(null);
     const [mod] = useState(modifiedSpec);
@@ -66,14 +55,15 @@ export function EditorComponent(props: EditorComponentProps) {
     useEffect(() => {
         if (currentChange) {
             if (editorRef.current) {
-                    setTimeout(()=> {
-                        updatePosition(currentChange, editorRef,
-                            currentChange.context.originalColumn,
-                            currentChange.context.originalLine,
-                            currentChange.context.newColumn,
-                            currentChange.context.newLine)
-                    }, 10)
-
+                    requestAnimationFrame(() => {
+                        setTimeout(()=> {
+                            updatePosition(currentChange, editorRef,
+                                currentChange.context.originalColumn,
+                                currentChange.context.originalLine,
+                                currentChange.context.newColumn,
+                                currentChange.context.newLine)
+                        }, 10)
+                    })
             }
         }
     });
@@ -123,13 +113,15 @@ export function EditorComponent(props: EditorComponentProps) {
             }
             if (col != null || line != null) {
                 // ensure the position update happens after the mounting and subsequent rendering has occurred
-                setTimeout(()=> {
-                    updatePosition(currentChange, editorRef,
-                        currentChange.context.originalColumn,
-                        currentChange.context.originalLine,
-                        currentChange.context.newColumn,
-                        currentChange.context.newLine)
-                },10);
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        updatePosition(currentChange, editorRef,
+                            currentChange.context.originalColumn,
+                            currentChange.context.originalLine,
+                            currentChange.context.newColumn,
+                            currentChange.context.newLine)
+                    }, 10);
+                });
             }
         }
     }
@@ -150,9 +142,7 @@ export function EditorComponent(props: EditorComponentProps) {
         } else {
             height = "calc(100vh - 350px)"
         }
-
     }
-
     return (
         <DiffEditor
             height={height}

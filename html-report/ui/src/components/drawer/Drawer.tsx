@@ -8,11 +8,9 @@ import {CheckPropIsVerb, Verb} from "@/components/verb/Verb";
 import './Drawer.css';
 import {Change} from "@/model";
 
-
 export interface DrawerProps {
     open?: boolean;
 }
-
 
 export const DrawerComponent = (props: DrawerProps) => {
     const drawerOpen = useDrawerStore((state: DrawerState) => state.drawerOpen)
@@ -47,7 +45,7 @@ export const DrawerComponent = (props: DrawerProps) => {
                 bodyStyle={{background: 'var(--background-color)'}}
                 headerStyle={{
                     background: headerBackground,
-                    border: headerBorder,
+                    borderTop: headerBorder,
                     height: '30px'
                 }}
                 mask={false}

@@ -46,8 +46,8 @@ func TestBuildTree(t *testing.T) {
             nodes, edges := BuildGraph(historyItem.Changes)
             graph := &model.GraphResult{nodes, edges}
 
-            commit := &model.CommitStatistics{
-                Date:        historyItem.CommitDate.Format("Mon, 2 Jan 2006 15:04:05 -0400"),
+            commit := &model.CommitStatistics{ // JS format: 01 Jan 1970 00:00:00 GMT
+                Date:        historyItem.CommitDate.Format("02 Jan 2006 15:04:05 MST"),
                 Message:     historyItem.Message,
                 Author:      historyItem.Author,
                 AuthorEmail: historyItem.AuthorEmail,
@@ -58,12 +58,31 @@ func TestBuildTree(t *testing.T) {
 
             // build a report DTO
             reportDTO := &model.HTMLReportItem{
-                OriginalSpec:    string(historyItem.OldData),
-                ModifiedSpec:    string(historyItem.Data),
-                DocumentChanges: historyItem.Changes,
-                Statistics:      stats,
-                TreeNodes:       tree,
-                Graph:           graph,
+                OriginalSpec: string(historyItem.OldData),
+                ModifiedSpec: string(historyItem.Data),
+                Statistics:   stats,
+                TreeNodes:    []*model.TreeNode{tree},
+                Graph:        graph,
+            }
+            reportItems = append(reportItems, reportDTO)
+        } else {
+            // first item
+            commit := &model.CommitStatistics{ // JS format: 01 Jan 1970 00:00:00 GMT
+                Date:        historyItem.CommitDate.Format("02 Jan 2006 15:04:05 MST"),
+                Message:     historyItem.Message,
+                Author:      historyItem.Author,
+                AuthorEmail: historyItem.AuthorEmail,
+                Hash:        historyItem.Hash,
+            }
+
+            stats := &model.ChangeStatistics{}
+            stats.Commit = commit
+
+            // build a report DTO
+            reportDTO := &model.HTMLReportItem{
+                OriginalSpec: string(historyItem.OldData),
+                ModifiedSpec: string(historyItem.Data),
+                Statistics:   stats,
             }
             reportItems = append(reportItems, reportDTO)
         }

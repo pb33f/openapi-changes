@@ -45,7 +45,7 @@
     "styled-components": "^5"
   },
   "scripts": {
-    "start": "webpack serve --port 3000",
-    "build": "NODE_ENV=production webpack"
+    "start": "webpack serve --port 3000 --mode=development",
+    "build": "webpack --mode=production"
   }
 }

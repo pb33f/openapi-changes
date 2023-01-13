@@ -1,10 +1,10 @@
 import React from "react";
-import {Doughnut, Pie} from "react-chartjs-2";
-import {Chart, ArcElement,  Tooltip, Legend, Title} from 'chart.js'
+import {Doughnut} from "react-chartjs-2";
+import {Chart, ArcElement,  Tooltip, Legend, Title, LinearScale, CategoryScale, PointElement, LineElement} from 'chart.js'
 import {color, getHoverColor} from 'chart.js/helpers'
 
 import {BinaryChartColors, ChartColors, CreateRadialGradient} from "./ChartColors";
-Chart.register(ArcElement,  Tooltip, Legend, Title);
+Chart.register(ArcElement,  Tooltip, Legend, Title, LinearScale, CategoryScale, PointElement, LineElement);
 
 export interface PieChartProps {
     chartData: any

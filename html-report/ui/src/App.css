@@ -142,6 +142,11 @@ hr {
 }
 
 
+footer {
+  font-size: 0.6em;
+}
+
+
 @media only screen and (max-width: 1000px) {
 
   footer {

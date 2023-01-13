@@ -1,61 +1,54 @@
 import React, {useState} from "react";
-import {Col, Row} from "antd";
-import {Header} from "../header";
 import PieChart from "../charts/Pie";
-import {ChartColors} from "../charts/ChartColors";
 import {ReportSummary} from "./ReportSummary";
-import data from '../../../data.json'
-import {BeefyTreeNode, ChangeStatistics} from "@/model";
+import {ChangeStatistics} from "@/model";
 import './ReportContainer.css'
-
-const stats: ChangeStatistics = data.reportItems[0].statistics
-
-const overallChanges = [
-    {
-        type: "Modifications",
-        value: stats.modified
-
-    },
-    {
-        type: "Additions",
-        value: stats.added
-    },
-    {
-        type: "Removals",
-        value: stats.removed
-    },
-];
-
-const breakingChanges = [
-    {
-        type: "Modifications",
-        value: stats.breakingModified
-
-    },
-    {
-        type: "Additions",
-        value: stats.breakingAdded
-    },
-    {
-        type: "Removals",
-        value: stats.breakingRemoved
-    },
-];
-
-const totalChanges = [
-    {
-        type: "Total",
-        value: stats.total
-
-    },
-    {
-        type: "Breaking",
-        value: stats.totalBreaking
-    },
-
-];
+import {ReportState, useReportStore} from "@/model/store";
 
 export const ReportContainer: React.FC = () => {
+    const stats: ChangeStatistics =
+        useReportStore((report: ReportState) => report.selectedReportItem.statistics);
+    const overallChanges = [
+        {
+            type: "Modifications",
+            value: stats.modified
+        },
+        {
+            type: "Additions",
+            value: stats.added
+        },
+        {
+            type: "Removals",
+            value: stats.removed
+        },
+    ];
+
+    const breakingChanges = [
+        {
+            type: "Modifications",
+            value: stats.breakingModified
+        },
+        {
+            type: "Additions",
+            value: stats.breakingAdded
+        },
+        {
+            type: "Removals",
+            value: stats.breakingRemoved
+        },
+    ];
+
+    const totalChanges = [
+        {
+            type: "Total",
+            value: stats.total
+        },
+        {
+            type: "Breaking",
+            value: stats.totalBreaking
+        },
+    ];
+
     const [overallData] = useState({
         labels: overallChanges.map((data) => data.type),
         datasets: [
@@ -88,7 +81,6 @@ export const ReportContainer: React.FC = () => {
                 borderColor: "rgb(30,30,30)",
                 borderWidth: 1
             },
-
         ]
     });
 

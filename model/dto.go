@@ -10,9 +10,9 @@ import (
 type HTMLReportItem struct {
     OriginalSpec    string                   `json:"originalSpec"`
     ModifiedSpec    string                   `json:"modifiedSpec"`
-    DocumentChanges *wcModel.DocumentChanges `json:"documentChanges"`
-    TreeNodes       *TreeNode                `json:"tree"`
-    Graph           *GraphResult             `json:"graph"`
+    DocumentChanges *wcModel.DocumentChanges `json:"documentChanges,omitempty"`
+    TreeNodes       []*TreeNode              `json:"tree,omitempty"`
+    Graph           *GraphResult             `json:"graph,omitempty"`
     Statistics      *ChangeStatistics        `json:"statistics"`
 }
 

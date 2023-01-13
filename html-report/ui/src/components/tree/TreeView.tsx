@@ -13,7 +13,7 @@ import {GoDiff} from "react-icons/go";
 import {CheckPropIsVerb, Verb} from "@/components/verb/Verb";
 import {Change} from "@/model";
 
-const treeData: BeefyTreeNode[] = [data.reportItems[0].tree]
+const treeData: BeefyTreeNode[] | undefined = data.reportItems[0].tree
 
 const visitNode = (node: BeefyTreeNode) => {
     node.title = <TreeTitleNode
@@ -109,7 +109,9 @@ export function TreeViewComponent() {
 
     }
 
-    visitNode(treeData[0])
+    if (treeData) {
+        visitNode(treeData[0])
+    }
 
     const treeRef = useRef<any>();
     const currentChange = useChangeStore((state: ChangeState) => state.currentChange)
@@ -152,7 +154,6 @@ export function TreeViewComponent() {
         if (node !== null) {
             if (height != node.getBoundingClientRect().height) {
                 setHeight(node.getBoundingClientRect().height)
-                //setHeight(500);
             }
         }
         if (lookupKey && treeRef) {
