@@ -7,13 +7,11 @@ import {DownOutlined, EditOutlined, MinusSquareOutlined, PlusSquareOutlined} fro
 import {EditorComponent} from "@/components/editor/Editor";
 import {Allotment} from "allotment";
 import {BeefyTreeNode} from "@/model/beefy-tree-node";
-import {ChangeState, useChangeStore} from "@/model/store";
+import {ChangeState, ReportState, useChangeStore, useReportStore} from "@/model/store";
 import {ChangeTitleComponent, OriginalModifiedCols} from "@/components/drawer/Drawer";
 import {GoDiff} from "react-icons/go";
 import {CheckPropIsVerb, Verb} from "@/components/verb/Verb";
 import {Change} from "@/model";
-
-const treeData: BeefyTreeNode[] | undefined = data.reportItems[0].tree
 
 const visitNode = (node: BeefyTreeNode) => {
     node.title = <TreeTitleNode
@@ -88,7 +86,13 @@ const TreeTitleNode = (props: TreeTitleNodeProps) => {
 }
 
 
+const { DirectoryTree } = Tree;
+
 export function TreeViewComponent() {
+
+
+    const selectedReport = useReportStore((report: ReportState) => report.selectedReportItem);
+    const treeData: BeefyTreeNode[] | undefined = selectedReport.tree;
 
     const [sbs, setSbs] = React.useState(() => window.innerWidth < 1000);
     let timer: any
@@ -131,9 +135,14 @@ export function TreeViewComponent() {
     };
 
     const onSelect = (selectedKeysValue: React.Key[], info: any) => {
-        setSelectedKeys(selectedKeysValue);
-        setSelectedKeysInState(selectedKeysValue)
-        setCurrentChange(info.node.change);
+        if (info.node.change) {
+            setSelectedKeys(selectedKeysValue);
+            setSelectedKeysInState(selectedKeysValue)
+            setCurrentChange(info.node.change);
+        } else {
+            //alert('oooooh, cunted!')
+            setExpandedKeys(selectedKeysValue);
+        }
     };
 
 
@@ -199,15 +208,17 @@ export function TreeViewComponent() {
 
         return (
             <div className='tree-holder'>
-                <Allotment minSize={100}>
+                <Allotment minSize={200}>
                     <Allotment.Pane preferredSize={450}>
                         <div className='tree-scroller' ref={treeContainer}>
-                            <Tree
+                            <DirectoryTree
                                 showIcon
                                 ref={treeRef}
                                 rootClassName="tree"
                                 showLine
-                                height={height}
+                                //height={height}
+                                icon={null}
+                                virtual={false}
                                 switcherIcon={<DownOutlined/>}
                                 defaultExpandAll
                                 onExpand={onExpand}

@@ -1,6 +1,6 @@
-import {NavState, ReportState, useNavStore, useReportStore} from "@/model/store";
+import {ChangeState, NavState, ReportState, useChangeStore, useNavStore, useReportStore} from "@/model/store";
 import {Button, Drawer, Statistic, Timeline} from "antd";
-import React from "react";
+import React, {useEffect, useRef} from "react";
 import {
     ArrowUpOutlined, ClockCircleOutlined,
     EditOutlined, FileAddOutlined,
@@ -19,13 +19,20 @@ export function Navigation() {
     const navOpen = useNavStore((state: NavState) => state.navOpen)
     const closeNav = useNavStore((state: NavState) => state.closeNav)
     const report = useReportStore((report: ReportState) => report.report);
-    const selectedIndex =  useReportStore((report: ReportState) => report.selectedReportIndex);
+    const selectedIndex = useReportStore((report: ReportState) => report.selectedReportIndex);
+    const selectedReportItem = useReportStore((report: ReportState) => report.selectedReportItem);
+
+    useEffect( () => {
+        if (navOpen) {
+            closeNav();
+        }
+    }, [selectedReportItem])
 
     let border = '1px dashed var(--secondary-color)'
     let background = 'var(--background-color)'
     let borderDim = '1px dashed var(--secondary-color-very-lowalpha)'
+    let reverseIndex = report.reportItems.length - 1;
     let index = 0;
-
     const creationDate = new Date(report.reportItems[report.reportItems.length - 1].statistics.commit.date)
 
     return (
@@ -33,6 +40,7 @@ export function Navigation() {
             title="Select change"
             placement="left"
             //width="400px"
+            className='potato-pete'
             closable={true}
             onClose={closeNav}
             open={navOpen}
@@ -57,13 +65,18 @@ export function Navigation() {
                           pendingDot={<FileAddOutlined/>}
                           className='navigation-timeline'>
                     {report.reportItems.map((item: ReportItem) => {
-                    const n = (
-                        <TimelineChange reportItem={item} index={index} key={index}
-                                               totalChanges={report.reportItems.length}/>
-                    )
-                    index++
-                    return n
-                })}
+                        const n = (
+                            <TimelineChange reportItem={item} index={index} reverseIndex={reverseIndex} key={index}
+                                            totalChanges={report.reportItems.length}/>
+                        )
+                        index++
+                        if (reverseIndex !== 0) {
+                            reverseIndex--
+                            return n;
+                        } else {
+                            return null;
+                        }
+                    })}
                 </Timeline>
             </div>
 
@@ -83,22 +96,24 @@ export function TimelineChange(props: TimelineChangeProps) {
         icon = (<WarningFilled/>)
         color = 'var(--error-color)'
     }
-    if (props.index == props.totalChanges - 1) {
-        return null;
-    }
-    return (<Timeline.Item dot={icon} color={color} className='timeline-change-item'><TimelineChangeItem
-        time={reportItem.statistics.commit.date}
-        totalChanges={reportItem.statistics.total}
-        breakingChanges={reportItem.statistics.totalBreaking}
-        addedChanges={reportItem.statistics.added}
-        removedChanges={reportItem.statistics.removed}
-        modifiedChanges={reportItem.statistics.modified}
-        index={props.index}/></Timeline.Item>)
+    return (<Timeline.Item dot={icon} color={color} className='timeline-change-item'>
+        <TimelineChangeItem
+            time={reportItem.statistics.commit.date}
+            totalChanges={reportItem.statistics.total}
+            breakingChanges={reportItem.statistics.totalBreaking}
+            addedChanges={reportItem.statistics.added}
+            removedChanges={reportItem.statistics.removed}
+            modifiedChanges={reportItem.statistics.modified}
+            reverseIndex={props.reverseIndex}
+            index={props.index}
+        />
+    </Timeline.Item>)
 }
 
 
 export interface TimelineChangeProps {
     reportItem: ReportItem
+    reverseIndex: number;
     index: number;
     totalChanges: number;
 }
@@ -110,6 +125,7 @@ export interface TimelineChangeItemProps {
     addedChanges: number;
     removedChanges: number;
     modifiedChanges: number;
+    reverseIndex: number;
     index: number;
 }
 
@@ -118,10 +134,33 @@ export interface TimelineChangeItemTitleProps {
     breaking?: boolean
 }
 
+
 export function TimelineChangeItem(props: TimelineChangeItemProps) {
+
+
     const setSelectedReportIndex = useReportStore((report: ReportState) => report.setSelectedReportIndex);
+    const selectedReportIndex = useReportStore((report: ReportState) => report.selectedReportIndex);
+
+    const setSelectedReport = useReportStore((report: ReportState) => report.setSelectedReport);
+    const setCurrentChange = useChangeStore((state: ChangeState) => state.setCurrentChange)
+   // const  = useReportStore((report: ReportState) => report.setSelectedReport);
+    const report = useReportStore((report: ReportState) => report.report);
+
+
+    const selectReport = (index: number) => {
+        setSelectedReport(report.reportItems[index])
+        setCurrentChange(null);
+    }
+
+
     return (
-        <div className='nav-change-container' onClick={() => { setSelectedReportIndex(props.index)}}>
+        <div className={(selectedReportIndex == props.reverseIndex) ? 'nav-change-container-active': 'nav-change-container'}
+             onMouseOver={() => {
+                 setSelectedReportIndex(props.reverseIndex)
+             }}
+             onClick={() => {
+                 selectReport(props.index);
+             }}>
             <span className='nav-change-date'>{new Date(props.time).toLocaleString()}</span>
             <div className='nav-change-statistics'>
                 <Statistic

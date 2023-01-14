@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React from "react";
 import PieChart from "../charts/Pie";
 import {ReportSummary} from "./ReportSummary";
 import {ChangeStatistics} from "@/model";
@@ -22,7 +22,6 @@ export const ReportContainer: React.FC = () => {
             value: stats.removed
         },
     ];
-
     const breakingChanges = [
         {
             type: "Modifications",
@@ -37,7 +36,6 @@ export const ReportContainer: React.FC = () => {
             value: stats.breakingRemoved
         },
     ];
-
     const totalChanges = [
         {
             type: "Total",
@@ -48,8 +46,7 @@ export const ReportContainer: React.FC = () => {
             value: stats.totalBreaking
         },
     ];
-
-    const [overallData] = useState({
+    const overallData = {
         labels: overallChanges.map((data) => data.type),
         datasets: [
             {
@@ -59,9 +56,8 @@ export const ReportContainer: React.FC = () => {
             },
 
         ]
-    });
-
-    const [breakingData] = useState({
+    };
+    const breakingData = {
         labels: breakingChanges.map((data) => data.type),
         datasets: [
             {
@@ -71,9 +67,8 @@ export const ReportContainer: React.FC = () => {
             },
 
         ]
-    });
-
-    const [totalData] = useState({
+    };
+    const totalData = {
         labels: totalChanges.map((data) => data.type),
         datasets: [
             {
@@ -82,7 +77,7 @@ export const ReportContainer: React.FC = () => {
                 borderWidth: 1
             },
         ]
-    });
+    };
 
     return (
         <div className="report-container">

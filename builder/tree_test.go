@@ -93,43 +93,6 @@ func TestBuildTree(t *testing.T) {
         ReportItems:   reportItems,
     }
 
-    //oldBits, _ := os.ReadFile("../sample-specs/petstorev3-original.json")
-    //newBits, _ := os.ReadFile("../sample-specs/petstorev3.json")
-    //oldDoc, _ := libopenapi.NewDocument(oldBits)
-    //newDoc, _ := libopenapi.NewDocument(newBits)
-    //changes, _ := libopenapi.CompareDocuments(oldDoc, newDoc)
-    //
-    //tree, stats := BuildTree(changes)
-    //
-    //nodes, edges := BuildGraph(changes)
-    //graph := &GraphResult{nodes, edges}
-    //
-    //// inject some commit data to stats
-    //
-    //message := "Added a few descriptions to operations and swapped out some tags on customer API and then updated" +
-    //    " some of the examples on the customer API that help explain more about the return objects. Also included" +
-    //    " a new title and bumped the version up"
-    //
-    //commit := &CommitStatistics{
-    //    Date:        "01/09/23 1:23 PM",
-    //    Message:     message,
-    //    Author:      "daveshanley",
-    //    AuthorEmail: "dave@quobix.com",
-    //    Hash:        "62b8sn",
-    //}
-    //
-    //stats.Commit = commit
-    //
-    //// build a report DTO
-    //reportDTO := &HTMLReportItem{
-    //    OriginalSpec:    string(oldBits),
-    //    ModifiedSpec:    string(newBits),
-    //    DocumentChanges: changes,
-    //    Statistics:      stats,
-    //    TreeNodes:       tree,
-    //    Graph:           graph,
-    //}
-
     dto, _ := json.MarshalIndent(report, "", "  ")
 
     err := os.WriteFile("../html-report/ui/data.json", dto, 0664)

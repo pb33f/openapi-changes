@@ -44,7 +44,7 @@ export interface ChangeState {
     selectedChangeKeys: React.Key[];
 
     treeMapLookup: Map<String, String>;
-    setCurrentChange: (change: Change) => void;
+    setCurrentChange: (change: Change | null) => void;
     setSelectedChangeKeys: (key: React.Key[]) => void;
 }
 

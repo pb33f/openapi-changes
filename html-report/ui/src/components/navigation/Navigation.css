@@ -6,12 +6,12 @@
     margin-top: 20px;
 }
 
-.nav-change-container {
+.nav-change-container, .nav-change-container-active {
     background-color: var(--rule-item-background);
     padding: 5px;
     border: 1px solid var(--rule-item-border);
 }
-.nav-change-container:hover {
+.nav-change-container:hover, .nav-change-container-active  {
     border: 1px solid var(--primary-color);
     cursor: pointer;
 }
@@ -54,4 +54,28 @@
     font-size: 11px;
     color: var(--secondary-color)
 }
+
+.potato-pete .ant-drawer-body {
+    background-color: orange;
+}
+
+
+.potato-pete .ant-drawer-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.potato-pete .ant-drawer-body::-webkit-scrollbar-track {
+    background-color: var(--invert-font-color);
+}
+
+.potato-pete .ant-drawer-body::-webkit-scrollbar-thumb {
+    box-shadow: none;
+    background: var(--secondary-color-lowalpha);
+}
+
+.potato-pete .ant-drawer-body::-webkit-scrollbar-thumb {
+    box-shadow: none;
+    background: var(--secondary-color-lowalpha);
+}
+
 

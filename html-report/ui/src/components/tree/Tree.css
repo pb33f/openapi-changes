@@ -1,8 +1,4 @@
 
-.ant-tree::-webkit-scrollbar-track {
-    background-color: green!important;
-}
-
 .ant-tree, .ant-tree .ant-tree-switcher-noop {
     background: none!important;
 }
@@ -17,7 +13,7 @@
 }
 
 .ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
-    border: 1px dashed var(--primary-color);
+    /*border: 1px dashed var(--primary-color);*/
     background: none;
     color: var(--primary-color)!important;
 }
@@ -83,6 +79,7 @@
 .tree-scroller {
     height: calc(100vh - 350px);
     overflow-y: hidden;
+    
 }
 
 .ant-tree-list-scrollbar {
@@ -107,10 +104,6 @@
     overflow: hidden!important;
 }
 
-.tree-scroller .tree::-webkit-scrollbar-track {
-    background-color: green!important;
-}
-
 
 .ant-tree-list-holder::-webkit-scrollbar {
     width: 8px;
@@ -130,6 +123,10 @@
     background: var(--secondary-color-lowalpha);
 }
 
+
+.ant-tree-treenode-selected::before {
+    background-color: var(--secondary-color-very-lowalpha)!important;
+}
 
 section.tree-nothing-selected {
     width: 100%;
