@@ -4,7 +4,7 @@ import "allotment/dist/style.css";
 import './OpenAPIChanges.css';
 import {Col, ConfigProvider, Row, Tabs, theme} from 'antd';
 import {Header} from "./components/header";
-import {ReportContainer} from "./components/report-statistics";
+import {ReportContainer} from "./components/report-statistics/ReportContainer";
 import {GraphViewComponent} from "@/components/graph/GraphView";
 import {TreeViewComponent} from "@/components/tree/TreeView";
 import {ChangeState, DrawerState, ReportState, useChangeStore, useDrawerStore,} from "@/model/store";

@@ -7,8 +7,8 @@ const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 
-import data from '../data.json'
-
+//import data from '../data.json'
+let data: any
 root.render(
   <React.StrictMode>
     <OpenAPIChanges report={data}/>
