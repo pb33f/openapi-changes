@@ -12,7 +12,7 @@
 
 
 .report-summary {
-    width: 100%;
+    width: calc(100vw - 665px);
 }
 
 .report-summary-stats {
@@ -56,13 +56,13 @@ section.report-header {
     }
 
     .chart-container {
-        margin-right: 40px;
+        margin-right: 0;
         height: 85px;
-        width: 85px;
+        width: 86px;
     }
 
     section.report-header {
-        height: 180px;
+        height: 150px;
 
     }
 

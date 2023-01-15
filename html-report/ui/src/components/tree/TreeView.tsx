@@ -1,17 +1,19 @@
 import Tree from "antd/es/tree";
 import data from '../../../data.json'
 import * as React from "react";
-import {ReactNode, useCallback, useEffect, useRef, useState} from "react";
+import {ReactNode, useCallback, useContext, useEffect, useRef, useState} from "react";
 import {Badge} from "antd";
 import {DownOutlined, EditOutlined, MinusSquareOutlined, PlusSquareOutlined} from "@ant-design/icons";
 import {EditorComponent} from "@/components/editor/Editor";
 import {Allotment} from "allotment";
 import {BeefyTreeNode} from "@/model/beefy-tree-node";
-import {ChangeState, ReportState, useChangeStore, useReportStore} from "@/model/store";
+import {ChangeState, EditorState, ReportState, useChangeStore, useEditorStore} from "@/model/store";
 import {ChangeTitleComponent, OriginalModifiedCols} from "@/components/drawer/Drawer";
 import {GoDiff} from "react-icons/go";
 import {CheckPropIsVerb, Verb} from "@/components/verb/Verb";
 import {Change} from "@/model";
+import {ReportStoreContext} from "@/OpenAPIChanges";
+import {useStore} from "zustand";
 
 const visitNode = (node: BeefyTreeNode) => {
     node.title = <TreeTitleNode
@@ -85,33 +87,31 @@ const TreeTitleNode = (props: TreeTitleNodeProps) => {
     )
 }
 
-
-const { DirectoryTree } = Tree;
+const {DirectoryTree} = Tree;
 
 export function TreeViewComponent() {
-
-
-    const selectedReport = useReportStore((report: ReportState) => report.selectedReportItem);
+    const store = useContext(ReportStoreContext)
+    const selectedReport = useStore(store, (report: ReportState) => report.selectedReportItem);
     const treeData: BeefyTreeNode[] | undefined = selectedReport.tree;
+    const sbs = useEditorStore((editor: EditorState) => editor.sideBySide);
+    const setSbs = useEditorStore((editor: EditorState) => editor.setSideBySide);
 
-    const [sbs, setSbs] = React.useState(() => window.innerWidth < 1000);
-    let timer: any
-
-    const changeSize = (state: boolean) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-            setSbs(state)
-        }, 100)
-    }
-
-    const watchSize = () => {
-        if (window.innerWidth < 1000) {
-            changeSize(true)
-        } else {
-            changeSize(false)
-        }
-
-    }
+    //const [sbs, setSbs] = React.useState(() => window.innerWidth > 1000);
+    //let timer: any
+    // const changeSize = (state: boolean) => {
+    //     clearTimeout(timer);
+    //     timer = setTimeout(() => {
+    //         setSbs(state)
+    //     }, 100)
+    // }
+    //
+    // const watchSize = () => {
+    //     if (window.innerWidth < 1000) {
+    //         changeSize(true)
+    //     } else {
+    //         changeSize(false)
+    //     }
+    // }
 
     if (treeData) {
         visitNode(treeData[0])
@@ -131,7 +131,6 @@ export function TreeViewComponent() {
     const onExpand = (expandedKeysValue: React.Key[], info: any) => {
         setExpandedKeys(expandedKeysValue);
         setAutoExpandParent(false);
-
     };
 
     const onSelect = (selectedKeysValue: React.Key[], info: any) => {
@@ -140,15 +139,16 @@ export function TreeViewComponent() {
             setSelectedKeysInState(selectedKeysValue)
             setCurrentChange(info.node.change);
         } else {
-            //alert('oooooh, cunted!')
             setExpandedKeys(selectedKeysValue);
         }
     };
 
 
-    let listener: boolean
-
+    //let listener: boolean
     const treeContainer = useCallback((node: any) => {
+        if(window.innerWidth < 1000 && sbs) {
+            setSbs(false)
+        }
 
         let lookupKey: String | undefined;
         if (selectedKeys.toString() !== selectedKeysInState.toString()) {
@@ -168,10 +168,10 @@ export function TreeViewComponent() {
         if (lookupKey && treeRef) {
             treeRef.current.scrollTo({key: lookupKey, align: 'top'})
         }
-        if (!listener) {
-            listener = true;
-            window.addEventListener('resize', watchSize);
-        }
+        // if (!listener) {
+        //     listener = true;
+        //    //window.addEventListener('resize', watchSize);
+        // }
     }, []);
 
 
@@ -183,7 +183,7 @@ export function TreeViewComponent() {
     let unselectedView = (<section className='tree-nothing-selected'>
         <div className='nothing-selected-icon'>
             <span className='icon'><GoDiff/></span><br/>
-            Select a change from the tree to see more.
+            Select a change from the tree.
         </div>
     </section>);
 
@@ -194,7 +194,7 @@ export function TreeViewComponent() {
             {change}
 
             <div className='diff-view'>
-                <EditorComponent inlineEditor={sbs} currentChange={currentChange}/>
+                <EditorComponent sideBySideEditor={sbs} currentChange={currentChange}/>
             </div>
         </section>
     )
@@ -204,8 +204,8 @@ export function TreeViewComponent() {
         view = selectedView;
     }
 
-    if (!sbs) {
-
+    let mobile = (window.innerWidth < 1000);
+    if (!mobile) {
         return (
             <div className='tree-holder'>
                 <Allotment minSize={200}>
@@ -229,16 +229,14 @@ export function TreeViewComponent() {
                         </div>
                     </Allotment.Pane>
                     <Allotment.Pane>
-
                         {view}
-
                     </Allotment.Pane>
                 </Allotment>
             </div>
         )
     } else {
         return (
-            <section>
+            <section className='mobile-tree'>
                 <div className='tree-holder'>
                     <div className='tree-scroller' ref={treeContainer}>
                         <Tree
@@ -246,7 +244,7 @@ export function TreeViewComponent() {
                             ref={treeRef}
                             rootClassName="tree"
                             showLine
-                            height={height}
+                            //height={height}
                             switcherIcon={<DownOutlined/>}
                             defaultExpandAll
                             onExpand={onExpand}
@@ -256,9 +254,7 @@ export function TreeViewComponent() {
                         />
                     </div>
                 </div>
-
-                    {view}
-
+                {view}
             </section>
         )
     }

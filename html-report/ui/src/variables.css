@@ -1,8 +1,6 @@
 :root {
-
     --focus-border: orange;
     --separator-border: #ff0000;
-
     --global-font-size: 17px;
     --toc-font-size: 0.7rem;
     --breadcrumb-font-size: 0.75rem;

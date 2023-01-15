@@ -150,7 +150,15 @@ footer {
 @media only screen and (max-width: 1000px) {
 
   footer {
-    font-size: 0.7em;
+    font-size: 0.6em;
+  }
+
+  #main_container {
+    width: calc(100vw - 10px);
+  }
+
+  .report-changes {
+    height: calc(100vh - 200px);
   }
 
 }

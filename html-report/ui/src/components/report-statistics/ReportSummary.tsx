@@ -30,7 +30,7 @@ export const ReportSummary = (props: ReportSummaryProps) => (
         </section>
         <section className='commit'>
             <span className='commit-changed'>
-                Commit: {props.changeStats.commit.hash} | {props.changeStats.commit.date} by&nbsp;
+                Commit: {props.changeStats.commit.hash.substring(0, 6)} | {props.changeStats.commit.date} by&nbsp;
                 <span className='commit-author'>
                     <a href={`mailto:${props.changeStats.commit.authorEmail}`}>{props.changeStats.commit.author}</a>
                </span>

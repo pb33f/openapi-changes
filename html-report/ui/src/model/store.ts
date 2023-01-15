@@ -5,7 +5,8 @@ import {CanvasDirection} from "reaflow/dist/layout/elkLayout";
 import {ReactZoomPanPinchRef } from "react-zoom-pan-pinch";
 import {Report, ReportItem} from "@/model/report";
 
-import data from '../../data.json'
+let win: any = window;
+let report: Report = win.report
 
 export interface DrawerState {
     drawerOpen: boolean;
@@ -48,6 +49,12 @@ export interface ChangeState {
     setSelectedChangeKeys: (key: React.Key[]) => void;
 }
 
+export interface EditorState {
+    sideBySide: boolean
+    toggleView: () => void;
+    setSideBySide: (sbs: boolean) => void;
+}
+
 export const useDrawerStore = create<DrawerState>((set) => ({
     drawerOpen: false,
     toggleDrawer: () => set((state) => ({drawerOpen: !state.drawerOpen})),
@@ -77,10 +84,16 @@ export const useGraphStore = create<GraphState>((set) => ({
     setZoomPanPinch: zoomPanPinch => set({ zoomPanPinch }),
 }));
 
-export const useReportStore = create<ReportState>((set) => ({
-    report: data,
-    selectedReportIndex: 0,
-    selectedReportItem: data.reportItems[0],
-    setSelectedReportIndex: (selectedReportIndex: number) => set({selectedReportIndex}),
-    setSelectedReport: (selectedReportItem: ReportItem) => set({selectedReportItem})
+// export const useReportStore = create<ReportState>((set) => ({
+//     report: report,
+//     selectedReportIndex: report.reportItems.length - 1,
+//     selectedReportItem: report.reportItems[0],
+//     setSelectedReportIndex: (selectedReportIndex: number) => set({selectedReportIndex}),
+//     setSelectedReport: (selectedReportItem: ReportItem) => set({selectedReportItem})
+// }));
+
+export const useEditorStore = create<EditorState>((set) => ({
+    sideBySide: true,
+    toggleView: () => set((state) => ({sideBySide: !state.sideBySide})),
+    setSideBySide: (sideBySide: boolean) => set({sideBySide})
 }));

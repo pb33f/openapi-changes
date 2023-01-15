@@ -1,26 +1,29 @@
-import React, {useEffect, useRef, useState} from "react";
+import React, {useContext, useEffect, useRef, useState} from "react";
 import {DiffEditor, Monaco} from "@monaco-editor/react"
 import {Change} from '@/model';
 import '@/components/tree/Tree.css'
-import {ReportState, useReportStore} from "@/model/store";
-
+import {EditorState, ReportState, useEditorStore} from "@/model/store";
+import {Switch} from "antd";
+import './Editor.css';
+import {ReportStoreContext} from "@/OpenAPIChanges";
+import {useStore} from "zustand";
 
 export interface EditorComponentProps {
     currentChange: Change | null;
     height?: string;
-    inlineEditor?: boolean
+    sideBySideEditor?: boolean
 }
 
 const updatePosition = (currentChange: Change, editorRef: any, origCol: number, origLine: number,
                         newCol: number, newLine: number) => {
     // if this is a removal
     if (origLine && !newLine) {
-        editorRef.current.setPosition({column: 1, lineNumber: 1});
-        editorRef.current.revealLinesInCenter(1, 1);
-        editorRef.current.getOriginalEditor().setPosition({column: origCol, lineNumber: origLine})
-        editorRef.current.getOriginalEditor().revealPositionInCenter({column: origCol, lineNumber: origLine})
-        editorRef.current.getOriginalEditor().revealLinesInCenter(origLine, origLine);
-        editorRef.current.getOriginalEditor().focus();
+            editorRef.current.setPosition({column: 1, lineNumber: 1});
+            editorRef.current.revealLinesInCenter(1, 1);
+            editorRef.current.getOriginalEditor().setPosition({column: origCol, lineNumber: origLine})
+            editorRef.current.getOriginalEditor().revealPositionInCenter({column: origCol, lineNumber: origLine})
+            editorRef.current.getOriginalEditor().revealLinesInCenter(origLine, origLine);
+            editorRef.current.getOriginalEditor().focus();
     } else {
         if (origLine) {
             editorRef.current.getOriginalEditor()
@@ -43,14 +46,19 @@ const updatePosition = (currentChange: Change, editorRef: any, origCol: number, 
 }
 
 export function EditorComponent(props: EditorComponentProps) {
-    const originalSpec: string = useReportStore((report: ReportState) => report.selectedReportItem.originalSpec);
-    const modifiedSpec: string = useReportStore((report: ReportState) => report.selectedReportItem.modifiedSpec);
+
+    const store = useContext(ReportStoreContext)
+
+    const originalSpec: string = useStore(store, (report: ReportState) => report.selectedReportItem.originalSpec);
+    const modifiedSpec: string = useStore(store, (report: ReportState) => report.selectedReportItem.modifiedSpec);
     const editorRef = useRef<any>(null);
     const monacoRef = useRef<any>(null);
     const [mod] = useState(modifiedSpec);
     const [orig] = useState(originalSpec);
     const currentChange = props.currentChange
-    const [sbs] = React.useState(props.inlineEditor)
+    const sbs = props.sideBySideEditor;
+
+    const setSbs = useEditorStore((editor: EditorState) => editor.setSideBySide);
 
     useEffect(() => {
         if (currentChange) {
@@ -130,21 +138,37 @@ export function EditorComponent(props: EditorComponentProps) {
         readOnly: false,
         minimap: {enabled: false},
     };
+
+    let checked = true;
+
     if (sbs) {
-        options.renderSideBySide = false
-    } else {
         options.renderSideBySide = true
+    } else {
+        checked = false;
+        options.renderSideBySide = false
     }
     let height = props.height
+    const mobile = (window.innerWidth < 1000)
     if (!height) {
-        if(sbs) {
-            height = "calc(100vh - 607px)"
+        if(mobile) {
+           height = "calc(100vh - 553px)"
         } else {
-            height = "calc(100vh - 350px)"
+            height = "calc(100vh - 380px)"
         }
     }
+
+    const flipEditor = (checked: boolean) => {
+        setSbs(checked)
+    }
+
+
     return (
-        <DiffEditor
+        <section className='editor'>
+            <span className='editor-flip-controls'>
+                View side-by-side
+                <Switch size='small' defaultChecked onChange={flipEditor} checked={checked}/>
+            </span>
+            <DiffEditor
             height={height}
             original={orig}
             modified={mod}
@@ -153,5 +177,6 @@ export function EditorComponent(props: EditorComponentProps) {
             language="yaml"
             options={options}
         />
+        </section>
     );
 }

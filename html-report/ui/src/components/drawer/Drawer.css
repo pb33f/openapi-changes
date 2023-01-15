@@ -75,7 +75,9 @@
 .ant-drawer-header {
     padding: 0!important;
 }
-
+.ant-drawer-close {
+    margin-inline-end: 5px!important;
+}
 
 .ant-drawer-header-title {
     padding: 5px 5px 7px 5px;
@@ -117,5 +119,13 @@
         max-height: 20px;
         overflow: hidden;
 
+    }
+
+    .drawer-breaking-icon-title {
+        display: none;
+    }
+
+    .drawer-breaking-icon-container {
+        width: 20px;
     }
 }

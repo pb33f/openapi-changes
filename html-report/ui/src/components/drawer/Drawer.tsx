@@ -1,6 +1,6 @@
 import React from "react";
 import {Col, Drawer, Row} from "antd";
-import {ChangeState, DrawerState, useChangeStore, useDrawerStore} from "@/model/store";
+import {ChangeState, DrawerState, EditorState, useChangeStore, useDrawerStore, useEditorStore} from "@/model/store";
 import {EditorComponent} from "@/components/editor/Editor";
 import {VscDiffAdded, VscDiffRemoved, VscEdit} from "react-icons/vsc";
 import {WarningFilled} from "@ant-design/icons";
@@ -16,6 +16,7 @@ export const DrawerComponent = (props: DrawerProps) => {
     const drawerOpen = useDrawerStore((state: DrawerState) => state.drawerOpen)
     const toggleDrawer = useDrawerStore((state: DrawerState) => state.toggleDrawer)
     const currentChange = useChangeStore((state: ChangeState) => state.currentChange)
+    let sbs = useEditorStore((editor: EditorState) => editor.sideBySide);
 
     let headerBorder = '1px dashed var(--secondary-color)'
     let headerBackground = 'var(--background-color)'
@@ -29,10 +30,11 @@ export const DrawerComponent = (props: DrawerProps) => {
         change = <OriginalModifiedCols change={currentChange}/>
     }
 
-    let inline = false;
-    if (window.innerWidth < 1000) {
-        inline = true
+    const mobile = (window.innerWidth < 1000)
+    if (mobile) {
+        sbs = false;
     }
+
     return (
         <>
             <Drawer
@@ -42,7 +44,7 @@ export const DrawerComponent = (props: DrawerProps) => {
                 closable={true}
                 onClose={toggleDrawer}
                 open={drawerOpen}
-                bodyStyle={{background: 'var(--background-color)'}}
+                bodyStyle={{background: 'var(--background-color)', padding: '0 5px 0 5px'}}
                 headerStyle={{
                     background: headerBackground,
                     borderTop: headerBorder,
@@ -51,7 +53,7 @@ export const DrawerComponent = (props: DrawerProps) => {
                 mask={false}
             >
                 {change}
-                <EditorComponent currentChange={currentChange} height="320px" inlineEditor={inline}/>
+                <EditorComponent currentChange={currentChange} height="320px" sideBySideEditor={sbs}/>
             </Drawer>
         </>
     );
@@ -65,7 +67,7 @@ export interface OriginalModifiedColsProps {
 
 export const OriginalModifiedCols: React.FC<OriginalModifiedColsProps> = (props: OriginalModifiedColsProps) => {
 
-    let origLine = (<span>{props.change.context.originalLine}</span>)
+    let origLine: JSX.Element;
     if (props.change.context.originalLine) {
         origLine = (
             <span className="orig-col">
@@ -77,7 +79,7 @@ export const OriginalModifiedCols: React.FC<OriginalModifiedColsProps> = (props:
         origLine = (<span className="orig-col">(Not available in original specification)</span>)
     }
 
-    let modLine = (<span>{props.change.context.newLine}</span>)
+    let modLine: JSX.Element;
     if (props.change.context.newLine) {
         modLine = (
             <span className="mod-col">
@@ -87,7 +89,6 @@ export const OriginalModifiedCols: React.FC<OriginalModifiedColsProps> = (props:
     } else {
         modLine = (<span className="mod-col" >(Not available in modified specification)</span>)
     }
-
 
     return (
         <Row className={props.className ? props.className : 'original-modified-container'}>

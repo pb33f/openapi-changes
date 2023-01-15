@@ -24,7 +24,7 @@
 
 .tree-holder {
     width: 100%;
-    height: calc(100vh - 350px);
+    height: calc(100vh - 322px);
     position: relative;
     overflow: auto;
     flex-grow: 2;
@@ -37,6 +37,7 @@
 .treeview-origmod-cols {
     margin-bottom: 10px;
     margin-left: 13px;
+    font-size: 5px!important;
     color: var(--dark-font-color);
 }
 
@@ -77,10 +78,25 @@
 }
 
 .tree-scroller {
-    height: calc(100vh - 350px);
-    overflow-y: hidden;
-    
+    height: calc(100vh - 319px);
+    overflow-y: auto;
 }
+
+.tree-scroller::-webkit-scrollbar {
+    width: 8px;
+}
+
+.tree-scroller::-webkit-scrollbar-track {
+    background-color: var(--invert-font-color);
+}
+
+.tree-scroller::-webkit-scrollbar-thumb {
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    background: var(--secondary-color-lowalpha);
+}
+
+
+
 
 .ant-tree-list-scrollbar {
     background-color: var(--invert-font-color);
@@ -97,7 +113,7 @@
 
 
 .tree {
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .ant-tree-list {
@@ -147,6 +163,7 @@ section.tree-nothing-selected {
 
 section.tree-selected-change {
     animation: fadeIn 1s;
+    height: calc(100vh - 690px);
 }
 
 @keyframes fadeIn{
@@ -155,7 +172,17 @@ section.tree-selected-change {
 }
 
 
+.orig-col, .mod-col {
+    font-size: 11px;
+    line-height: 6px;
+    display: block;
+}
+
 @media only screen and (max-width: 1000px) {
+
+    .mobile-tree {
+        height: 66vh;
+    }
 
     section.tree-nothing-selected {
         width: 100%;
@@ -184,7 +211,7 @@ section.tree-selected-change {
     }
 
     .treeview-origmod-cols {
-        font-size: 0.5em!important;
+        font-size: 0.6em!important;
     }
 
     .orig-col, .mod-col {
@@ -196,6 +223,16 @@ section.tree-selected-change {
         width: 100%;
 
     }
+
+    section.tree-selected-change {
+        height: calc(100vh - 690px);
+    }
+
+    .change-details {
+        padding-left: 10px;
+        margin-left: 0;
+    }
+
 
 
 }

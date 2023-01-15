@@ -1,6 +1,6 @@
-import {ChangeState, NavState, ReportState, useChangeStore, useNavStore, useReportStore} from "@/model/store";
+import {ChangeState, NavState, ReportState, useChangeStore, useNavStore} from "@/model/store";
 import {Button, Drawer, Statistic, Timeline} from "antd";
-import React, {useEffect, useRef} from "react";
+import React, {useContext, useEffect, useRef} from "react";
 import {
     ArrowUpOutlined, ClockCircleOutlined,
     EditOutlined, FileAddOutlined,
@@ -12,17 +12,21 @@ import {
 
 import './Navigation.css';
 import {ReportItem} from "@/model/report";
-import {ChangeChart} from "@/components/navigation/ChangeChart";
+import {ChangeChart} from "@/components/charts/ChangeChart";
+import {ReportStoreContext} from "@/OpenAPIChanges";
+import {useStore} from "zustand";
 
 
 export function Navigation() {
+
+    const store = useContext(ReportStoreContext)
     const navOpen = useNavStore((state: NavState) => state.navOpen)
     const closeNav = useNavStore((state: NavState) => state.closeNav)
-    const report = useReportStore((report: ReportState) => report.report);
-    const selectedIndex = useReportStore((report: ReportState) => report.selectedReportIndex);
-    const selectedReportItem = useReportStore((report: ReportState) => report.selectedReportItem);
+    const report = useStore(store, (report: ReportState) => report.report);
+    const selectedIndex = useStore(store, (report: ReportState) => report.selectedReportIndex);
+    const selectedReportItem = useStore(store, (report: ReportState) => report.selectedReportItem);
 
-    useEffect( () => {
+    useEffect(() => {
         if (navOpen) {
             closeNav();
         }
@@ -35,6 +39,12 @@ export function Navigation() {
     let index = 0;
     const creationDate = new Date(report.reportItems[report.reportItems.length - 1].statistics.commit.date)
 
+    const mobile = (window.innerWidth < 1000)
+    let size: 'large' | 'default' | undefined = 'large';
+    if (mobile) {
+        size = 'default';
+    }
+
     return (
         <Drawer
             title="Select change"
@@ -44,7 +54,7 @@ export function Navigation() {
             closable={true}
             onClose={closeNav}
             open={navOpen}
-            size='large'
+            size={size}
             bodyStyle={{
                 background: 'var(--background-color)',
                 paddingLeft: '15px',
@@ -137,14 +147,13 @@ export interface TimelineChangeItemTitleProps {
 
 export function TimelineChangeItem(props: TimelineChangeItemProps) {
 
-
-    const setSelectedReportIndex = useReportStore((report: ReportState) => report.setSelectedReportIndex);
-    const selectedReportIndex = useReportStore((report: ReportState) => report.selectedReportIndex);
-
-    const setSelectedReport = useReportStore((report: ReportState) => report.setSelectedReport);
+    const store = useContext(ReportStoreContext)
+    const setSelectedReportIndex = useStore(store, (report: ReportState) => report.setSelectedReportIndex);
+    const selectedReportIndex = useStore(store, (report: ReportState) => report.selectedReportIndex);
+    const setSelectedReport =useStore(store, (report: ReportState) => report.setSelectedReport);
     const setCurrentChange = useChangeStore((state: ChangeState) => state.setCurrentChange)
-   // const  = useReportStore((report: ReportState) => report.setSelectedReport);
-    const report = useReportStore((report: ReportState) => report.report);
+    // const  = useReportStore((report: ReportState) => report.setSelectedReport);
+    const report = useStore(store, (report: ReportState) => report.report);
 
 
     const selectReport = (index: number) => {
@@ -152,43 +161,62 @@ export function TimelineChangeItem(props: TimelineChangeItemProps) {
         setCurrentChange(null);
     }
 
+    let changeStats: JSX.Element
+    const mobile = (window.innerWidth < 1000)
+    if (!mobile) {
+        changeStats = (<div className='nav-change-statistics'>
+            <Statistic
+                title={<TimelineChangeItemTitle title='Modifications'/>}
+                value={props.modifiedChanges}
+                prefix={<EditOutlined/>}
+            />
+            <Statistic
+                title={<TimelineChangeItemTitle title='Additions'/>}
+                value={props.addedChanges}
+                prefix={<PlusSquareOutlined/>}
+            />
+            <Statistic
+                title={<TimelineChangeItemTitle title='Removals'/>}
+                value={props.removedChanges}
+                prefix={<MinusSquareOutlined/>}
+            />
+            <Statistic
+                title={<TimelineChangeItemTitle title='Breaking' breaking/>}
+                value={props.breakingChanges}
+                prefix={<WarningOutlined/>}
+                valueStyle={{color: 'var(--error-font-color)'}}
+            />
+            <Statistic
+                title={<TimelineChangeItemTitle title='Total'/>}
+                value={props.totalChanges}
+            />
+        </div>)
+    } else {
+        changeStats = (<div className='nav-change-statistics'>
+            <Statistic
+                title={<TimelineChangeItemTitle title='Breaking' breaking/>}
+                value={props.breakingChanges}
+                prefix={<WarningOutlined/>}
+                valueStyle={{color: 'var(--error-font-color)'}}
+            />
+            <Statistic
+                title={<TimelineChangeItemTitle title='Total'/>}
+                value={props.totalChanges}
+            />
+        </div>)
+    }
 
     return (
-        <div className={(selectedReportIndex == props.reverseIndex) ? 'nav-change-container-active': 'nav-change-container'}
-             onMouseOver={() => {
-                 setSelectedReportIndex(props.reverseIndex)
-             }}
-             onClick={() => {
-                 selectReport(props.index);
-             }}>
+        <div
+            className={(selectedReportIndex == props.reverseIndex) ? 'nav-change-container-active' : 'nav-change-container'}
+            onMouseOver={() => {
+                setSelectedReportIndex(props.reverseIndex)
+            }}
+            onClick={() => {
+                selectReport(props.index);
+            }}>
             <span className='nav-change-date'>{new Date(props.time).toLocaleString()}</span>
-            <div className='nav-change-statistics'>
-                <Statistic
-                    title={<TimelineChangeItemTitle title='Modifications'/>}
-                    value={props.modifiedChanges}
-                    prefix={<EditOutlined/>}
-                />
-                <Statistic
-                    title={<TimelineChangeItemTitle title='Additions'/>}
-                    value={props.addedChanges}
-                    prefix={<PlusSquareOutlined/>}
-                />
-                <Statistic
-                    title={<TimelineChangeItemTitle title='Removals'/>}
-                    value={props.removedChanges}
-                    prefix={<MinusSquareOutlined/>}
-                />
-                <Statistic
-                    title={<TimelineChangeItemTitle title='Breaking' breaking/>}
-                    value={props.breakingChanges}
-                    prefix={<WarningOutlined/>}
-                    valueStyle={{color: 'var(--error-font-color)'}}
-                />
-                <Statistic
-                    title={<TimelineChangeItemTitle title='Total'/>}
-                    value={props.totalChanges}
-                />
-            </div>
+            {changeStats}
         </div>
     )
 }
