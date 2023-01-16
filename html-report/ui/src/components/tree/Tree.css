@@ -1,0 +1,238 @@
+
+.ant-tree, .ant-tree .ant-tree-switcher-noop {
+    background: none!important;
+}
+
+
+.ant-tree-show-line .ant-tree-switcher {
+    background: none!important;
+}
+
+.ant-tree .ant-tree-node-content-wrapper {
+    border: 1px solid transparent;
+}
+
+.ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+    /*border: 1px dashed var(--primary-color);*/
+    background: none;
+    color: var(--primary-color)!important;
+}
+
+.ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected .tree-title {
+    color: var(--primary-color)!important;
+}
+
+.tree-holder {
+    width: 100%;
+    height: calc(100vh - 322px);
+    position: relative;
+    overflow: auto;
+    flex-grow: 2;
+}
+
+.tree-title-dull {
+    color: var(--dark-font-color);
+}
+
+.treeview-origmod-cols {
+    margin-bottom: 10px;
+    margin-left: 13px;
+    font-size: 5px!important;
+    color: var(--dark-font-color);
+}
+
+.change-details {
+    height: 25px;
+    padding-top: 2px;
+    padding-left: 10px;
+    margin-left: 15px;
+    padding-bottom: 2px;
+    margin-bottom: 10px;
+    border: 1px dashed var(--secondary-color);
+    overflow-x: auto;
+}
+
+
+
+.change-details::-webkit-scrollbar {
+    width: 8px;
+}
+
+.change-details::-webkit-scrollbar-track {
+    background-color: var(--invert-font-color);
+}
+
+.change-details::-webkit-scrollbar-thumb {
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    background: var(--secondary-color-lowalpha);
+}
+
+
+.change-details-breaking {
+    border: 1px dashed var(--error-color);
+    background-color: var(--error-color-verylowalpha);
+}
+
+.tree-verb {
+    font-size: 14px;
+}
+
+.tree-scroller {
+    height: calc(100vh - 319px);
+    overflow-y: auto;
+}
+
+.tree-scroller::-webkit-scrollbar {
+    width: 8px;
+}
+
+.tree-scroller::-webkit-scrollbar-track {
+    background-color: var(--invert-font-color);
+}
+
+.tree-scroller::-webkit-scrollbar-thumb {
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    background: var(--secondary-color-lowalpha);
+}
+
+
+
+
+.ant-tree-list-scrollbar {
+    background-color: var(--invert-font-color);
+    display: block!important;
+    border-radius: 0!important;
+}
+
+.ant-tree-list-scrollbar-thumb {
+    background: var(--secondary-color)!important;
+    border-radius: 0!important;
+}
+
+
+
+
+.tree {
+    overflow-y: auto;
+}
+
+.ant-tree-list {
+    overflow: hidden!important;
+}
+
+
+.ant-tree-list-holder::-webkit-scrollbar {
+    width: 8px;
+}
+
+.ant-tree-list-holder::-webkit-scrollbar-track {
+    background-color: var(--invert-font-color);
+}
+
+.ant-tree-list-holder::-webkit-scrollbar-thumb {
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    background: var(--secondary-color-lowalpha);
+}
+
+.ant-tree::-webkit-scrollbar-thumb {
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.9);
+    background: var(--secondary-color-lowalpha);
+}
+
+
+.ant-tree-treenode-selected::before {
+    background-color: var(--secondary-color-very-lowalpha)!important;
+}
+
+section.tree-nothing-selected {
+    width: 100%;
+    height: calc(100vh - 690px);
+}
+
+.nothing-selected-icon {
+    text-align: center;
+    width: 400px;
+    margin: 100px auto;
+    color: var(--secondary-color-lowalpha);
+    text-transform: uppercase;
+}
+.nothing-selected-icon > .icon {
+    font-size: 100px;
+}
+
+
+section.tree-selected-change {
+    animation: fadeIn 1s;
+    height: calc(100vh - 690px);
+}
+
+@keyframes fadeIn{
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+
+.orig-col, .mod-col {
+    font-size: 11px;
+    line-height: 6px;
+    display: block;
+}
+
+@media only screen and (max-width: 1000px) {
+
+    .mobile-tree {
+        height: 66vh;
+    }
+
+    section.tree-nothing-selected {
+        width: 100%;
+        height: calc(100vh - 550px);
+    }
+
+
+
+    .tree-scroller {
+        margin-bottom: 20px;
+        height: 200px;
+    }
+
+    .tree-holder {
+        margin-bottom: 20px;
+        height: 220px;
+        border-bottom: 1px dashed var(--secondary-color);
+    }
+
+    .diff-view {
+        max-height: calc(100vh - 415px);
+    }
+
+    .nothing-selected-icon {
+        margin: 20px auto;
+    }
+
+    .treeview-origmod-cols {
+        font-size: 0.6em!important;
+    }
+
+    .orig-col, .mod-col {
+        font-size: 0.5em;
+        line-height: 6px;
+        display: block;
+    }
+    .nothing-selected-icon {
+        width: 100%;
+
+    }
+
+    section.tree-selected-change {
+        height: calc(100vh - 690px);
+    }
+
+    .change-details {
+        padding-left: 10px;
+        margin-left: 0;
+    }
+
+
+
+}

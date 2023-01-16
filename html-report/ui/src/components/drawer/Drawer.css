@@ -1,0 +1,131 @@
+
+.drawer-title {
+    /*display: flex;*/
+    /*flex-direction: row;*/
+    font-weight: normal;
+    position: relative;
+}
+
+.drawer-title-icon {
+    height: 21px;
+    width: 21px;
+    margin-top: 3px;
+    float: left;
+}
+
+.drawer-breaking-icon-title {
+    margin-top: 0;
+    margin-right: 5px;
+    font-size: 12px;
+    vertical-align: text-bottom;
+    color: var(--error-color);
+}
+
+.drawer-breaking-icon-container {
+    position: absolute;
+    right: 10px;
+    top: 1px;
+    width: 90px;
+}
+
+.drawer-breaking-icon {
+    font-size: 22px;
+    color: var(--error-color);
+}
+
+.drawer-title-property {
+    margin-left: 30px;
+    display: block;
+    font-weight: normal;
+    vertical-align: top;
+    font-size: 13px;
+    padding-top: 3px;
+}
+
+.drawer-title-property-verb {
+    margin-left: 30px;
+    display: block;
+    font-weight: normal;
+    vertical-align: top;
+    font-size: 13px;
+    padding-top: 0;
+}
+
+.drawer-title-changed {
+    /*font-weight: bold;*/
+    /*display: inline-block;*/
+    /*vertical-align: bottom;*/
+}
+
+.drawer-title-changed .ant-tag {
+    font-size: 12px;
+    vertical-align: center;
+}
+
+.drawer-verb {
+    font-size: 18px;
+    margin-top: 2px;
+}
+
+.ant-drawer-body {
+    padding-top: 10px!important;
+    padding-bottom: 0!important;
+}
+
+.ant-drawer-header {
+    padding: 0!important;
+}
+.ant-drawer-close {
+    margin-inline-end: 5px!important;
+}
+
+.ant-drawer-header-title {
+    padding: 5px 5px 7px 5px;
+}
+.original-modified-container {
+    margin-bottom: 10px;
+    color: var(--dark-font-color);
+}
+
+.original-change-value {
+    color: var(--primary-color);
+    /*display: inline-block;*/
+}
+
+.property-word {
+    /*display: inline-block;*/
+}
+
+.new-change-value {
+    color: var(--secondary-color);
+    font-style: italic;
+    /*display: inline-block;*/
+    max-width: 100px;
+    text-overflow: ellipsis;
+}
+
+.fill-word {
+    color: var(--dark-font-color);
+    font-weight: lighter;
+    /*display: inline-block;*/
+}
+
+.linenumber-highlight {
+    color: var(--secondary-color)
+}
+@media only screen and (max-width: 1000px) {
+
+    .drawer-title{
+        max-height: 20px;
+        overflow: hidden;
+
+    }
+
+    .drawer-breaking-icon-title {
+        display: none;
+    }
+
+    .drawer-breaking-icon-container {
+        width: 20px;
+    }
+}

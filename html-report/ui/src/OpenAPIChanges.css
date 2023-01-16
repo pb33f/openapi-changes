@@ -1,0 +1,164 @@
+
+
+#root {
+  flex: 1 0 auto;
+}
+
+#main_container {
+  font-family: var(--font-stack);
+  flex: 1 0 auto;
+  width: calc(100vw - 50px);
+}
+
+
+
+hr {
+  border: none;
+  border-bottom: 1px dashed var(--secondary-color);
+}
+
+.height-100 {
+  height: 100px;
+}
+
+.height-120 {
+  height: 120px;
+}
+
+.height-150 {
+  height: 150px;
+}
+.height-180 {
+  height: 180px;
+}
+
+
+.height-200 {
+  height: 200px;
+}
+
+.height-300 {
+  height: 300px;
+}
+
+.height-400 {
+  height: 400px;
+}
+
+.height-500 {
+  height: 500px;
+}
+
+.width-100 {
+  width: 100px;
+}
+
+.width-150 {
+  width: 150px;
+}
+
+.m-top-20 {
+  margin-top: 20px;
+}
+
+.m-bottom-20 {
+  margin-bottom: 20px;
+}
+
+.width-200 {
+  width: 200px;
+}
+
+.width-300 {
+  width: 300px;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-wrap {
+  flex-flow: wrap;
+}
+
+.flex-center {
+  justify-content: center;
+}
+
+
+.report-changes {
+  width: 100%
+}
+
+
+.breaking-change {
+  color: var(--error-color)
+}
+
+
+
+
+#flow {
+  width: 100%;
+  height: 100vh;
+}
+.App {
+  text-align: center;
+  width: 100vw;
+  height: 100vh;
+
+}
+
+.node {
+ position: fixed;
+  pointer-events: none;
+}
+
+.node:hover {
+  border: 1px solid red;
+}
+
+.node > svg {
+  height: 1.3em;
+  width: 1.3em;
+  vertical-align: middle;
+}
+
+
+.ant-tabs-tab {
+  border-radius: 0px!important;
+  background: var(--background-color)!important;
+  border: 1px dashed var(--secondary-color-very-lowalpha)!important;
+  border-bottom: 1px dashed var(--secondary-color)!important;
+}
+.ant-tabs-tab-active {
+  /*margin-bottom: 10px!important;*/
+  border: 1px dashed var(--secondary-color)!important;
+  border-bottom: 1px dashed var(--background-color)!important;
+
+}
+.ant-tabs-nav::before {
+  border-bottom: 1px dashed var(--secondary-color)!important;
+}
+
+
+footer {
+  font-size: 0.6em;
+}
+
+
+@media only screen and (max-width: 1000px) {
+
+  footer {
+    font-size: 0.6em;
+  }
+
+  #main_container {
+    width: calc(100vw - 10px);
+  }
+
+  .report-changes {
+    height: calc(100vh - 200px);
+  }
+
+}

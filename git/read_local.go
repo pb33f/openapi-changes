@@ -6,10 +6,14 @@ package git
 import (
     "bytes"
     "fmt"
+    "github.com/go-git/go-git/v5"
+    "github.com/go-git/go-git/v5/plumbing"
+    "github.com/go-git/go-git/v5/plumbing/object"
     "github.com/pb33f/libopenapi"
-    "github.com/pb33f/openapi-changes/builder"
+    // "github.com/pb33f/openapi-changes/builder"
     "github.com/pb33f/openapi-changes/model"
     "github.com/pterm/pterm"
+    "io"
     "os/exec"
     "path"
     "strings"
@@ -83,7 +87,72 @@ func ExtractHistoryFromFile(repoDirectory, filePath string) []*model.Commit {
     return commitHistory
 }
 
-func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.SpinnerPrinter, quality bool) []error {
+func ExtractHistoryUsingLib(repoDirectory, filePath string) ([]*model.Commit, error) {
+    var commitHistory []*model.Commit
+    var err error
+
+    r, e := git.PlainOpen(repoDirectory)
+    if e != nil {
+        return nil, err
+    }
+
+    var ref *plumbing.Reference
+    ref, err = r.Head()
+    if err != nil {
+        return nil, err
+    }
+
+    var commitIterator object.CommitIter
+    commitIterator, err = r.Log(&git.LogOptions{
+        From:     ref.Hash(),
+        FileName: &filePath,
+    })
+    if err != nil {
+        return commitHistory, err
+    }
+
+    // Iterate over all commits and save file for each
+    var commit *object.Commit
+    for {
+        commit, err = commitIterator.Next()
+        if err == io.EOF {
+            break
+        }
+        if err != nil {
+            return nil, err
+        }
+        var srcFile *object.File
+        srcFile, err = commit.File(filePath)
+
+        buf := new(bytes.Buffer)
+
+        var reader io.ReadCloser
+        reader, err = srcFile.Blob.Reader()
+        if err != nil {
+            return nil, err
+        }
+        _, err = buf.ReadFrom(reader)
+        if err != nil {
+            return nil, err
+        }
+
+        commitHistory = append(commitHistory,
+            &model.Commit{
+                CommitDate:    commit.Author.When,
+                Hash:          commit.Hash.String(),
+                Message:       commit.Message,
+                Author:        commit.Author.Name,
+                AuthorEmail:   commit.Author.Email,
+                RepoDirectory: repoDirectory,
+                FilePath:      filePath,
+                Data:          buf.Bytes(),
+            })
+    }
+    commitIterator.Close()
+    return commitHistory, nil
+}
+
+func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.SpinnerPrinter) []error {
     for c := range commitHistory {
         cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", commitHistory[c].Hash, commitHistory[c].FilePath))
         var ou, er bytes.Buffer
@@ -96,7 +165,7 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.Sp
         }
         commitHistory[c].Data = ou.Bytes()
     }
-    errors := BuildCommitChangelog(commitHistory, quality)
+    errors := BuildCommitChangelog(commitHistory)
     if len(errors) > 0 {
         return errors
     }
@@ -106,7 +175,7 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.Sp
     return nil
 }
 
-func BuildCommitChangelog(commitHistory []*model.Commit, quality bool) []error {
+func BuildCommitChangelog(commitHistory []*model.Commit) []error {
     var errors []error
     for c := len(commitHistory) - 1; c > -1; c-- {
         var oldBits, newBits []byte
@@ -145,18 +214,11 @@ func BuildCommitChangelog(commitHistory []*model.Commit, quality bool) []error {
         if len(oldBits) == 0 && len(newBits) > 0 {
             newDoc, _ = libopenapi.NewDocument(newBits)
         }
-
         if newDoc != nil {
             commitHistory[c].Document = newDoc
         }
-
         if oldDoc != nil {
             commitHistory[c].OldDocument = oldDoc
-        }
-
-        // run vacuum stats
-        if quality {
-            commitHistory[c].QualityReport = builder.CheckStats(newDoc.GetSpecInfo())
         }
     }
     return nil

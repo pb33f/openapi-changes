@@ -1,0 +1,22 @@
+.editor-flip-controls {
+    display: block;
+    position: absolute;
+    right: 0;
+    top: -20px;
+    width: 152px;
+    font-size: 11px;
+}
+
+.editor-flip-controls button {
+    margin-left: 10px;
+}
+
+section.editor {
+    position: relative;
+}
+
+@media only screen and (max-width: 1000px) {
+    .editor-flip-controls {
+        display: none;
+    }
+}

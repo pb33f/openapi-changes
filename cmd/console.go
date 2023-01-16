@@ -36,7 +36,6 @@ func GetConsoleCommand() *cobra.Command {
             if len(args) == 2 {
 
                 latestFlag, _ := cmd.Flags().GetBool("top")
-                includeQuality, _ := cmd.Flags().GetBool("quality")
 
                 // check if the first arg is a directory, if so - process as a git history operation.
                 p := args[0]
@@ -55,10 +54,10 @@ func GetConsoleCommand() *cobra.Command {
                         return err
                     }
 
-                    return runGitHistoryConsole(args[0], args[1], latestFlag, includeQuality)
+                    return runGitHistoryConsole(args[0], args[1], latestFlag)
 
                 } else {
-                    errs := runLeftRightCompare(args[0], args[1], includeQuality)
+                    errs := runLeftRightCompare(args[0], args[1])
                     if len(errs) > 0 {
                         for e := range errs {
                             pterm.Error.Println(errs[e].Error())
@@ -76,7 +75,7 @@ func GetConsoleCommand() *cobra.Command {
     return cmd
 }
 
-func runGitHistoryConsole(gitPath, filePath string, latest, quality bool) error {
+func runGitHistoryConsole(gitPath, filePath string, latest bool) error {
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
         pterm.Error.Println(err.Error())
@@ -90,7 +89,7 @@ func runGitHistoryConsole(gitPath, filePath string, latest, quality bool) error 
     commitHistory := git.ExtractHistoryFromFile(gitPath, filePath)
 
     // populate history with changes and data
-    git.PopulateHistoryWithChanges(commitHistory, spinner, quality)
+    git.PopulateHistoryWithChanges(commitHistory, spinner)
 
     if latest {
         commitHistory = commitHistory[:1]
@@ -104,7 +103,7 @@ func runGitHistoryConsole(gitPath, filePath string, latest, quality bool) error 
     return nil
 }
 
-func runLeftRightCompare(left, right string, quality bool) []error {
+func runLeftRightCompare(left, right string) []error {
 
     var leftBytes, rightBytes []byte
     var errs []error
@@ -134,7 +133,7 @@ func runLeftRightCompare(left, right string, quality bool) []error {
         },
     }
 
-    errs = git.BuildCommitChangelog(commits, quality)
+    errs = git.BuildCommitChangelog(commits)
     if len(errs) > 0 {
         return errs
     }

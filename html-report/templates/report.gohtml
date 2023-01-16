@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+{{- template "header" . -}}
+    <body>
+        <div id="root">
+            <div class="preloader">
+                <div class="lds-ellipsis">
+                    <div></div><div></div><div></div><div></div></div><br/>
+                OpenAPI Changes report is loading...
+            </div>
+        </div>
+    </body>
+{{- if not .TestMode -}}
+    <script>
+        {{ .BundledJS }}
+    </script>
+{{- else -}}
+    <script src="http://localhost:3000/bundle.js"></script>
+{{- end -}}
+</html>

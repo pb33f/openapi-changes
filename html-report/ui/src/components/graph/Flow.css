@@ -1,0 +1,21 @@
+.graph-verb {
+    display: inline;
+    font-size: 11px;
+}
+
+.dragging {
+    cursor: move;
+}
+
+.edge {
+    stroke: #b1b1b7;
+    stroke-dasharray: 5;
+    animation: dashdraw 1500ms linear infinite;
+    stroke-width: 1;
+}
+
+@keyframes dashdraw {
+    0% {
+        stroke-dashoffset: 10;
+    }
+}

@@ -1,0 +1,44 @@
+header {
+    font-size: 1.5rem;
+    font-family: var(--font-stack);
+    height: 38px;
+    padding-top: 8px;
+    position: relative;
+}
+
+header button {
+    margin-top: -3px;
+    margin-right: 20px;
+}
+
+header > a {
+    color: var(--primary-color);
+    font-weight: bold;
+    text-decoration: none;
+    float: right;
+}
+
+.report-generated {
+    color: var(--secondary-color);
+    font-size: 12px;
+}
+
+
+@media only screen and (max-width: 1000px) {
+
+    header {
+        padding-top: 2px;
+        height: 30px;
+    }
+
+    header > a {
+        font-size: 14px;
+    }
+    .report-generated {
+        font-size: 10px;
+        position: absolute;
+        bottom: 0;
+        right: 0;
+    }
+
+}

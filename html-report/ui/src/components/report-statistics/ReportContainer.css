@@ -1,0 +1,71 @@
+.chart-container {
+    margin-right: 40px;
+    height: 165px;
+    width: 175px;
+}
+
+.report-container {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: row;
+}
+
+
+.report-summary {
+    width: calc(100vw - 665px);
+}
+
+.report-summary-stats {
+    display: flex;
+    flex-direction: row;
+    height: 70px
+}
+
+.commit {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8rem;
+    height: 60px;
+    max-width: 750px;
+    max-height: 50px;
+    border: 1px dashed var(--secondary-color-very-lowalpha);
+    background-color: var(--rule-item-background);
+    padding: 5px;
+}
+.commit-changed {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+}
+
+section.report-header {
+    height: 220px;
+    overflow: hidden;
+}
+
+
+
+@media only screen and (max-width: 1000px) {
+    .report-summary  {
+        display: none;
+    }
+    .report-container {
+      justify-content: space-between;
+    }
+
+    .chart-container {
+        margin-right: 0;
+        height: 85px;
+        width: 86px;
+    }
+
+    section.report-header {
+        height: 150px;
+
+    }
+
+
+
+}

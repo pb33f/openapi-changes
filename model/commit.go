@@ -13,6 +13,8 @@ import (
 type Commit struct {
     Hash          string                      `json:"commitHash"`
     Message       string                      `json:"message"`
+    Author        string                      `json:"author"`
+    AuthorEmail   string                      `json:"authorEmail"`
     CommitDate    time.Time                   `json:"committed"`
     QualityReport *vacuum_report.VacuumReport `json:"qualityReport,omitempty"`
     Changes       *model.DocumentChanges      `json:"changeReport"`
