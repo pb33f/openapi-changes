@@ -2,7 +2,7 @@
 
 See what has changed with your OpenAPI Specification, between a single change, or for all time!
 
-> This is **EARLY CODE** and an early tool.
+> This is **REALLY EARLY CODE** and an early tool.
 
 However, if you do want to try out this early code?
 
