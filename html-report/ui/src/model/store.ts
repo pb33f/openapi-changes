@@ -5,8 +5,9 @@ import {CanvasDirection} from "reaflow/dist/layout/elkLayout";
 import {ReactZoomPanPinchRef } from "react-zoom-pan-pinch";
 import {Report, ReportItem} from "@/model/report";
 
-let win: any = window;
-let report: Report = win.report
+// data is supplied externally at boot time off the window object
+// which is set before the react application is booted.
+let data: any = (window as any).data
 
 export interface DrawerState {
     drawerOpen: boolean;
@@ -31,22 +32,30 @@ export interface GraphState {
 
 }
 
+
+
 export interface ReportState {
-    report: Report
-    selectedReportItem: ReportItem;
+    report: Report | undefined
+    selectedReportItem: ReportItem | undefined;
     selectedReportIndex: number;
+    highlightedReportIndex: number;
+
     setSelectedReport: (reportItem: ReportItem) => void;
+    setReport: (report: Report) => void;
     setSelectedReportIndex: (idx: number) => void;
+    setHighlightedReportIndex: (idx: number) => void;
 }
 
 
 export interface ChangeState {
     currentChange: Change | null;
     selectedChangeKeys: React.Key[];
+    expandedChangeKeys: React.Key[];
 
     treeMapLookup: Map<String, String>;
     setCurrentChange: (change: Change | null) => void;
     setSelectedChangeKeys: (key: React.Key[]) => void;
+    setExpandedChangeKeys: (key: React.Key[]) => void;
 }
 
 export interface EditorState {
@@ -71,9 +80,11 @@ export const useNavStore = create<NavState>((set) => ({
 export const useChangeStore = create<ChangeState>((set) => ({
     currentChange: null,
     selectedChangeKeys: [],
+    expandedChangeKeys: [],
     treeMapLookup: new Map<String, String>(),
     setCurrentChange: (currentChange) => set({currentChange}),
-    setSelectedChangeKeys: (selectedChangeKeys) => set({selectedChangeKeys})
+    setSelectedChangeKeys: (selectedChangeKeys) => set({selectedChangeKeys}),
+    setExpandedChangeKeys: (expandedChangeKeys) => set({expandedChangeKeys})
 }));
 
 
@@ -84,13 +95,17 @@ export const useGraphStore = create<GraphState>((set) => ({
     setZoomPanPinch: zoomPanPinch => set({ zoomPanPinch }),
 }));
 
-// export const useReportStore = create<ReportState>((set) => ({
-//     report: report,
-//     selectedReportIndex: report.reportItems.length - 1,
-//     selectedReportItem: report.reportItems[0],
-//     setSelectedReportIndex: (selectedReportIndex: number) => set({selectedReportIndex}),
-//     setSelectedReport: (selectedReportItem: ReportItem) => set({selectedReportItem})
-// }));
+
+export const useReportStore = create<ReportState>((set) => ({
+    report: data,
+    selectedReportIndex: data.reportItems.length - 1,
+    selectedReportItem: data.reportItems[0],
+    highlightedReportIndex: data.reportItems.length - 1,
+    setHighlightedReportIndex: (highlightedReportIndex: number) => set({highlightedReportIndex}),
+    setSelectedReportIndex: (selectedReportIndex: number) => set({selectedReportIndex}),
+    setSelectedReport: (selectedReportItem: ReportItem) => set({selectedReportItem}),
+    setReport: (report: Report) => set({report})
+}));
 
 export const useEditorStore = create<EditorState>((set) => ({
     sideBySide: true,

@@ -1,5 +1,5 @@
 {
-  "dateGenerated": "Sat, 14 Jan 2023 12:23:46 -2300",
+  "dateGenerated": "Mon, 16 Jan 2023 06:38:38 -3800",
   "reportItems": [
     {
       "originalSpec": "{\n  \"openapi\": \"3.0.2\",\n  \"info\": {\n    \"title\": \"Swagger Petstore - OpenAPI 3.0, With More Jazz\",\n    \"description\": \"Jazz in the morning, Jazz in the evening.\",\n    \"termsOfService\": \"http://jazzyjazzjazzy.com\",\n    \"contact\": {\n      \"email\": \"jazz@swagger.io\"\n    },\n    \"license\": {\n      \"name\": \"Apache 2.0\",\n      \"url\": \"http://www.apache.org/licenses/LICENSE-2.0.html\"\n    },\n    \"version\": \"1.0.11\"\n  },\n  \"externalDocs\": {\n    \"description\": \"Find out more about Swagger\",\n    \"url\": \"http://swagger.io\"\n  },\n  \"servers\": [\n    {\n      \"url\": \"/api/v3\"\n    }\n  ],\n  \"tags\": [\n    {\n      \"name\": \"pet\",\n      \"description\": \"Everything about your Pets\",\n      \"externalDocs\": {\n        \"description\": \"Find out more\",\n        \"url\": \"http://swagger.io\"\n      }\n    },\n    {\n      \"name\": \"store\",\n      \"description\": \"Access to Petstore orders\",\n      \"externalDocs\": {\n        \"description\": \"Find out more about our store\",\n        \"url\": \"http://swagger.io\"\n      }\n    },\n    {\n      \"name\": \"user\",\n      \"description\": \"Operations about user\"\n    },\n    {\n      \"name\": \"jazz\",\n      \"description\": \"Everyone loves jazz!\"\n    }\n  ],\n  \"paths\": {\n    \"/pet\": {\n      \"put\": {\n        \"tags\": [\n          \"pet\",\n          \"jazz\"\n        ],\n        \"summary\": \"Update an existing pet, but with Jazz\",\n        \"description\": \"Update an existing pet by Id\",\n        \"operationId\": \"updatePet\",\n        \"requestBody\": {\n          \"description\": \"Update an existent pet in the store\",\n          \"content\": {\n            \"application/json\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/Pet\"\n              }\n            },\n            \"application/xml\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/Pet\"\n              }\n            },\n            \"application/x-www-form-urlencoded\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/Pet\"\n              }\n            }\n          },\n          \"required\": false\n        },\n        \"responses\": {\n          \"200\": {\n            \"description\": \"Successful operation\",\n            \"content\": {\n              \"application/xml\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/Pet\"\n                }\n              },\n              \"application/json\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/Pet\"\n                }\n              }\n            }\n          },\n          \"400\": {\n            \"description\": \"Invalid ID supplied\"\n          },\n          \"404\": {\n            \"description\": \"Pet not found\"\n          },\n          \"405\": {\n            \"description\": \"Validation exception\"\n          },\n          \"418\": {\n            \"description\": \"Teapot Jazz\"\n          }\n        },\n        \"security\": [\n          {\n            \"petstore_auth\": [\n              \"write:pets\",\n              \"read:pets\"\n            ]\n          }\n        ]\n      },\n      \"patch\": {\n        \"tags\": [\n          \"pet\"\n        ],\n        \"summary\": \"Add a new pet to the store\",\n        \"description\": \"Add a new pet to the store\",\n        \"operationId\": \"addPet\",\n        \"requestBody\": {\n          \"description\": \"Create a new pet in the store\",\n          \"content\": {\n            \"application/json\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/Pet\"\n              }\n            },\n            \"application/xml\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/Pet\"\n              }\n            },\n            \"application/x-www-form-urlencoded\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/Pet\"\n              }\n            }\n          },\n          \"required\": true\n        },\n        \"responses\": {\n          \"200\": {\n            \"description\": \"Successful operation\",\n            \"content\": {\n              \"application/xml\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/Pet\"\n                }\n              },\n              \"application/json\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/Pet\"\n                }\n              }\n            }\n          }\n        },\n        \"security\": [\n          {\n            \"petstore_auth\": [\n              \"write:pets\",\n              \"read:pets\",\n              \"jammy:jelly\"\n            ]\n          }\n        ]\n      }\n    },\n    \"/pet/findByStatus\": {\n      \"get\": {\n        \"tags\": [\n          \"pet\"\n        ],\n        \"summary\": \"Finds Pets by status\",\n        \"description\": \"Multiple status values can be provided with comma separated strings\",\n        \"operationId\": \"findPetsByStatus\",\n        \"parameters\": [\n          {\n            \"name\": \"status\",\n            \"in\": \"query\",\n            \"description\": \"Status values that need to be considered for filter\",\n            \"required\": false,\n            \"explode\": true,\n            \"schema\": {\n              \"type\": \"string\",\n              \"default\": \"available\",\n              \"enum\": [\n                \"available\",\n                \"pending\",\n                \"sold\"\n              ]\n            }\n          }\n        ],\n        \"responses\": {\n          \"200\": {\n            \"description\": \"successful operation\",\n            \"content\": {\n              \"application/xml\": {\n                \"schema\": {\n                  \"type\": \"array\",\n                  \"items\": {\n                    \"$ref\": \"#/components/schemas/Pet\"\n                  }\n                }\n              },\n              \"application/json\": {\n                \"schema\": {\n                  \"type\": \"array\",\n                  \"items\": {\n                    \"$ref\": \"#/components/schemas/Pet\"\n                  }\n                }\n              }\n            }\n          }\n        },\n        \"security\": [\n          {\n            \"petstore_auth\": [\n              \"write:pets\",\n              \"read:pets\"\n            ]\n          }\n        ]\n      }\n    },\n    \"/pet/findByTags\": {\n      \"post\": {\n        \"tags\": [\n          \"pet\",\n          \"jazz\"\n        ],\n        \"summary\": \"Finds Pets by tags\",\n        \"description\": \"Multiple tags can be provided with comma separated strings. Use tag1, tag2, tag3 for testing.\",\n        \"operationId\": \"findPetsByTags\",\n        \"parameters\": [\n          {\n            \"name\": \"tags\",\n            \"in\": \"query\",\n            \"description\": \"Tags to filter by\",\n            \"required\": false,\n            \"explode\": true,\n            \"schema\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"int\"\n              }\n            }\n          }\n        ],\n        \"responses\": {\n          \"200\": {\n            \"description\": \"successful operation\",\n            \"content\": {\n              \"application/xml\": {\n                \"schema\": {\n                  \"type\": \"array\",\n                  \"items\": {\n                    \"$ref\": \"#/components/schemas/Pet\"\n                  }\n                }\n              },\n              \"application/json\": {\n                \"schema\": {\n                  \"type\": \"array\",\n                  \"items\": {\n                    \"$ref\": \"#/components/schemas/Pet\"\n                  }\n                }\n              }\n            }\n          },\n          \"400\": {\n            \"description\": \"Invalid tag value\"\n          }\n        },\n        \"security\": [\n          {\n            \"petstore_auth\": [\n              \"write:pets\",\n              \"read:pets\"\n            ]\n          }\n        ]\n      }\n    },\n    \"/pet/{petId}\": {\n      \"get\": {\n        \"tags\": [\n          \"pet\"\n        ],\n        \"summary\": \"Find pet by ID\",\n        \"description\": \"Returns a single pet\",\n        \"operationId\": \"getPetById\",\n        \"parameters\": [\n          {\n            \"name\": \"petId\",\n            \"in\": \"path\",\n            \"description\": \"ID of pet to return\",\n            \"required\": true,\n            \"schema\": {\n              \"type\": \"integer\",\n              \"format\": \"int64\"\n            }\n          }\n        ],\n        \"responses\": {\n          \"200\": {\n            \"description\": \"successful operation\",\n            \"content\": {\n              \"application/xml\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/Pet\"\n                }\n              },\n              \"application/json\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/Pet\"\n                }\n              }\n            }\n          },\n          \"400\": {\n            \"description\": \"Invalid ID supplied\"\n          },\n          \"404\": {\n            \"description\": \"Pet not found\"\n          }\n        },\n        \"security\": [\n          {\n            \"api_key\": []\n          },\n          {\n            \"petstore_auth\": [\n              \"write:pets\",\n              \"read:pets\"\n            ]\n          }\n        ]\n      },\n      \"post\": {\n        \"tags\": [\n          \"pet\"\n        ],\n        \"summary\": \"Updates a pet in the store with form data\",\n        \"description\": \"\",\n        \"operationId\": \"updatePetWithForm\",\n        \"parameters\": [\n          {\n            \"name\": \"petId\",\n            \"in\": \"path\",\n            \"description\": \"ID of pet that needs to be updated\",\n            \"required\": true,\n            \"schema\": {\n              \"type\": \"integer\",\n              \"format\": \"int64\"\n            }\n          },\n          {\n            \"name\": \"name\",\n            \"in\": \"query\",\n            \"description\": \"Name of pet that needs to be updated\",\n            \"schema\": {\n              \"type\": \"string\"\n            }\n          },\n          {\n            \"name\": \"status\",\n            \"in\": \"query\",\n            \"description\": \"Status of pet that needs to be updated\",\n            \"schema\": {\n              \"type\": \"string\"\n            }\n          }\n        ],\n        \"responses\": {\n          \"405\": {\n            \"description\": \"Invalid input\"\n          }\n        },\n        \"security\": [\n          {\n            \"petstore_auth\": [\n              \"write:pets\",\n              \"read:pets\"\n            ]\n          }\n        ]\n      }\n    },\n    \"/pet/{petId}/uploadImage\": {\n      \"post\": {\n        \"tags\": [\n          \"pet\"\n        ],\n        \"summary\": \"uploads an image\",\n        \"description\": \"\",\n        \"operationId\": \"uploadFile\",\n        \"parameters\": [\n          {\n            \"name\": \"petId\",\n            \"in\": \"path\",\n            \"description\": \"ID of pet to update\",\n            \"required\": true,\n            \"schema\": {\n              \"type\": \"integer\",\n              \"format\": \"int64\"\n            }\n          },\n          {\n            \"name\": \"additionalMetadata\",\n            \"in\": \"query\",\n            \"description\": \"Additional Metadata\",\n            \"required\": false,\n            \"schema\": {\n              \"type\": \"string\"\n            }\n          }\n        ],\n        \"requestBody\": {\n          \"content\": {\n            \"application/octet-stream\": {\n              \"schema\": {\n                \"type\": \"string\",\n                \"format\": \"binary\"\n              }\n            }\n          }\n        },\n        \"responses\": {\n          \"200\": {\n            \"description\": \"successful operation\",\n            \"content\": {\n              \"application/json\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/ApiResponse\"\n                }\n              }\n            }\n          }\n        },\n        \"security\": [\n          {\n            \"petstore_auth\": [\n              \"write:pets\",\n              \"read:pets\"\n            ]\n          }\n        ]\n      }\n    },\n    \"/store/inventory\": {\n      \"get\": {\n        \"tags\": [\n          \"store\"\n        ],\n        \"summary\": \"Returns pet inventories by status\",\n        \"description\": \"Returns a map of status codes to quantities\",\n        \"operationId\": \"getInventory\",\n        \"responses\": {\n          \"200\": {\n            \"description\": \"successful operation\",\n            \"content\": {\n              \"application/json\": {\n                \"schema\": {\n                  \"type\": \"object\",\n                  \"additionalProperties\": {\n                    \"type\": \"integer\",\n                    \"format\": \"int32\"\n                  }\n                }\n              }\n            }\n          }\n        },\n        \"security\": [\n          {\n            \"api_key\": []\n          }\n        ]\n      }\n    },\n    \"/store/order\": {\n      \"post\": {\n        \"tags\": [\n          \"store\"\n        ],\n        \"summary\": \"Place an order for a pet\",\n        \"description\": \"Place a new order in the store\",\n        \"operationId\": \"placeOrder\",\n        \"requestBody\": {\n          \"content\": {\n            \"application/json\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/Order\"\n              }\n            },\n            \"application/xml\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/Order\"\n              }\n            },\n            \"application/x-www-form-urlencoded\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/Order\"\n              }\n            }\n          }\n        },\n        \"responses\": {\n          \"200\": {\n            \"description\": \"successful operation\",\n            \"content\": {\n              \"application/json\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/Order\"\n                }\n              }\n            }\n          },\n          \"405\": {\n            \"description\": \"Invalid input\"\n          }\n        }\n      }\n    },\n    \"/store/order/{orderId}\": {\n      \"get\": {\n        \"tags\": [\n          \"store\"\n        ],\n        \"summary\": \"Find purchase order by ID\",\n        \"description\": \"For valid response try integer IDs with value \u003c= 5 or \u003e 10. Other values will generate exceptions.\",\n        \"operationId\": \"getOrderById\",\n        \"parameters\": [\n          {\n            \"name\": \"orderId\",\n            \"in\": \"path\",\n            \"description\": \"ID of order that needs to be fetched\",\n            \"required\": true,\n            \"schema\": {\n              \"type\": \"integer\",\n              \"format\": \"int64\"\n            }\n          }\n        ],\n        \"responses\": {\n          \"200\": {\n            \"description\": \"successful operation\",\n            \"content\": {\n              \"application/xml\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/Order\"\n                }\n              },\n              \"application/json\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/Order\"\n                }\n              }\n            }\n          },\n          \"400\": {\n            \"description\": \"Invalid ID supplied\"\n          },\n          \"404\": {\n            \"description\": \"Order not found\"\n          }\n        }\n      },\n      \"delete\": {\n        \"tags\": [\n          \"store\"\n        ],\n        \"summary\": \"Delete purchase order by ID\",\n        \"description\": \"For valid response try integer IDs with value \u003c 1000. Anything above 1000 or nonintegers will generate API errors\",\n        \"operationId\": \"deleteOrder\",\n        \"parameters\": [\n          {\n            \"name\": \"orderId\",\n            \"in\": \"path\",\n            \"description\": \"ID of the order that needs to be deleted\",\n            \"required\": true,\n            \"schema\": {\n              \"type\": \"integer\",\n              \"format\": \"int64\"\n            }\n          }\n        ],\n        \"responses\": {\n          \"400\": {\n            \"description\": \"Invalid ID supplied\"\n          },\n          \"404\": {\n            \"description\": \"Order not found\"\n          }\n        }\n      }\n    },\n    \"/user\": {\n      \"post\": {\n        \"tags\": [\n          \"user\"\n        ],\n        \"summary\": \"Create user\",\n        \"description\": \"This can only be done by the logged in user.\",\n        \"operationId\": \"createUser\",\n        \"requestBody\": {\n          \"description\": \"Created user object\",\n          \"content\": {\n            \"application/json\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/User\"\n              }\n            },\n            \"application/xml\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/User\"\n              }\n            },\n            \"application/x-www-form-urlencoded\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/User\"\n              }\n            }\n          }\n        },\n        \"responses\": {\n          \"default\": {\n            \"description\": \"successful operation\",\n            \"content\": {\n              \"application/json\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/User\"\n                }\n              },\n              \"application/xml\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/User\"\n                }\n              }\n            }\n          }\n        }\n      }\n    },\n    \"/user/createWithList\": {\n      \"post\": {\n        \"tags\": [\n          \"user\"\n        ],\n        \"summary\": \"Creates list of users with given input array\",\n        \"description\": \"Creates list of users with given input array\",\n        \"operationId\": \"createUsersWithListInput\",\n        \"requestBody\": {\n          \"content\": {\n            \"application/json\": {\n              \"schema\": {\n                \"type\": \"array\",\n                \"items\": {\n                  \"$ref\": \"#/components/schemas/User\"\n                }\n              }\n            }\n          }\n        },\n        \"responses\": {\n          \"200\": {\n            \"description\": \"Successful operation\",\n            \"content\": {\n              \"application/xml\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/User\"\n                }\n              },\n              \"application/json\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/User\"\n                }\n              }\n            }\n          },\n          \"default\": {\n            \"description\": \"successful operation\"\n          }\n        }\n      }\n    },\n    \"/user/login\": {\n      \"get\": {\n        \"tags\": [\n          \"user\"\n        ],\n        \"summary\": \"Logs user into the system, without jazz\",\n        \"description\": \"\",\n        \"operationId\": \"loginUser\",\n        \"parameters\": [\n          {\n            \"name\": \"username\",\n            \"in\": \"query\",\n            \"description\": \"The user name for login\",\n            \"required\": false,\n            \"schema\": {\n              \"type\": \"integer\"\n            }\n          },\n          {\n            \"name\": \"password\",\n            \"in\": \"query\",\n            \"description\": \"The password for login in clear text\",\n            \"required\": true,\n            \"schema\": {\n              \"type\": \"string\"\n            }\n          }\n        ],\n        \"responses\": {\n          \"200\": {\n            \"description\": \"successful operation, even if not jazzy\",\n            \"headers\": {\n              \"X-Rate-Limit\": {\n                \"description\": \"calls per hour allowed by the user\",\n                \"schema\": {\n                  \"type\": \"integer\",\n                  \"format\": \"int32\"\n                }\n              },\n              \"X-Expires-After\": {\n                \"description\": \"date in UTC when token expires\",\n                \"schema\": {\n                  \"type\": \"string\",\n                  \"format\": \"date-time\"\n                }\n              }\n            },\n            \"content\": {\n              \"application/xml\": {\n                \"schema\": {\n                  \"type\": \"string\"\n                }\n              },\n              \"application/json\": {\n                \"schema\": {\n                  \"type\": \"string\"\n                }\n              }\n            }\n          },\n          \"400\": {\n            \"description\": \"Invalid username/password supplied\"\n          }\n        }\n      }\n    },\n    \"/user/logout\": {\n      \"get\": {\n        \"tags\": [\n          \"user\"\n        ],\n        \"summary\": \"Logs out current logged in user session\",\n        \"description\": \"\",\n        \"operationId\": \"logoutUser\",\n        \"parameters\": [],\n        \"responses\": {\n          \"default\": {\n            \"description\": \"successful operation\"\n          }\n        }\n      }\n    },\n    \"/user/{username}\": {\n      \"get\": {\n        \"tags\": [\n          \"user\"\n        ],\n        \"summary\": \"Get user by user name\",\n        \"description\": \"\",\n        \"operationId\": \"getUserByNameAndNotJazz\",\n        \"parameters\": [\n          {\n            \"name\": \"username\",\n            \"in\": \"path\",\n            \"description\": \"The name that needs to be fetched. Use user1 for testing. \",\n            \"required\": true,\n            \"schema\": {\n              \"type\": \"string\"\n            }\n          }\n        ],\n        \"responses\": {\n          \"200\": {\n            \"description\": \"successful operation\",\n            \"content\": {\n              \"application/xml\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/User\"\n                }\n              },\n              \"application/json\": {\n                \"schema\": {\n                  \"$ref\": \"#/components/schemas/User\"\n                }\n              }\n            }\n          },\n          \"400\": {\n            \"description\": \"Invalid username supplied\"\n          },\n          \"404\": {\n            \"description\": \"User not found\"\n          }\n        }\n      },\n      \"put\": {\n        \"tags\": [\n          \"user\"\n        ],\n        \"summary\": \"Update user\",\n        \"description\": \"This can only be done by the logged in user.\",\n        \"operationId\": \"updateUser\",\n        \"parameters\": [\n          {\n            \"name\": \"username\",\n            \"in\": \"path\",\n            \"description\": \"name that need to be deleted\",\n            \"required\": true,\n            \"schema\": {\n              \"type\": \"string\"\n            }\n          }\n        ],\n        \"requestBody\": {\n          \"description\": \"Update an existent user in the store\",\n          \"content\": {\n            \"application/json\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/User\"\n              }\n            },\n            \"application/xml\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/User\"\n              }\n            },\n            \"application/x-www-form-urlencoded\": {\n              \"schema\": {\n                \"$ref\": \"#/components/schemas/User\"\n              }\n            }\n          }\n        },\n        \"responses\": {\n          \"default\": {\n            \"description\": \"successful operation\"\n          }\n        }\n      },\n      \"delete\": {\n        \"tags\": [\n          \"jazz\"\n        ],\n        \"summary\": \"Delete user\",\n        \"description\": \"This can only be done by the logged in user.\",\n        \"operationId\": \"deleteUserButNotJazz\",\n        \"parameters\": [\n          {\n            \"name\": \"username\",\n            \"in\": \"path\",\n            \"description\": \"The name that needs to be deleted\",\n            \"required\": true,\n            \"schema\": {\n              \"type\": \"string\"\n            }\n          }\n        ],\n        \"responses\": {\n          \"400\": {\n            \"description\": \"Invalid username supplied\"\n          },\n          \"404\": {\n            \"description\": \"User not found\"\n          }\n        }\n      }\n    }\n  },\n  \"components\": {\n    \"schemas\": {\n      \"Order\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"id\": {\n            \"type\": \"integer\",\n            \"format\": \"int64\",\n            \"example\": 10\n          },\n          \"petId\": {\n            \"type\": \"integer\",\n            \"format\": \"int64\",\n            \"example\": 198772\n          },\n          \"quantity\": {\n            \"type\": \"integer\",\n            \"format\": \"int32\",\n            \"example\": 7\n          },\n          \"status\": {\n            \"type\": \"string\",\n            \"description\": \"Order Status\",\n            \"example\": \"approved\",\n            \"enum\": [\n              \"placed\",\n              \"approved\",\n              \"delivered\",\n              \"burgers\"\n            ]\n          },\n          \"complete\": {\n            \"type\": \"boolean\"\n          }\n        },\n        \"xml\": {\n          \"name\": \"order\"\n        }\n      },\n      \"Customer\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"id\": {\n            \"type\": \"integer\",\n            \"format\": \"int64\",\n            \"example\": 100000\n          },\n          \"username\": {\n            \"type\": \"string\",\n            \"example\": \"burgers\"\n          },\n          \"address\": {\n            \"type\": \"array\",\n            \"xml\": {\n              \"name\": \"addresses\",\n              \"wrapped\": true\n            },\n            \"items\": {\n              \"$ref\": \"#/components/schemas/Address\"\n            }\n          }\n        },\n        \"xml\": {\n          \"name\": \"customer\"\n        }\n      },\n      \"Address\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"street\": {\n            \"type\": \"string\",\n            \"example\": \"437 Lytton\"\n          },\n          \"city\": {\n            \"type\": \"string\",\n            \"example\": \"Palo Alto\"\n          },\n          \"state\": {\n            \"type\": \"string\",\n            \"example\": \"CA\"\n          },\n          \"zip\": {\n            \"type\": \"string\",\n            \"example\": \"94301\"\n          }\n        },\n        \"xml\": {\n          \"name\": \"address\"\n        }\n      },\n      \"Category\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"id\": {\n            \"type\": \"integer\",\n            \"format\": \"int64\",\n            \"example\": 1\n          },\n          \"name\": {\n            \"type\": \"string\",\n            \"example\": \"Dogs\"\n          }\n        },\n        \"xml\": {\n          \"name\": \"category\"\n        }\n      },\n      \"User\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"id\": {\n            \"type\": \"integer\",\n            \"format\": \"int64\",\n            \"example\": 10\n          },\n          \"username\": {\n            \"type\": \"string\",\n            \"example\": \"theUser\"\n          },\n          \"firstName\": {\n            \"type\": \"string\",\n            \"example\": \"John\"\n          },\n          \"lastName\": {\n            \"type\": \"string\",\n            \"example\": \"James\"\n          },\n          \"email\": {\n            \"type\": \"string\",\n            \"example\": \"john@jazzclubinjazztown.com\"\n          },\n          \"password\": {\n            \"type\": \"string\",\n            \"example\": \"JAZZCLUB\"\n          },\n          \"phone\": {\n            \"type\": \"string\",\n            \"example\": \"12345\"\n          },\n          \"userStatus\": {\n            \"type\": \"integer\",\n            \"description\": \"User Status\",\n            \"format\": \"int32\",\n            \"example\": 1\n          }\n        },\n        \"xml\": {\n          \"name\": \"user\"\n        }\n      },\n      \"Tag\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"id\": {\n            \"type\": \"integer\",\n            \"format\": \"int64\"\n          },\n          \"name\": {\n            \"type\": \"string\"\n          }\n        },\n        \"xml\": {\n          \"name\": \"tag\"\n        }\n      },\n      \"Pet\": {\n        \"required\": [\n          \"name\"\n        ],\n        \"type\": \"object\",\n        \"properties\": {\n          \"id\": {\n            \"type\": \"integer\",\n            \"format\": \"int64\",\n            \"example\": 10\n          },\n          \"jazz\": {\n            \"type\": \"string\",\n            \"example\": \"too much jazz! this is too much\"\n          },\n          \"category\": {\n            \"$ref\": \"#/components/schemas/Category\"\n          },\n          \"photoUrls\": {\n            \"type\": \"array\",\n            \"xml\": {\n              \"wrapped\": true\n            },\n            \"items\": {\n              \"type\": \"string\",\n              \"xml\": {\n                \"name\": \"photoUrl\"\n              }\n            }\n          },\n          \"tags\": {\n            \"type\": \"array\",\n            \"xml\": {\n              \"wrapped\": true\n            },\n            \"items\": {\n              \"$ref\": \"#/components/schemas/Tag\"\n            }\n          },\n          \"status\": {\n            \"type\": \"string\",\n            \"description\": \"pet status in the store\",\n            \"enum\": [\n              \"available\",\n              \"pending\",\n              \"sold\",\n              \"jazzedOut\"\n            ]\n          }\n        },\n        \"xml\": {\n          \"name\": \"pet\"\n        }\n      },\n      \"ApiResponse\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"code\": {\n            \"type\": \"integer\",\n            \"format\": \"int32\"\n          },\n          \"type\": {\n            \"type\": \"string\"\n          },\n          \"message\": {\n            \"type\": \"string\"\n          }\n        },\n        \"xml\": {\n          \"name\": \"##default\"\n        }\n      }\n    },\n    \"requestBodies\": {\n      \"Pet\": {\n        \"description\": \"Pet object that needs to be added to the store\",\n        \"content\": {\n          \"application/json\": {\n            \"schema\": {\n              \"$ref\": \"#/components/schemas/Pet\"\n            }\n          },\n          \"application/xml\": {\n            \"schema\": {\n              \"$ref\": \"#/components/schemas/Pet\"\n            }\n          }\n        }\n      },\n      \"UserArray\": {\n        \"description\": \"List of user object\",\n        \"content\": {\n          \"application/json\": {\n            \"schema\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"$ref\": \"#/components/schemas/User\"\n              }\n            }\n          }\n        }\n      }\n    },\n    \"securitySchemes\": {\n      \"petstore_auth\": {\n        \"type\": \"oauth2\",\n        \"flows\": {\n          \"implicit\": {\n            \"authorizationUrl\": \"https://petstore3.swagger.io/oauth/authorize\",\n            \"scopes\": {\n              \"write:pets\": \"modify pets in your account\",\n              \"read:pets\": \"read your pets\",\n              \"jazz:jazzy\": \"enjoy more jazz.\"\n            }\n          }\n        }\n      },\n      \"api_key\": {\n        \"type\": \"apiKey\",\n        \"name\": \"api_key\",\n        \"in\": \"header\"\n      }\n    }\n  }\n}",
@@ -11,25 +11,25 @@
           "children": [
             {
               "titleString": "Paths",
-              "key": "445ab0e2-1b30-42db-bada-cdfb4ecddb05",
+              "key": "fa829fea-8b19-43d8-a769-766ae3e17444",
               "totalChanges": 10,
               "breakingChanges": 5,
               "children": [
                 {
                   "titleString": "/pet/{petId}",
-                  "key": "079e2d02-c7f1-4212-9be4-460f39ceb862",
+                  "key": "5b7f53e0-6ebe-4d15-a502-59c6491cbfcb",
                   "totalChanges": 4,
                   "breakingChanges": 2,
                   "children": [
                     {
                       "titleString": "GET",
-                      "key": "3f43f0e1-ef62-4d01-8b69-77acca53bf0e",
+                      "key": "0e283999-b573-41c9-b2ec-1612b9a19d0a",
                       "totalChanges": 4,
                       "breakingChanges": 2,
                       "children": [
                         {
                           "titleString": "description",
-                          "key": "05d6376c-7a84-4498-b02b-79632a1323fa",
+                          "key": "6aca3dfa-3ec8-4ea8-9052-990c0cb4b28f",
                           "isLeaf": true,
                           "selectable": true,
                           "change": {
@@ -48,11 +48,11 @@
                         },
                         {
                           "titleString": "Parameters",
-                          "key": "af9f8f8b-df5c-4ff2-bf97-88a7ee8e10c9",
+                          "key": "c569835c-35b5-4b79-97e4-3c4ca70e3cd9",
                           "children": [
                             {
                               "titleString": "required",
-                              "key": "15f39115-c0f1-4ef4-a45f-7dbaca8e2a8c",
+                              "key": "7156eff2-c7e2-4080-b173-eaf1807bef89",
                               "isLeaf": true,
                               "selectable": true,
                               "change": {
@@ -71,13 +71,13 @@
                             },
                             {
                               "titleString": "Schema",
-                              "key": "3c68c715-40f4-403c-a0f4-c41cb3841123",
+                              "key": "2921bfce-c0f2-45d5-9f31-ba793827fd72",
                               "totalChanges": 1,
                               "breakingChanges": 1,
                               "children": [
                                 {
                                   "titleString": "format",
-                                  "key": "bf0f90d5-8069-4946-97e2-3077d55ee59d",
+                                  "key": "be48ac70-c3a1-4da8-8947-e5557255b01b",
                                   "isLeaf": true,
                                   "selectable": true,
                                   "change": {
@@ -100,11 +100,11 @@
                         },
                         {
                           "titleString": "Security Requirements",
-                          "key": "12695464-c6e0-4e82-967a-59f2fe6f37b8",
+                          "key": "0aee749a-e491-49b1-864d-a0ac3f921580",
                           "children": [
                             {
                               "titleString": "security",
-                              "key": "12816df7-8251-49bd-8de3-1d1722173922",
+                              "key": "372fff90-0b0a-4ce4-903a-4f3492f03c8f",
                               "isLeaf": true,
                               "selectable": true,
                               "change": {
@@ -125,26 +125,94 @@
                   ]
                 },
                 {
+                  "titleString": "/pet/{petId}/uploadImage",
+                  "key": "54f1b363-0d6d-4035-b30f-e51455d8cccd",
+                  "totalChanges": 2,
+                  "breakingChanges": 1,
+                  "children": [
+                    {
+                      "titleString": "put",
+                      "key": "e9f88eb2-c14e-4831-8b72-01916e47518c",
+                      "isLeaf": true,
+                      "selectable": true,
+                      "change": {
+                        "context": {
+                          "newLine": 402,
+                          "newColumn": 14
+                        },
+                        "change": 2,
+                        "property": "put",
+                        "breaking": false
+                      }
+                    },
+                    {
+                      "titleString": "post",
+                      "key": "017a1a11-66c6-4fb3-bb57-2468743a910a",
+                      "isLeaf": true,
+                      "selectable": true,
+                      "change": {
+                        "context": {
+                          "originalLine": 401,
+                          "originalColumn": 15
+                        },
+                        "change": 5,
+                        "property": "post",
+                        "breaking": true
+                      }
+                    }
+                  ]
+                },
+                {
+                  "titleString": "/user/{username}",
+                  "key": "d164190e-1bd3-4884-99b2-5d87d6ae8e22",
+                  "totalChanges": 1,
+                  "children": [
+                    {
+                      "titleString": "DELETE",
+                      "key": "13ca333c-30a8-4848-8388-a7c99a5a20f1",
+                      "totalChanges": 1,
+                      "children": [
+                        {
+                          "titleString": "tags",
+                          "key": "0d3e9283-92c2-4bd2-8ffd-2412ae20e9f9",
+                          "isLeaf": true,
+                          "selectable": true,
+                          "change": {
+                            "context": {
+                              "newLine": 868,
+                              "newColumn": 11
+                            },
+                            "change": 2,
+                            "property": "tags",
+                            "new": "cookies",
+                            "breaking": false
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
                   "titleString": "/store/order/{orderId}",
-                  "key": "11a25d89-56a4-4a3e-9575-a2cf6bfdd3cf",
+                  "key": "76d6e79b-8893-43c3-bf00-5f3213124b05",
                   "totalChanges": 3,
                   "breakingChanges": 2,
                   "children": [
                     {
                       "titleString": "GET",
-                      "key": "71805c4d-9850-4d05-b565-e46becc4b0f1",
+                      "key": "b6b64422-4e17-4e04-9c31-3881b7098782",
                       "totalChanges": 2,
                       "breakingChanges": 1,
                       "children": [
                         {
                           "titleString": "Responses",
-                          "key": "aa3a1533-ad76-4f26-8d9f-e19212c1fae2",
+                          "key": "b7a979c3-15b4-45a1-800d-ad13c620e62c",
                           "totalChanges": 2,
                           "breakingChanges": 1,
                           "children": [
                             {
                               "titleString": "404",
-                              "key": "d4fef601-54ac-4c4c-a138-fa45660d1ba8",
+                              "key": "eb170389-1332-4a2e-96c3-e0e8d4660eec",
                               "isLeaf": true,
                               "selectable": true,
                               "change": {
@@ -160,12 +228,12 @@
                             },
                             {
                               "titleString": "400",
-                              "key": "ae52dc84-07bd-462c-9345-99dd78232ac0",
+                              "key": "159634c7-f5f0-4648-aa79-1ee1dcf2c21a",
                               "totalChanges": 1,
                               "children": [
                                 {
                                   "titleString": "description",
-                                  "key": "6f0a4155-91aa-4cc0-9ea7-1f0dc75afdc7",
+                                  "key": "30cf54a5-0e1b-4cef-b6d8-61d53a81d215",
                                   "isLeaf": true,
                                   "selectable": true,
                                   "change": {
@@ -190,17 +258,17 @@
                     },
                     {
                       "titleString": "DELETE",
-                      "key": "0c210965-ced3-4cb7-86b3-a77006ecb996",
+                      "key": "4286127b-b07d-4bf7-b722-d5a1069f45a9",
                       "totalChanges": 1,
                       "breakingChanges": 1,
                       "children": [
                         {
                           "titleString": "Parameters",
-                          "key": "16f9c805-76c1-4695-8b5d-135956f8aa49",
+                          "key": "b5ad22e6-4281-430c-8836-71f024aa9861",
                           "children": [
                             {
                               "titleString": "required",
-                              "key": "96d941d7-b919-42ec-86a1-558ce06a3811",
+                              "key": "9df1dfa9-e2db-483a-ac80-f366cee98265",
                               "isLeaf": true,
                               "selectable": true,
                               "change": {
@@ -222,74 +290,6 @@
                       ]
                     }
                   ]
-                },
-                {
-                  "titleString": "/pet/{petId}/uploadImage",
-                  "key": "99a0ce6e-fdee-408b-a9d3-7222a14caa1b",
-                  "totalChanges": 2,
-                  "breakingChanges": 1,
-                  "children": [
-                    {
-                      "titleString": "put",
-                      "key": "3d2b0ff0-7048-42cb-b5f7-f2f73e908e6f",
-                      "isLeaf": true,
-                      "selectable": true,
-                      "change": {
-                        "context": {
-                          "newLine": 402,
-                          "newColumn": 14
-                        },
-                        "change": 2,
-                        "property": "put",
-                        "breaking": false
-                      }
-                    },
-                    {
-                      "titleString": "post",
-                      "key": "6a4ed3c0-1004-4ffc-9d11-02f0eb308c2c",
-                      "isLeaf": true,
-                      "selectable": true,
-                      "change": {
-                        "context": {
-                          "originalLine": 401,
-                          "originalColumn": 15
-                        },
-                        "change": 5,
-                        "property": "post",
-                        "breaking": true
-                      }
-                    }
-                  ]
-                },
-                {
-                  "titleString": "/user/{username}",
-                  "key": "4f12e734-93d3-4efe-89d2-dd0cc5c11ec3",
-                  "totalChanges": 1,
-                  "children": [
-                    {
-                      "titleString": "DELETE",
-                      "key": "dcba8df8-459f-4076-8ceb-9baf0a95d691",
-                      "totalChanges": 1,
-                      "children": [
-                        {
-                          "titleString": "tags",
-                          "key": "71d36834-6d67-437f-89f2-1621e08caedd",
-                          "isLeaf": true,
-                          "selectable": true,
-                          "change": {
-                            "context": {
-                              "newLine": 868,
-                              "newColumn": 11
-                            },
-                            "change": 2,
-                            "property": "tags",
-                            "new": "cookies",
-                            "breaking": false
-                          }
-                        }
-                      ]
-                    }
-                  ]
                 }
               ]
             }
@@ -304,65 +304,28 @@
             "height": 25
           },
           {
-            "id": "paths-48a56b",
+            "id": "paths-779e57",
             "disabled": true,
             "text": "paths",
             "height": 25,
             "width": 150
           },
           {
-            "id": "/pet/{petid}/uploadimage-11d9dd",
-            "disabled": true,
-            "text": "/pet/{petid}/uploadimage",
-            "height": 25,
-            "width": 220
-          },
-          {
-            "id": "put-dd4bf7",
-            "text": "put",
-            "height": 27,
-            "width": 150,
-            "data": {
-              "context": {
-                "newLine": 402,
-                "newColumn": 14
-              },
-              "change": 2,
-              "property": "put",
-              "breaking": false
-            }
-          },
-          {
-            "id": "post-a86540",
-            "text": "post",
-            "height": 27,
-            "width": 150,
-            "data": {
-              "context": {
-                "originalLine": 401,
-                "originalColumn": 15
-              },
-              "change": 5,
-              "property": "post",
-              "breaking": true
-            }
-          },
-          {
-            "id": "/user/{username}-822a0a",
+            "id": "/user/{username}-0f40fb",
             "disabled": true,
             "text": "/user/{username}",
             "height": 25,
             "width": 150
           },
           {
-            "id": "delete-d0d6de",
+            "id": "delete-dea1d7",
             "disabled": true,
             "text": "delete",
             "height": 25,
             "width": 150
           },
           {
-            "id": "tags-b3a6da",
+            "id": "tags-2753b9",
             "text": "tags",
             "height": 45,
             "width": 150,
@@ -378,136 +341,28 @@
             }
           },
           {
-            "id": "/pet/{petid}-7b48f9",
-            "disabled": true,
-            "text": "/pet/{petid}",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "get-06394a",
-            "disabled": true,
-            "text": "get",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "description-07235a",
-            "text": "description",
-            "height": 45,
-            "width": 250,
-            "data": {
-              "context": {
-                "originalLine": 301,
-                "originalColumn": 24,
-                "newLine": 301,
-                "newColumn": 24
-              },
-              "change": 1,
-              "property": "description",
-              "original": "Returns a single pet",
-              "new": "Returns a single pet, and hopefully no more jazz.",
-              "breaking": false
-            }
-          },
-          {
-            "id": "parameters-e01f3f",
-            "disabled": true,
-            "text": "parameters",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "required-e3149f",
-            "text": "required",
-            "height": 45,
-            "width": 150,
-            "data": {
-              "context": {
-                "originalLine": 308,
-                "originalColumn": 25,
-                "newLine": 308,
-                "newColumn": 25
-              },
-              "change": 1,
-              "property": "required",
-              "original": "true",
-              "new": "false",
-              "breaking": true
-            }
-          },
-          {
-            "id": "schema-a127d1",
-            "disabled": true,
-            "text": "schema",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "format-c7d4d9",
-            "text": "format",
-            "height": 45,
-            "width": 150,
-            "data": {
-              "context": {
-                "originalLine": 311,
-                "originalColumn": 25,
-                "newLine": 311,
-                "newColumn": 25
-              },
-              "change": 1,
-              "property": "format",
-              "original": "int64",
-              "new": "int32",
-              "breaking": true
-            }
-          },
-          {
-            "id": "security requirements-765e78",
-            "disabled": true,
-            "text": "security requirements",
-            "height": 25,
-            "width": 175
-          },
-          {
-            "id": "security-f23d87",
-            "text": "security",
-            "height": 45,
-            "width": 150,
-            "data": {
-              "context": {
-                "newLine": 346,
-                "newColumn": 15
-              },
-              "change": 3,
-              "property": "security",
-              "new": "eat:tacos",
-              "breaking": false
-            }
-          },
-          {
-            "id": "/store/order/{orderid}-ab74d4",
+            "id": "/store/order/{orderid}-60cdaa",
             "disabled": true,
             "text": "/store/order/{orderid}",
             "height": 25,
             "width": 190
           },
           {
-            "id": "get-e78e67",
+            "id": "get-16240c",
             "disabled": true,
             "text": "get",
             "height": 25,
             "width": 150
           },
           {
-            "id": "responses-ec5447",
+            "id": "responses-8c056e",
             "disabled": true,
             "text": "responses",
             "height": 25,
             "width": 150
           },
           {
-            "id": "codes-3cbd92",
+            "id": "codes-947163",
             "text": "codes",
             "height": 45,
             "width": 150,
@@ -523,14 +378,14 @@
             }
           },
           {
-            "id": "400-a4cb85",
+            "id": "400-df9573",
             "disabled": true,
             "text": "400",
             "height": 25,
             "width": 150
           },
           {
-            "id": "description-c540f2",
+            "id": "description-d8ad05",
             "text": "description",
             "height": 45,
             "width": 250,
@@ -549,21 +404,21 @@
             }
           },
           {
-            "id": "delete-865fee",
+            "id": "delete-d10bed",
             "disabled": true,
             "text": "delete",
             "height": 25,
             "width": 150
           },
           {
-            "id": "parameters-9edec6",
+            "id": "parameters-491214",
             "disabled": true,
             "text": "parameters",
             "height": 25,
             "width": 150
           },
           {
-            "id": "required-caa8f1",
+            "id": "required-fcdab2",
             "text": "required",
             "height": 45,
             "width": 150,
@@ -580,133 +435,278 @@
               "new": "false",
               "breaking": true
             }
+          },
+          {
+            "id": "/pet/{petid}-f948ca",
+            "disabled": true,
+            "text": "/pet/{petid}",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "get-966b6a",
+            "disabled": true,
+            "text": "get",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "description-5b5cb2",
+            "text": "description",
+            "height": 45,
+            "width": 250,
+            "data": {
+              "context": {
+                "originalLine": 301,
+                "originalColumn": 24,
+                "newLine": 301,
+                "newColumn": 24
+              },
+              "change": 1,
+              "property": "description",
+              "original": "Returns a single pet",
+              "new": "Returns a single pet, and hopefully no more jazz.",
+              "breaking": false
+            }
+          },
+          {
+            "id": "parameters-2cfba8",
+            "disabled": true,
+            "text": "parameters",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "required-75f5bb",
+            "text": "required",
+            "height": 45,
+            "width": 150,
+            "data": {
+              "context": {
+                "originalLine": 308,
+                "originalColumn": 25,
+                "newLine": 308,
+                "newColumn": 25
+              },
+              "change": 1,
+              "property": "required",
+              "original": "true",
+              "new": "false",
+              "breaking": true
+            }
+          },
+          {
+            "id": "schema-6de01e",
+            "disabled": true,
+            "text": "schema",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "format-a49320",
+            "text": "format",
+            "height": 45,
+            "width": 150,
+            "data": {
+              "context": {
+                "originalLine": 311,
+                "originalColumn": 25,
+                "newLine": 311,
+                "newColumn": 25
+              },
+              "change": 1,
+              "property": "format",
+              "original": "int64",
+              "new": "int32",
+              "breaking": true
+            }
+          },
+          {
+            "id": "security requirements-c87444",
+            "disabled": true,
+            "text": "security requirements",
+            "height": 25,
+            "width": 175
+          },
+          {
+            "id": "security-3689df",
+            "text": "security",
+            "height": 45,
+            "width": 150,
+            "data": {
+              "context": {
+                "newLine": 346,
+                "newColumn": 15
+              },
+              "change": 3,
+              "property": "security",
+              "new": "eat:tacos",
+              "breaking": false
+            }
+          },
+          {
+            "id": "/pet/{petid}/uploadimage-5f36ae",
+            "disabled": true,
+            "text": "/pet/{petid}/uploadimage",
+            "height": 25,
+            "width": 220
+          },
+          {
+            "id": "put-1b5dbd",
+            "text": "put",
+            "height": 27,
+            "width": 150,
+            "data": {
+              "context": {
+                "newLine": 402,
+                "newColumn": 14
+              },
+              "change": 2,
+              "property": "put",
+              "breaking": false
+            }
+          },
+          {
+            "id": "post-ec14d8",
+            "text": "post",
+            "height": 27,
+            "width": 150,
+            "data": {
+              "context": {
+                "originalLine": 401,
+                "originalColumn": 15
+              },
+              "change": 5,
+              "property": "post",
+              "breaking": true
+            }
           }
         ],
         "edges": [
           {
-            "id": "root-to-paths-48a56b",
+            "id": "root-to-paths-779e57",
             "from": "root",
-            "to": "paths-48a56b"
+            "to": "paths-779e57"
           },
           {
-            "id": "paths-48a56b-to-/pet/{petid}/uploadimage-11d9dd",
-            "from": "paths-48a56b",
-            "to": "/pet/{petid}/uploadimage-11d9dd"
+            "id": "paths-779e57-to-/user/{username}-0f40fb",
+            "from": "paths-779e57",
+            "to": "/user/{username}-0f40fb"
           },
           {
-            "id": "/pet/{petid}/uploadimage-11d9dd-to-put-dd4bf7",
-            "from": "/pet/{petid}/uploadimage-11d9dd",
-            "to": "put-dd4bf7"
+            "id": "/user/{username}-0f40fb-to-delete-dea1d7",
+            "from": "/user/{username}-0f40fb",
+            "to": "delete-dea1d7"
           },
           {
-            "id": "/pet/{petid}/uploadimage-11d9dd-to-post-a86540",
-            "from": "/pet/{petid}/uploadimage-11d9dd",
-            "to": "post-a86540"
+            "id": "delete-dea1d7-to-tags-2753b9",
+            "from": "delete-dea1d7",
+            "to": "tags-2753b9"
           },
           {
-            "id": "paths-48a56b-to-/user/{username}-822a0a",
-            "from": "paths-48a56b",
-            "to": "/user/{username}-822a0a"
+            "id": "paths-779e57-to-/store/order/{orderid}-60cdaa",
+            "from": "paths-779e57",
+            "to": "/store/order/{orderid}-60cdaa"
           },
           {
-            "id": "/user/{username}-822a0a-to-delete-d0d6de",
-            "from": "/user/{username}-822a0a",
-            "to": "delete-d0d6de"
+            "id": "/store/order/{orderid}-60cdaa-to-get-16240c",
+            "from": "/store/order/{orderid}-60cdaa",
+            "to": "get-16240c"
           },
           {
-            "id": "delete-d0d6de-to-tags-b3a6da",
-            "from": "delete-d0d6de",
-            "to": "tags-b3a6da"
+            "id": "get-16240c-to-responses-8c056e",
+            "from": "get-16240c",
+            "to": "responses-8c056e"
           },
           {
-            "id": "paths-48a56b-to-/pet/{petid}-7b48f9",
-            "from": "paths-48a56b",
-            "to": "/pet/{petid}-7b48f9"
+            "id": "responses-8c056e-to-codes-947163",
+            "from": "responses-8c056e",
+            "to": "codes-947163"
           },
           {
-            "id": "/pet/{petid}-7b48f9-to-get-06394a",
-            "from": "/pet/{petid}-7b48f9",
-            "to": "get-06394a"
+            "id": "responses-8c056e-to-400-df9573",
+            "from": "responses-8c056e",
+            "to": "400-df9573"
           },
           {
-            "id": "get-06394a-to-description-07235a",
-            "from": "get-06394a",
-            "to": "description-07235a"
+            "id": "400-df9573-to-description-d8ad05",
+            "from": "400-df9573",
+            "to": "description-d8ad05"
           },
           {
-            "id": "get-06394a-to-parameters-e01f3f",
-            "from": "get-06394a",
-            "to": "parameters-e01f3f"
+            "id": "/store/order/{orderid}-60cdaa-to-delete-d10bed",
+            "from": "/store/order/{orderid}-60cdaa",
+            "to": "delete-d10bed"
           },
           {
-            "id": "parameters-e01f3f-to-required-e3149f",
-            "from": "parameters-e01f3f",
-            "to": "required-e3149f"
+            "id": "delete-d10bed-to-parameters-491214",
+            "from": "delete-d10bed",
+            "to": "parameters-491214"
           },
           {
-            "id": "parameters-e01f3f-to-schema-a127d1",
-            "from": "parameters-e01f3f",
-            "to": "schema-a127d1"
+            "id": "parameters-491214-to-required-fcdab2",
+            "from": "parameters-491214",
+            "to": "required-fcdab2"
           },
           {
-            "id": "schema-a127d1-to-format-c7d4d9",
-            "from": "schema-a127d1",
-            "to": "format-c7d4d9"
+            "id": "paths-779e57-to-/pet/{petid}-f948ca",
+            "from": "paths-779e57",
+            "to": "/pet/{petid}-f948ca"
           },
           {
-            "id": "get-06394a-to-security requirements-765e78",
-            "from": "get-06394a",
-            "to": "security requirements-765e78"
+            "id": "/pet/{petid}-f948ca-to-get-966b6a",
+            "from": "/pet/{petid}-f948ca",
+            "to": "get-966b6a"
           },
           {
-            "id": "security requirements-765e78-to-security-f23d87",
-            "from": "security requirements-765e78",
-            "to": "security-f23d87"
+            "id": "get-966b6a-to-description-5b5cb2",
+            "from": "get-966b6a",
+            "to": "description-5b5cb2"
           },
           {
-            "id": "paths-48a56b-to-/store/order/{orderid}-ab74d4",
-            "from": "paths-48a56b",
-            "to": "/store/order/{orderid}-ab74d4"
+            "id": "get-966b6a-to-parameters-2cfba8",
+            "from": "get-966b6a",
+            "to": "parameters-2cfba8"
           },
           {
-            "id": "/store/order/{orderid}-ab74d4-to-get-e78e67",
-            "from": "/store/order/{orderid}-ab74d4",
-            "to": "get-e78e67"
+            "id": "parameters-2cfba8-to-required-75f5bb",
+            "from": "parameters-2cfba8",
+            "to": "required-75f5bb"
           },
           {
-            "id": "get-e78e67-to-responses-ec5447",
-            "from": "get-e78e67",
-            "to": "responses-ec5447"
+            "id": "parameters-2cfba8-to-schema-6de01e",
+            "from": "parameters-2cfba8",
+            "to": "schema-6de01e"
           },
           {
-            "id": "responses-ec5447-to-codes-3cbd92",
-            "from": "responses-ec5447",
-            "to": "codes-3cbd92"
+            "id": "schema-6de01e-to-format-a49320",
+            "from": "schema-6de01e",
+            "to": "format-a49320"
           },
           {
-            "id": "responses-ec5447-to-400-a4cb85",
-            "from": "responses-ec5447",
-            "to": "400-a4cb85"
+            "id": "get-966b6a-to-security requirements-c87444",
+            "from": "get-966b6a",
+            "to": "security requirements-c87444"
           },
           {
-            "id": "400-a4cb85-to-description-c540f2",
-            "from": "400-a4cb85",
-            "to": "description-c540f2"
+            "id": "security requirements-c87444-to-security-3689df",
+            "from": "security requirements-c87444",
+            "to": "security-3689df"
           },
           {
-            "id": "/store/order/{orderid}-ab74d4-to-delete-865fee",
-            "from": "/store/order/{orderid}-ab74d4",
-            "to": "delete-865fee"
+            "id": "paths-779e57-to-/pet/{petid}/uploadimage-5f36ae",
+            "from": "paths-779e57",
+            "to": "/pet/{petid}/uploadimage-5f36ae"
           },
           {
-            "id": "delete-865fee-to-parameters-9edec6",
-            "from": "delete-865fee",
-            "to": "parameters-9edec6"
+            "id": "/pet/{petid}/uploadimage-5f36ae-to-put-1b5dbd",
+            "from": "/pet/{petid}/uploadimage-5f36ae",
+            "to": "put-1b5dbd"
           },
           {
-            "id": "parameters-9edec6-to-required-caa8f1",
-            "from": "parameters-9edec6",
-            "to": "required-caa8f1"
+            "id": "/pet/{petid}/uploadimage-5f36ae-to-post-ec14d8",
+            "from": "/pet/{petid}/uploadimage-5f36ae",
+            "to": "post-ec14d8"
           }
         ]
       },
@@ -738,19 +738,19 @@
           "children": [
             {
               "titleString": "Paths",
-              "key": "09ba948b-b88a-4cd0-8396-78fe9471883d",
+              "key": "6db8893b-e085-499e-9642-ec68fb51e9dc",
               "totalChanges": 5,
               "breakingChanges": 3,
               "children": [
                 {
                   "titleString": "/pet",
-                  "key": "534dee7a-53b9-4d41-bacc-79e3804370c0",
+                  "key": "eddd117c-3346-4f10-b5e4-f538314cae6e",
                   "totalChanges": 2,
                   "breakingChanges": 1,
                   "children": [
                     {
                       "titleString": "post",
-                      "key": "d48ce792-b9cf-4d30-9b69-e57e17c6d028",
+                      "key": "463b8f11-b836-436f-8683-53960bc19839",
                       "isLeaf": true,
                       "selectable": true,
                       "change": {
@@ -765,7 +765,7 @@
                     },
                     {
                       "titleString": "patch",
-                      "key": "c1fb70a2-6ba0-442b-974d-1db10f77486c",
+                      "key": "e9f6506c-5f7b-455c-86da-38a5159cdab3",
                       "isLeaf": true,
                       "selectable": true,
                       "change": {
@@ -781,14 +781,37 @@
                   ]
                 },
                 {
+                  "titleString": "/pet/{petId}",
+                  "key": "373e4b02-aa1b-4fc5-8ad7-1cb28f24fad0",
+                  "totalChanges": 1,
+                  "breakingChanges": 1,
+                  "children": [
+                    {
+                      "titleString": "delete",
+                      "key": "c555dccf-28b0-4f7f-8ece-1722f0dfbbfb",
+                      "isLeaf": true,
+                      "selectable": true,
+                      "change": {
+                        "context": {
+                          "originalLine": 398,
+                          "originalColumn": 17
+                        },
+                        "change": 5,
+                        "property": "delete",
+                        "breaking": true
+                      }
+                    }
+                  ]
+                },
+                {
                   "titleString": "/pet/findByTags",
-                  "key": "03208f2a-1cf0-47df-98ce-049434c66daf",
+                  "key": "930bb334-4422-43d7-b6eb-d4681d516ac1",
                   "totalChanges": 2,
                   "breakingChanges": 1,
                   "children": [
                     {
                       "titleString": "get",
-                      "key": "5b467b68-1fd5-4626-9e6c-a6da4ca1af95",
+                      "key": "1205cb7c-c6d9-492e-a389-f82373e974dd",
                       "isLeaf": true,
                       "selectable": true,
                       "change": {
@@ -803,7 +826,7 @@
                     },
                     {
                       "titleString": "post",
-                      "key": "42654899-62f0-4b33-8b20-f946cfb305e5",
+                      "key": "2ee46c3b-2797-4fae-a837-8b7d595c557e",
                       "isLeaf": true,
                       "selectable": true,
                       "change": {
@@ -817,47 +840,24 @@
                       }
                     }
                   ]
-                },
-                {
-                  "titleString": "/pet/{petId}",
-                  "key": "6ab2dc54-362d-4319-97d8-d57a18ea75a3",
-                  "totalChanges": 1,
-                  "breakingChanges": 1,
-                  "children": [
-                    {
-                      "titleString": "delete",
-                      "key": "24af39fe-7837-4f4c-b979-d83377bdf540",
-                      "isLeaf": true,
-                      "selectable": true,
-                      "change": {
-                        "context": {
-                          "originalLine": 398,
-                          "originalColumn": 17
-                        },
-                        "change": 5,
-                        "property": "delete",
-                        "breaking": true
-                      }
-                    }
-                  ]
                 }
               ]
             },
             {
               "titleString": "Components",
-              "key": "4892a5f9-c9da-483b-b44c-38fff240291b",
+              "key": "1a787a68-feea-4799-ac09-8e7dab27874b",
               "totalChanges": 6,
               "breakingChanges": 2,
               "children": [
                 {
                   "titleString": "Pet",
-                  "key": "ea337105-4054-4a89-a1a0-267af8345700",
+                  "key": "52587c18-1928-4da4-8172-291f17d7e2cb",
                   "totalChanges": 4,
                   "breakingChanges": 2,
                   "children": [
                     {
                       "titleString": "required",
-                      "key": "ef65d8a4-6819-4756-979e-ec7753350f42",
+                      "key": "b750cd2d-271b-4472-a94a-4bd1068f56ef",
                       "isLeaf": true,
                       "selectable": true,
                       "change": {
@@ -873,7 +873,7 @@
                     },
                     {
                       "titleString": "properties",
-                      "key": "54b884b0-7117-488f-8918-2b05c1f5629d",
+                      "key": "06f2ae67-ec26-4f40-9be0-c16aff2686fc",
                       "isLeaf": true,
                       "selectable": true,
                       "change": {
@@ -889,7 +889,7 @@
                     },
                     {
                       "titleString": "properties",
-                      "key": "dce050c7-59be-4c40-b96f-606b5b0b3b4b",
+                      "key": "71ae6fee-b4c9-447b-819c-5d298f4cb571",
                       "isLeaf": true,
                       "selectable": true,
                       "change": {
@@ -905,12 +905,12 @@
                     },
                     {
                       "titleString": "status",
-                      "key": "e5690d40-828c-458b-b3e2-4ab5817662f1",
+                      "key": "a2f3c192-cbe1-425c-b4e6-8f6e82a65487",
                       "totalChanges": 1,
                       "children": [
                         {
                           "titleString": "enum",
-                          "key": "748b8cc9-0470-49c6-9bf6-457ac3d53655",
+                          "key": "443d95b2-3f4e-4a50-b91b-87ee304bf79f",
                           "isLeaf": true,
                           "selectable": true,
                           "change": {
@@ -930,17 +930,17 @@
                 },
                 {
                   "titleString": "User",
-                  "key": "04db9056-e3cc-4e22-81cd-30c3c326fc82",
+                  "key": "8a38fbbd-b72b-44c5-95c4-a693bb96c6e3",
                   "totalChanges": 2,
                   "children": [
                     {
                       "titleString": "email",
-                      "key": "5c2cfc6b-8269-45ed-bda9-ccbf20004fff",
+                      "key": "3a8c9981-367c-486a-a33d-c715fdd6e4d3",
                       "totalChanges": 1,
                       "children": [
                         {
                           "titleString": "example",
-                          "key": "011bbb43-8eaf-4f0a-9d2b-a00b03bad038",
+                          "key": "18df9d9a-4626-4b55-9c6f-0b29eb38a8ae",
                           "isLeaf": true,
                           "selectable": true,
                           "change": {
@@ -961,12 +961,12 @@
                     },
                     {
                       "titleString": "password",
-                      "key": "3ffdddd6-b68c-4ddd-a0dd-88c1ccb2dad2",
+                      "key": "b3823c12-4c03-4494-9d4a-614a2a50f5b0",
                       "totalChanges": 1,
                       "children": [
                         {
                           "titleString": "example",
-                          "key": "bb6b363b-a339-4f15-ab9c-60926c1caf3c",
+                          "key": "4d843d1f-b7ae-4504-8794-a913d116ed7f",
                           "isLeaf": true,
                           "selectable": true,
                           "change": {
@@ -1000,21 +1000,21 @@
             "height": 25
           },
           {
-            "id": "paths-f7cfeb",
+            "id": "paths-2255a3",
             "disabled": true,
             "text": "paths",
             "height": 25,
             "width": 150
           },
           {
-            "id": "/pet-4a2374",
+            "id": "/pet-28caff",
             "disabled": true,
             "text": "/pet",
             "height": 25,
             "width": 150
           },
           {
-            "id": "post-b033af",
+            "id": "post-95465d",
             "text": "post",
             "height": 27,
             "width": 150,
@@ -1029,7 +1029,7 @@
             }
           },
           {
-            "id": "patch-e65205",
+            "id": "patch-0475aa",
             "text": "patch",
             "height": 27,
             "width": 150,
@@ -1044,51 +1044,14 @@
             }
           },
           {
-            "id": "/pet/findbytags-ef6097",
-            "disabled": true,
-            "text": "/pet/findbytags",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "get-eeac70",
-            "text": "get",
-            "height": 27,
-            "width": 150,
-            "data": {
-              "context": {
-                "originalLine": 235,
-                "originalColumn": 14
-              },
-              "change": 5,
-              "property": "get",
-              "breaking": true
-            }
-          },
-          {
-            "id": "post-1ae632",
-            "text": "post",
-            "height": 27,
-            "width": 150,
-            "data": {
-              "context": {
-                "newLine": 236,
-                "newColumn": 15
-              },
-              "change": 2,
-              "property": "post",
-              "breaking": false
-            }
-          },
-          {
-            "id": "/pet/{petid}-52073c",
+            "id": "/pet/{petid}-34d85c",
             "disabled": true,
             "text": "/pet/{petid}",
             "height": 25,
             "width": 150
           },
           {
-            "id": "delete-5e672d",
+            "id": "delete-134920",
             "text": "delete",
             "height": 27,
             "width": 150,
@@ -1103,21 +1066,58 @@
             }
           },
           {
-            "id": "components-0ca372",
+            "id": "/pet/findbytags-bd844e",
+            "disabled": true,
+            "text": "/pet/findbytags",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "get-592b34",
+            "text": "get",
+            "height": 27,
+            "width": 150,
+            "data": {
+              "context": {
+                "originalLine": 235,
+                "originalColumn": 14
+              },
+              "change": 5,
+              "property": "get",
+              "breaking": true
+            }
+          },
+          {
+            "id": "post-8f8f72",
+            "text": "post",
+            "height": 27,
+            "width": 150,
+            "data": {
+              "context": {
+                "newLine": 236,
+                "newColumn": 15
+              },
+              "change": 2,
+              "property": "post",
+              "breaking": false
+            }
+          },
+          {
+            "id": "components-09b86c",
             "disabled": true,
             "text": "components",
             "height": 25,
             "width": 150
           },
           {
-            "id": "pet-f1e531",
+            "id": "pet-11e926",
             "disabled": true,
             "text": "pet",
             "height": 25,
             "width": 150
           },
           {
-            "id": "required-0b0bcd",
+            "id": "required-58cfc7",
             "text": "required",
             "height": 45,
             "width": 150,
@@ -1133,7 +1133,7 @@
             }
           },
           {
-            "id": "properties-4a7af3",
+            "id": "properties-650f53",
             "text": "properties",
             "height": 45,
             "width": 150,
@@ -1149,7 +1149,7 @@
             }
           },
           {
-            "id": "properties-6f2384",
+            "id": "properties-d97773",
             "text": "properties",
             "height": 45,
             "width": 150,
@@ -1165,14 +1165,14 @@
             }
           },
           {
-            "id": "status-c62a60",
+            "id": "status-bed011",
             "disabled": true,
             "text": "status",
             "height": 25,
             "width": 150
           },
           {
-            "id": "enum-138a8c",
+            "id": "enum-2babb5",
             "text": "enum",
             "height": 45,
             "width": 150,
@@ -1188,21 +1188,21 @@
             }
           },
           {
-            "id": "user-394c3b",
+            "id": "user-a93ff7",
             "disabled": true,
             "text": "user",
             "height": 25,
             "width": 150
           },
           {
-            "id": "email-45a99b",
+            "id": "email-707a50",
             "disabled": true,
             "text": "email",
             "height": 25,
             "width": 150
           },
           {
-            "id": "example-2333a1",
+            "id": "example-5b9868",
             "text": "example",
             "height": 45,
             "width": 230,
@@ -1221,14 +1221,14 @@
             }
           },
           {
-            "id": "password-10cb42",
+            "id": "password-9c8474",
             "disabled": true,
             "text": "password",
             "height": 25,
             "width": 150
           },
           {
-            "id": "example-b35c37",
+            "id": "example-a588c1",
             "text": "example",
             "height": 45,
             "width": 150,
@@ -1249,109 +1249,109 @@
         ],
         "edges": [
           {
-            "id": "root-to-paths-f7cfeb",
+            "id": "root-to-paths-2255a3",
             "from": "root",
-            "to": "paths-f7cfeb"
+            "to": "paths-2255a3"
           },
           {
-            "id": "paths-f7cfeb-to-/pet-4a2374",
-            "from": "paths-f7cfeb",
-            "to": "/pet-4a2374"
+            "id": "paths-2255a3-to-/pet-28caff",
+            "from": "paths-2255a3",
+            "to": "/pet-28caff"
           },
           {
-            "id": "/pet-4a2374-to-post-b033af",
-            "from": "/pet-4a2374",
-            "to": "post-b033af"
+            "id": "/pet-28caff-to-post-95465d",
+            "from": "/pet-28caff",
+            "to": "post-95465d"
           },
           {
-            "id": "/pet-4a2374-to-patch-e65205",
-            "from": "/pet-4a2374",
-            "to": "patch-e65205"
+            "id": "/pet-28caff-to-patch-0475aa",
+            "from": "/pet-28caff",
+            "to": "patch-0475aa"
           },
           {
-            "id": "paths-f7cfeb-to-/pet/findbytags-ef6097",
-            "from": "paths-f7cfeb",
-            "to": "/pet/findbytags-ef6097"
+            "id": "paths-2255a3-to-/pet/{petid}-34d85c",
+            "from": "paths-2255a3",
+            "to": "/pet/{petid}-34d85c"
           },
           {
-            "id": "/pet/findbytags-ef6097-to-get-eeac70",
-            "from": "/pet/findbytags-ef6097",
-            "to": "get-eeac70"
+            "id": "/pet/{petid}-34d85c-to-delete-134920",
+            "from": "/pet/{petid}-34d85c",
+            "to": "delete-134920"
           },
           {
-            "id": "/pet/findbytags-ef6097-to-post-1ae632",
-            "from": "/pet/findbytags-ef6097",
-            "to": "post-1ae632"
+            "id": "paths-2255a3-to-/pet/findbytags-bd844e",
+            "from": "paths-2255a3",
+            "to": "/pet/findbytags-bd844e"
           },
           {
-            "id": "paths-f7cfeb-to-/pet/{petid}-52073c",
-            "from": "paths-f7cfeb",
-            "to": "/pet/{petid}-52073c"
+            "id": "/pet/findbytags-bd844e-to-get-592b34",
+            "from": "/pet/findbytags-bd844e",
+            "to": "get-592b34"
           },
           {
-            "id": "/pet/{petid}-52073c-to-delete-5e672d",
-            "from": "/pet/{petid}-52073c",
-            "to": "delete-5e672d"
+            "id": "/pet/findbytags-bd844e-to-post-8f8f72",
+            "from": "/pet/findbytags-bd844e",
+            "to": "post-8f8f72"
           },
           {
-            "id": "root-to-components-0ca372",
+            "id": "root-to-components-09b86c",
             "from": "root",
-            "to": "components-0ca372"
+            "to": "components-09b86c"
           },
           {
-            "id": "components-0ca372-to-pet-f1e531",
-            "from": "components-0ca372",
-            "to": "pet-f1e531"
+            "id": "components-09b86c-to-pet-11e926",
+            "from": "components-09b86c",
+            "to": "pet-11e926"
           },
           {
-            "id": "pet-f1e531-to-required-0b0bcd",
-            "from": "pet-f1e531",
-            "to": "required-0b0bcd"
+            "id": "pet-11e926-to-required-58cfc7",
+            "from": "pet-11e926",
+            "to": "required-58cfc7"
           },
           {
-            "id": "pet-f1e531-to-properties-4a7af3",
-            "from": "pet-f1e531",
-            "to": "properties-4a7af3"
+            "id": "pet-11e926-to-properties-650f53",
+            "from": "pet-11e926",
+            "to": "properties-650f53"
           },
           {
-            "id": "pet-f1e531-to-properties-6f2384",
-            "from": "pet-f1e531",
-            "to": "properties-6f2384"
+            "id": "pet-11e926-to-properties-d97773",
+            "from": "pet-11e926",
+            "to": "properties-d97773"
           },
           {
-            "id": "pet-f1e531-to-status-c62a60",
-            "from": "pet-f1e531",
-            "to": "status-c62a60"
+            "id": "pet-11e926-to-status-bed011",
+            "from": "pet-11e926",
+            "to": "status-bed011"
           },
           {
-            "id": "status-c62a60-to-enum-138a8c",
-            "from": "status-c62a60",
-            "to": "enum-138a8c"
+            "id": "status-bed011-to-enum-2babb5",
+            "from": "status-bed011",
+            "to": "enum-2babb5"
           },
           {
-            "id": "components-0ca372-to-user-394c3b",
-            "from": "components-0ca372",
-            "to": "user-394c3b"
+            "id": "components-09b86c-to-user-a93ff7",
+            "from": "components-09b86c",
+            "to": "user-a93ff7"
           },
           {
-            "id": "user-394c3b-to-email-45a99b",
-            "from": "user-394c3b",
-            "to": "email-45a99b"
+            "id": "user-a93ff7-to-email-707a50",
+            "from": "user-a93ff7",
+            "to": "email-707a50"
           },
           {
-            "id": "email-45a99b-to-example-2333a1",
-            "from": "email-45a99b",
-            "to": "example-2333a1"
+            "id": "email-707a50-to-example-5b9868",
+            "from": "email-707a50",
+            "to": "example-5b9868"
           },
           {
-            "id": "user-394c3b-to-password-10cb42",
-            "from": "user-394c3b",
-            "to": "password-10cb42"
+            "id": "user-a93ff7-to-password-9c8474",
+            "from": "user-a93ff7",
+            "to": "password-9c8474"
           },
           {
-            "id": "password-10cb42-to-example-b35c37",
-            "from": "password-10cb42",
-            "to": "example-b35c37"
+            "id": "password-9c8474-to-example-a588c1",
+            "from": "password-9c8474",
+            "to": "example-a588c1"
           }
         ]
       },
@@ -1383,25 +1383,159 @@
           "children": [
             {
               "titleString": "Paths",
-              "key": "60015c7a-9957-45d9-a9c8-320fee1629e6",
+              "key": "8feb24ac-0888-4d2f-b47a-2f54be9fcbcc",
               "totalChanges": 10,
               "breakingChanges": 6,
               "children": [
                 {
-                  "titleString": "/user/login",
-                  "key": "9a32c4f3-1e27-4ad4-8ca6-e4db53049435",
+                  "titleString": "/user/{username}",
+                  "key": "870d2b95-807e-481d-a292-26bb9a03011b",
                   "totalChanges": 4,
                   "breakingChanges": 2,
                   "children": [
                     {
                       "titleString": "GET",
-                      "key": "60e41a26-a9fb-44d6-b71a-86ed6f987ae6",
+                      "key": "93517362-3ad0-4f84-a9eb-9bf9ec2daf73",
+                      "totalChanges": 1,
+                      "breakingChanges": 1,
+                      "children": [
+                        {
+                          "titleString": "operationId",
+                          "key": "99a27c84-683b-4881-a2a3-34c4cb3e9d6f",
+                          "isLeaf": true,
+                          "selectable": true,
+                          "change": {
+                            "context": {
+                              "originalLine": 834,
+                              "originalColumn": 24,
+                              "newLine": 828,
+                              "newColumn": 24
+                            },
+                            "change": 1,
+                            "property": "operationId",
+                            "original": "getUserByName",
+                            "new": "getUserByNameAndNotJazz",
+                            "breaking": true
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "titleString": "DELETE",
+                      "key": "174b859c-3138-4937-ac41-bb26cc049e34",
+                      "totalChanges": 3,
+                      "breakingChanges": 1,
+                      "children": [
+                        {
+                          "titleString": "tags",
+                          "key": "f2301c9d-ea62-4247-ab90-241b5f73b4a5",
+                          "isLeaf": true,
+                          "selectable": true,
+                          "change": {
+                            "context": {
+                              "originalLine": 916,
+                              "originalColumn": 11
+                            },
+                            "change": 5,
+                            "property": "tags",
+                            "original": "user",
+                            "breaking": false
+                          }
+                        },
+                        {
+                          "titleString": "tags",
+                          "key": "c719c9cf-229e-4c0e-b938-a788a0e8214a",
+                          "isLeaf": true,
+                          "selectable": true,
+                          "change": {
+                            "context": {
+                              "newLine": 910,
+                              "newColumn": 11
+                            },
+                            "change": 2,
+                            "property": "tags",
+                            "new": "jazz",
+                            "breaking": false
+                          }
+                        },
+                        {
+                          "titleString": "operationId",
+                          "key": "5bab8268-cab2-4dbd-843f-2f18ce931fff",
+                          "isLeaf": true,
+                          "selectable": true,
+                          "change": {
+                            "context": {
+                              "originalLine": 920,
+                              "originalColumn": 24,
+                              "newLine": 914,
+                              "newColumn": 24
+                            },
+                            "change": 1,
+                            "property": "operationId",
+                            "original": "deleteUser",
+                            "new": "deleteUserButNotJazz",
+                            "breaking": true
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "titleString": "/pet",
+                  "key": "ee96106b-d069-466a-9841-daa8a250320c",
+                  "totalChanges": 1,
+                  "breakingChanges": 1,
+                  "children": [
+                    {
+                      "titleString": "POST",
+                      "key": "3a3c4b76-ee02-45e7-b45e-2f1c0f7e6fa5",
+                      "totalChanges": 1,
+                      "breakingChanges": 1,
+                      "children": [
+                        {
+                          "titleString": "Responses",
+                          "key": "a14af86d-85e5-4d5e-b016-5e13bf839a54",
+                          "totalChanges": 1,
+                          "breakingChanges": 1,
+                          "children": [
+                            {
+                              "titleString": "405",
+                              "key": "d8fac454-21d4-4742-afa2-90f7be254205",
+                              "isLeaf": true,
+                              "selectable": true,
+                              "change": {
+                                "context": {
+                                  "originalLine": 164,
+                                  "originalColumn": 18
+                                },
+                                "change": 4,
+                                "property": "codes",
+                                "original": "405",
+                                "breaking": true
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "titleString": "/user/login",
+                  "key": "b1770b26-c9a1-44c4-bfa4-e4897c089e70",
+                  "totalChanges": 4,
+                  "breakingChanges": 2,
+                  "children": [
+                    {
+                      "titleString": "GET",
+                      "key": "b83f0dcb-6445-40ae-863a-6cfe89df99e8",
                       "totalChanges": 4,
                       "breakingChanges": 2,
                       "children": [
                         {
                           "titleString": "summary",
-                          "key": "3ca56710-4742-4bd9-ac1b-d5ed76f6484c",
+                          "key": "d8a9f880-ed85-446f-8cf2-7974c93e18ae",
                           "isLeaf": true,
                           "selectable": true,
                           "change": {
@@ -1420,17 +1554,42 @@
                         },
                         {
                           "titleString": "Parameters",
-                          "key": "4a21ff58-c76a-408e-bef2-a8a5774dcb73",
+                          "key": "8bd2c6ee-695f-4edb-af44-96fe7c1fc723",
+                          "children": [
+                            {
+                              "titleString": "required",
+                              "key": "495325f3-b7f1-4147-a44e-cc526a43b8d9",
+                              "isLeaf": true,
+                              "selectable": true,
+                              "change": {
+                                "context": {
+                                  "originalLine": 767,
+                                  "originalColumn": 25,
+                                  "newLine": 761,
+                                  "newColumn": 25
+                                },
+                                "change": 1,
+                                "property": "required",
+                                "original": "false",
+                                "new": "true",
+                                "breaking": true
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "titleString": "Parameters",
+                          "key": "8c447ba8-a4d0-48b3-b46f-347337c245ed",
                           "children": [
                             {
                               "titleString": "Schema",
-                              "key": "d2994696-9ca5-4e33-abc7-864cdfc5b6e3",
+                              "key": "4906d554-1874-476e-979e-ab3b005d166e",
                               "totalChanges": 1,
                               "breakingChanges": 1,
                               "children": [
                                 {
                                   "titleString": "type",
-                                  "key": "96206a26-5035-4e98-8a0c-22ff5d742f5a",
+                                  "key": "0f581e8c-09a8-4e7a-b246-984c217c02ff",
                                   "isLeaf": true,
                                   "selectable": true,
                                   "change": {
@@ -1452,43 +1611,18 @@
                           ]
                         },
                         {
-                          "titleString": "Parameters",
-                          "key": "853eccde-3b8c-4e78-9310-63b80d6c4182",
-                          "children": [
-                            {
-                              "titleString": "required",
-                              "key": "0a9eceee-e63e-43be-adad-ce6c79d59b10",
-                              "isLeaf": true,
-                              "selectable": true,
-                              "change": {
-                                "context": {
-                                  "originalLine": 767,
-                                  "originalColumn": 25,
-                                  "newLine": 761,
-                                  "newColumn": 25
-                                },
-                                "change": 1,
-                                "property": "required",
-                                "original": "false",
-                                "new": "true",
-                                "breaking": true
-                              }
-                            }
-                          ]
-                        },
-                        {
                           "titleString": "Responses",
-                          "key": "f6ae7962-f99e-4a5f-a104-ee4538ddb27f",
+                          "key": "86d65db1-8efa-4413-bbfe-814181ee1b93",
                           "totalChanges": 1,
                           "children": [
                             {
                               "titleString": "200",
-                              "key": "f2fa915e-5e11-49ef-8c60-5f1f10929334",
+                              "key": "f4d28530-4844-420c-bb1e-35f88b652eb6",
                               "totalChanges": 1,
                               "children": [
                                 {
                                   "titleString": "description",
-                                  "key": "4013c649-3a92-42b5-af7f-3edabcc0d45e",
+                                  "key": "99b5ed2d-fecc-4cf5-b27d-17c6e098186d",
                                   "isLeaf": true,
                                   "selectable": true,
                                   "change": {
@@ -1514,120 +1648,26 @@
                   ]
                 },
                 {
-                  "titleString": "/user/{username}",
-                  "key": "fe4edc0b-e080-4c58-8ecd-7d724b3edcef",
-                  "totalChanges": 4,
-                  "breakingChanges": 2,
-                  "children": [
-                    {
-                      "titleString": "GET",
-                      "key": "de33e353-4080-41a3-89fc-bed506fc7e71",
-                      "totalChanges": 1,
-                      "breakingChanges": 1,
-                      "children": [
-                        {
-                          "titleString": "operationId",
-                          "key": "9a13c83e-01bc-4be8-ac8f-008536443e6b",
-                          "isLeaf": true,
-                          "selectable": true,
-                          "change": {
-                            "context": {
-                              "originalLine": 834,
-                              "originalColumn": 24,
-                              "newLine": 828,
-                              "newColumn": 24
-                            },
-                            "change": 1,
-                            "property": "operationId",
-                            "original": "getUserByName",
-                            "new": "getUserByNameAndNotJazz",
-                            "breaking": true
-                          }
-                        }
-                      ]
-                    },
-                    {
-                      "titleString": "DELETE",
-                      "key": "985dd5bf-eb21-449b-88bd-877ed9e51c7a",
-                      "totalChanges": 3,
-                      "breakingChanges": 1,
-                      "children": [
-                        {
-                          "titleString": "tags",
-                          "key": "34d24f1a-dc42-4bd4-b0a8-8cee095fd215",
-                          "isLeaf": true,
-                          "selectable": true,
-                          "change": {
-                            "context": {
-                              "originalLine": 916,
-                              "originalColumn": 11
-                            },
-                            "change": 5,
-                            "property": "tags",
-                            "original": "user",
-                            "breaking": false
-                          }
-                        },
-                        {
-                          "titleString": "tags",
-                          "key": "fa4b6052-c1b2-48c3-b66b-6ca7b15782e5",
-                          "isLeaf": true,
-                          "selectable": true,
-                          "change": {
-                            "context": {
-                              "newLine": 910,
-                              "newColumn": 11
-                            },
-                            "change": 2,
-                            "property": "tags",
-                            "new": "jazz",
-                            "breaking": false
-                          }
-                        },
-                        {
-                          "titleString": "operationId",
-                          "key": "e3faae6c-bdb8-4029-800a-6e28df4a84a0",
-                          "isLeaf": true,
-                          "selectable": true,
-                          "change": {
-                            "context": {
-                              "originalLine": 920,
-                              "originalColumn": 24,
-                              "newLine": 914,
-                              "newColumn": 24
-                            },
-                            "change": 1,
-                            "property": "operationId",
-                            "original": "deleteUser",
-                            "new": "deleteUserButNotJazz",
-                            "breaking": true
-                          }
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "titleString": "/pet/findByStatus",
-                  "key": "a5ea2b20-e299-4422-ae13-691938dd6ec5",
+                  "key": "cf556e82-1afc-4848-9f83-b352b287449d",
                   "totalChanges": 1,
                   "breakingChanges": 1,
                   "children": [
                     {
                       "titleString": "GET",
-                      "key": "3b6ffbb1-de4f-4f38-b1ce-ee0e9a252c76",
+                      "key": "2bc34594-fa8f-4624-98bc-f084cd357cfe",
                       "totalChanges": 1,
                       "breakingChanges": 1,
                       "children": [
                         {
                           "titleString": "Responses",
-                          "key": "dcf5d781-595f-485c-aba9-b8e62793dd4e",
+                          "key": "906d2d83-c43d-4358-8d18-cc1dbe1b1de2",
                           "totalChanges": 1,
                           "breakingChanges": 1,
                           "children": [
                             {
                               "titleString": "400",
-                              "key": "3f8e18e8-28ed-4e10-b659-e5d14bb444d5",
+                              "key": "35e001ba-e1ad-4adc-bd64-51cc1ed346a6",
                               "isLeaf": true,
                               "selectable": true,
                               "change": {
@@ -1646,97 +1686,24 @@
                       ]
                     }
                   ]
-                },
-                {
-                  "titleString": "/pet",
-                  "key": "8fb651c9-e744-4e73-a378-920a2b4fc15b",
-                  "totalChanges": 1,
-                  "breakingChanges": 1,
-                  "children": [
-                    {
-                      "titleString": "POST",
-                      "key": "61b228b4-9124-45f3-bf82-8af0196fb299",
-                      "totalChanges": 1,
-                      "breakingChanges": 1,
-                      "children": [
-                        {
-                          "titleString": "Responses",
-                          "key": "e3be5fc5-6867-43cc-841f-27224b6f72eb",
-                          "totalChanges": 1,
-                          "breakingChanges": 1,
-                          "children": [
-                            {
-                              "titleString": "405",
-                              "key": "58832a17-0093-4877-a750-92db0820a124",
-                              "isLeaf": true,
-                              "selectable": true,
-                              "change": {
-                                "context": {
-                                  "originalLine": 164,
-                                  "originalColumn": 18
-                                },
-                                "change": 4,
-                                "property": "codes",
-                                "original": "405",
-                                "breaking": true
-                              }
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
                 }
               ]
             },
             {
               "titleString": "Components",
-              "key": "273add9e-9deb-4d2d-baa4-ec810b2d771d",
+              "key": "6ac19b12-d727-4021-844b-0f98527ad6d3",
               "totalChanges": 3,
               "breakingChanges": 1,
               "children": [
                 {
-                  "titleString": "Customer",
-                  "key": "d06a9a96-eb6d-4f0c-89eb-a8fc22541694",
-                  "totalChanges": 1,
-                  "children": [
-                    {
-                      "titleString": "username",
-                      "key": "2ef0bef7-d03f-4aae-b9ca-d97b360e13e0",
-                      "totalChanges": 1,
-                      "children": [
-                        {
-                          "titleString": "example",
-                          "key": "58f3166f-4c29-47a5-b7ff-a29bc231e53b",
-                          "isLeaf": true,
-                          "selectable": true,
-                          "change": {
-                            "context": {
-                              "originalLine": 995,
-                              "originalColumn": 24,
-                              "newLine": 986,
-                              "newColumn": 24
-                            },
-                            "change": 1,
-                            "property": "example",
-                            "original": "fehguy",
-                            "new": "burgers",
-                            "breaking": false
-                          }
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "titleString": "Order",
-                  "key": "2094ceb6-56ef-433d-bbcf-462a9fa0bf32",
+                  "key": "250dcca6-6d59-4a06-ae40-4dbaf72e9e9a",
                   "totalChanges": 2,
                   "breakingChanges": 1,
                   "children": [
                     {
                       "titleString": "properties",
-                      "key": "e7b3a889-c809-43b8-b147-0580df64ff9f",
+                      "key": "9164b551-3f1b-4ece-9360-df8872643812",
                       "isLeaf": true,
                       "selectable": true,
                       "change": {
@@ -1752,12 +1719,12 @@
                     },
                     {
                       "titleString": "status",
-                      "key": "050c040a-5108-44da-8724-6355833c461f",
+                      "key": "b98e49eb-d6c0-41f5-a6a6-a58cf90fb678",
                       "totalChanges": 1,
                       "children": [
                         {
                           "titleString": "enum",
-                          "key": "83eb2ad7-6cca-4c7c-ba63-6b7b0e282acf",
+                          "key": "47d27c89-6000-4368-b662-9afcfb3e6fe4",
                           "isLeaf": true,
                           "selectable": true,
                           "change": {
@@ -1767,6 +1734,39 @@
                             },
                             "change": 2,
                             "property": "enum",
+                            "new": "burgers",
+                            "breaking": false
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "titleString": "Customer",
+                  "key": "24ac739c-13c2-48a5-9550-9b1779fd9823",
+                  "totalChanges": 1,
+                  "children": [
+                    {
+                      "titleString": "username",
+                      "key": "a83ac8e6-0f8b-4cb9-b440-7d89ec348af8",
+                      "totalChanges": 1,
+                      "children": [
+                        {
+                          "titleString": "example",
+                          "key": "655de748-c090-4a06-9bef-a294809456c0",
+                          "isLeaf": true,
+                          "selectable": true,
+                          "change": {
+                            "context": {
+                              "originalLine": 995,
+                              "originalColumn": 24,
+                              "newLine": 986,
+                              "newColumn": 24
+                            },
+                            "change": 1,
+                            "property": "example",
+                            "original": "fehguy",
                             "new": "burgers",
                             "breaking": false
                           }
@@ -1788,227 +1788,28 @@
             "height": 25
           },
           {
-            "id": "paths-ca5c3b",
+            "id": "paths-b48bd3",
             "disabled": true,
             "text": "paths",
             "height": 25,
             "width": 150
           },
           {
-            "id": "/pet/findbystatus-ad1554",
-            "disabled": true,
-            "text": "/pet/findbystatus",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "get-312ee3",
-            "disabled": true,
-            "text": "get",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "responses-aa9190",
-            "disabled": true,
-            "text": "responses",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "codes-d6eada",
-            "text": "codes",
-            "height": 45,
-            "width": 150,
-            "data": {
-              "context": {
-                "originalLine": 226,
-                "originalColumn": 18
-              },
-              "change": 4,
-              "property": "codes",
-              "original": "400",
-              "breaking": true
-            }
-          },
-          {
-            "id": "/pet-82bff4",
-            "disabled": true,
-            "text": "/pet",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "post-25caca",
-            "disabled": true,
-            "text": "post",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "responses-cb2d76",
-            "disabled": true,
-            "text": "responses",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "codes-9d5b3d",
-            "text": "codes",
-            "height": 45,
-            "width": 150,
-            "data": {
-              "context": {
-                "originalLine": 164,
-                "originalColumn": 18
-              },
-              "change": 4,
-              "property": "codes",
-              "original": "405",
-              "breaking": true
-            }
-          },
-          {
-            "id": "/user/login-05df11",
-            "disabled": true,
-            "text": "/user/login",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "get-40c0eb",
-            "disabled": true,
-            "text": "get",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "summary-d39563",
-            "text": "summary",
-            "height": 45,
-            "width": 250,
-            "data": {
-              "context": {
-                "originalLine": 750,
-                "originalColumn": 20,
-                "newLine": 744,
-                "newColumn": 20
-              },
-              "change": 1,
-              "property": "summary",
-              "original": "Logs user into the system",
-              "new": "Logs user into the system, without jazz",
-              "breaking": false
-            }
-          },
-          {
-            "id": "parameters-0f6c13",
-            "disabled": true,
-            "text": "parameters",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "schema-7a6da4",
-            "disabled": true,
-            "text": "schema",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "type-996a73",
-            "text": "type",
-            "height": 45,
-            "width": 150,
-            "data": {
-              "context": {
-                "originalLine": 760,
-                "originalColumn": 23,
-                "newLine": 754,
-                "newColumn": 23
-              },
-              "change": 1,
-              "property": "type",
-              "original": "string",
-              "new": "integer",
-              "breaking": true
-            }
-          },
-          {
-            "id": "parameters-948951",
-            "disabled": true,
-            "text": "parameters",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "required-c7ffc9",
-            "text": "required",
-            "height": 45,
-            "width": 150,
-            "data": {
-              "context": {
-                "originalLine": 767,
-                "originalColumn": 25,
-                "newLine": 761,
-                "newColumn": 25
-              },
-              "change": 1,
-              "property": "required",
-              "original": "false",
-              "new": "true",
-              "breaking": true
-            }
-          },
-          {
-            "id": "responses-65a9be",
-            "disabled": true,
-            "text": "responses",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "200-07f23b",
-            "disabled": true,
-            "text": "200",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "description-616151",
-            "text": "description",
-            "height": 45,
-            "width": 250,
-            "data": {
-              "context": {
-                "originalLine": 775,
-                "originalColumn": 28,
-                "newLine": 769,
-                "newColumn": 28
-              },
-              "change": 1,
-              "property": "description",
-              "original": "successful operation",
-              "new": "successful operation, even if not jazzy",
-              "breaking": false
-            }
-          },
-          {
-            "id": "/user/{username}-c8c93a",
+            "id": "/user/{username}-c8398a",
             "disabled": true,
             "text": "/user/{username}",
             "height": 25,
             "width": 150
           },
           {
-            "id": "get-741520",
+            "id": "get-82cca2",
             "disabled": true,
             "text": "get",
             "height": 25,
             "width": 150
           },
           {
-            "id": "operationid-235044",
+            "id": "operationid-e9a66f",
             "text": "operationId",
             "height": 45,
             "width": 190,
@@ -2027,14 +1828,14 @@
             }
           },
           {
-            "id": "delete-9cabd8",
+            "id": "delete-13df83",
             "disabled": true,
             "text": "delete",
             "height": 25,
             "width": 150
           },
           {
-            "id": "tags-bc129e",
+            "id": "tags-6a3a42",
             "text": "tags",
             "height": 45,
             "width": 150,
@@ -2050,7 +1851,7 @@
             }
           },
           {
-            "id": "tags-a399d0",
+            "id": "tags-4b47e7",
             "text": "tags",
             "height": 45,
             "width": 150,
@@ -2066,7 +1867,7 @@
             }
           },
           {
-            "id": "operationid-89c57d",
+            "id": "operationid-deec55",
             "text": "operationId",
             "height": 45,
             "width": 150,
@@ -2085,28 +1886,227 @@
             }
           },
           {
-            "id": "components-6981f2",
+            "id": "/pet-782b3c",
+            "disabled": true,
+            "text": "/pet",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "post-91245a",
+            "disabled": true,
+            "text": "post",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "responses-dffdd4",
+            "disabled": true,
+            "text": "responses",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "codes-3b99be",
+            "text": "codes",
+            "height": 45,
+            "width": 150,
+            "data": {
+              "context": {
+                "originalLine": 164,
+                "originalColumn": 18
+              },
+              "change": 4,
+              "property": "codes",
+              "original": "405",
+              "breaking": true
+            }
+          },
+          {
+            "id": "/user/login-5d3e36",
+            "disabled": true,
+            "text": "/user/login",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "get-34037a",
+            "disabled": true,
+            "text": "get",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "summary-1524c2",
+            "text": "summary",
+            "height": 45,
+            "width": 250,
+            "data": {
+              "context": {
+                "originalLine": 750,
+                "originalColumn": 20,
+                "newLine": 744,
+                "newColumn": 20
+              },
+              "change": 1,
+              "property": "summary",
+              "original": "Logs user into the system",
+              "new": "Logs user into the system, without jazz",
+              "breaking": false
+            }
+          },
+          {
+            "id": "parameters-decaf0",
+            "disabled": true,
+            "text": "parameters",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "required-3be88b",
+            "text": "required",
+            "height": 45,
+            "width": 150,
+            "data": {
+              "context": {
+                "originalLine": 767,
+                "originalColumn": 25,
+                "newLine": 761,
+                "newColumn": 25
+              },
+              "change": 1,
+              "property": "required",
+              "original": "false",
+              "new": "true",
+              "breaking": true
+            }
+          },
+          {
+            "id": "parameters-08e5c7",
+            "disabled": true,
+            "text": "parameters",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "schema-226a36",
+            "disabled": true,
+            "text": "schema",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "type-a46c49",
+            "text": "type",
+            "height": 45,
+            "width": 150,
+            "data": {
+              "context": {
+                "originalLine": 760,
+                "originalColumn": 23,
+                "newLine": 754,
+                "newColumn": 23
+              },
+              "change": 1,
+              "property": "type",
+              "original": "string",
+              "new": "integer",
+              "breaking": true
+            }
+          },
+          {
+            "id": "responses-4d3c97",
+            "disabled": true,
+            "text": "responses",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "200-b60e9e",
+            "disabled": true,
+            "text": "200",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "description-07c6b5",
+            "text": "description",
+            "height": 45,
+            "width": 250,
+            "data": {
+              "context": {
+                "originalLine": 775,
+                "originalColumn": 28,
+                "newLine": 769,
+                "newColumn": 28
+              },
+              "change": 1,
+              "property": "description",
+              "original": "successful operation",
+              "new": "successful operation, even if not jazzy",
+              "breaking": false
+            }
+          },
+          {
+            "id": "/pet/findbystatus-1ef941",
+            "disabled": true,
+            "text": "/pet/findbystatus",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "get-71bb27",
+            "disabled": true,
+            "text": "get",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "responses-112e6a",
+            "disabled": true,
+            "text": "responses",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "codes-81099e",
+            "text": "codes",
+            "height": 45,
+            "width": 150,
+            "data": {
+              "context": {
+                "originalLine": 226,
+                "originalColumn": 18
+              },
+              "change": 4,
+              "property": "codes",
+              "original": "400",
+              "breaking": true
+            }
+          },
+          {
+            "id": "components-c00f09",
             "disabled": true,
             "text": "components",
             "height": 25,
             "width": 150
           },
           {
-            "id": "customer-492901",
+            "id": "customer-b7fc97",
             "disabled": true,
             "text": "customer",
             "height": 25,
             "width": 150
           },
           {
-            "id": "username-25c69e",
+            "id": "username-9bf32f",
             "disabled": true,
             "text": "username",
             "height": 25,
             "width": 150
           },
           {
-            "id": "example-b5551c",
+            "id": "example-ccec6e",
             "text": "example",
             "height": 45,
             "width": 150,
@@ -2125,14 +2125,14 @@
             }
           },
           {
-            "id": "order-909011",
+            "id": "order-6fbb96",
             "disabled": true,
             "text": "order",
             "height": 25,
             "width": 150
           },
           {
-            "id": "properties-2d0946",
+            "id": "properties-dfbc71",
             "text": "properties",
             "height": 45,
             "width": 150,
@@ -2148,14 +2148,14 @@
             }
           },
           {
-            "id": "status-92417b",
+            "id": "status-95e7fd",
             "disabled": true,
             "text": "status",
             "height": 25,
             "width": 150
           },
           {
-            "id": "enum-d62a16",
+            "id": "enum-da3d1c",
             "text": "enum",
             "height": 45,
             "width": 150,
@@ -2173,179 +2173,179 @@
         ],
         "edges": [
           {
-            "id": "root-to-paths-ca5c3b",
+            "id": "root-to-paths-b48bd3",
             "from": "root",
-            "to": "paths-ca5c3b"
+            "to": "paths-b48bd3"
           },
           {
-            "id": "paths-ca5c3b-to-/pet/findbystatus-ad1554",
-            "from": "paths-ca5c3b",
-            "to": "/pet/findbystatus-ad1554"
+            "id": "paths-b48bd3-to-/user/{username}-c8398a",
+            "from": "paths-b48bd3",
+            "to": "/user/{username}-c8398a"
           },
           {
-            "id": "/pet/findbystatus-ad1554-to-get-312ee3",
-            "from": "/pet/findbystatus-ad1554",
-            "to": "get-312ee3"
+            "id": "/user/{username}-c8398a-to-get-82cca2",
+            "from": "/user/{username}-c8398a",
+            "to": "get-82cca2"
           },
           {
-            "id": "get-312ee3-to-responses-aa9190",
-            "from": "get-312ee3",
-            "to": "responses-aa9190"
+            "id": "get-82cca2-to-operationid-e9a66f",
+            "from": "get-82cca2",
+            "to": "operationid-e9a66f"
           },
           {
-            "id": "responses-aa9190-to-codes-d6eada",
-            "from": "responses-aa9190",
-            "to": "codes-d6eada"
+            "id": "/user/{username}-c8398a-to-delete-13df83",
+            "from": "/user/{username}-c8398a",
+            "to": "delete-13df83"
           },
           {
-            "id": "paths-ca5c3b-to-/pet-82bff4",
-            "from": "paths-ca5c3b",
-            "to": "/pet-82bff4"
+            "id": "delete-13df83-to-tags-6a3a42",
+            "from": "delete-13df83",
+            "to": "tags-6a3a42"
           },
           {
-            "id": "/pet-82bff4-to-post-25caca",
-            "from": "/pet-82bff4",
-            "to": "post-25caca"
+            "id": "delete-13df83-to-tags-4b47e7",
+            "from": "delete-13df83",
+            "to": "tags-4b47e7"
           },
           {
-            "id": "post-25caca-to-responses-cb2d76",
-            "from": "post-25caca",
-            "to": "responses-cb2d76"
+            "id": "delete-13df83-to-operationid-deec55",
+            "from": "delete-13df83",
+            "to": "operationid-deec55"
           },
           {
-            "id": "responses-cb2d76-to-codes-9d5b3d",
-            "from": "responses-cb2d76",
-            "to": "codes-9d5b3d"
+            "id": "paths-b48bd3-to-/pet-782b3c",
+            "from": "paths-b48bd3",
+            "to": "/pet-782b3c"
           },
           {
-            "id": "paths-ca5c3b-to-/user/login-05df11",
-            "from": "paths-ca5c3b",
-            "to": "/user/login-05df11"
+            "id": "/pet-782b3c-to-post-91245a",
+            "from": "/pet-782b3c",
+            "to": "post-91245a"
           },
           {
-            "id": "/user/login-05df11-to-get-40c0eb",
-            "from": "/user/login-05df11",
-            "to": "get-40c0eb"
+            "id": "post-91245a-to-responses-dffdd4",
+            "from": "post-91245a",
+            "to": "responses-dffdd4"
           },
           {
-            "id": "get-40c0eb-to-summary-d39563",
-            "from": "get-40c0eb",
-            "to": "summary-d39563"
+            "id": "responses-dffdd4-to-codes-3b99be",
+            "from": "responses-dffdd4",
+            "to": "codes-3b99be"
           },
           {
-            "id": "get-40c0eb-to-parameters-0f6c13",
-            "from": "get-40c0eb",
-            "to": "parameters-0f6c13"
+            "id": "paths-b48bd3-to-/user/login-5d3e36",
+            "from": "paths-b48bd3",
+            "to": "/user/login-5d3e36"
           },
           {
-            "id": "parameters-0f6c13-to-schema-7a6da4",
-            "from": "parameters-0f6c13",
-            "to": "schema-7a6da4"
+            "id": "/user/login-5d3e36-to-get-34037a",
+            "from": "/user/login-5d3e36",
+            "to": "get-34037a"
           },
           {
-            "id": "schema-7a6da4-to-type-996a73",
-            "from": "schema-7a6da4",
-            "to": "type-996a73"
+            "id": "get-34037a-to-summary-1524c2",
+            "from": "get-34037a",
+            "to": "summary-1524c2"
           },
           {
-            "id": "get-40c0eb-to-parameters-948951",
-            "from": "get-40c0eb",
-            "to": "parameters-948951"
+            "id": "get-34037a-to-parameters-decaf0",
+            "from": "get-34037a",
+            "to": "parameters-decaf0"
           },
           {
-            "id": "parameters-948951-to-required-c7ffc9",
-            "from": "parameters-948951",
-            "to": "required-c7ffc9"
+            "id": "parameters-decaf0-to-required-3be88b",
+            "from": "parameters-decaf0",
+            "to": "required-3be88b"
           },
           {
-            "id": "get-40c0eb-to-responses-65a9be",
-            "from": "get-40c0eb",
-            "to": "responses-65a9be"
+            "id": "get-34037a-to-parameters-08e5c7",
+            "from": "get-34037a",
+            "to": "parameters-08e5c7"
           },
           {
-            "id": "responses-65a9be-to-200-07f23b",
-            "from": "responses-65a9be",
-            "to": "200-07f23b"
+            "id": "parameters-08e5c7-to-schema-226a36",
+            "from": "parameters-08e5c7",
+            "to": "schema-226a36"
           },
           {
-            "id": "200-07f23b-to-description-616151",
-            "from": "200-07f23b",
-            "to": "description-616151"
+            "id": "schema-226a36-to-type-a46c49",
+            "from": "schema-226a36",
+            "to": "type-a46c49"
           },
           {
-            "id": "paths-ca5c3b-to-/user/{username}-c8c93a",
-            "from": "paths-ca5c3b",
-            "to": "/user/{username}-c8c93a"
+            "id": "get-34037a-to-responses-4d3c97",
+            "from": "get-34037a",
+            "to": "responses-4d3c97"
           },
           {
-            "id": "/user/{username}-c8c93a-to-get-741520",
-            "from": "/user/{username}-c8c93a",
-            "to": "get-741520"
+            "id": "responses-4d3c97-to-200-b60e9e",
+            "from": "responses-4d3c97",
+            "to": "200-b60e9e"
           },
           {
-            "id": "get-741520-to-operationid-235044",
-            "from": "get-741520",
-            "to": "operationid-235044"
+            "id": "200-b60e9e-to-description-07c6b5",
+            "from": "200-b60e9e",
+            "to": "description-07c6b5"
           },
           {
-            "id": "/user/{username}-c8c93a-to-delete-9cabd8",
-            "from": "/user/{username}-c8c93a",
-            "to": "delete-9cabd8"
+            "id": "paths-b48bd3-to-/pet/findbystatus-1ef941",
+            "from": "paths-b48bd3",
+            "to": "/pet/findbystatus-1ef941"
           },
           {
-            "id": "delete-9cabd8-to-tags-bc129e",
-            "from": "delete-9cabd8",
-            "to": "tags-bc129e"
+            "id": "/pet/findbystatus-1ef941-to-get-71bb27",
+            "from": "/pet/findbystatus-1ef941",
+            "to": "get-71bb27"
           },
           {
-            "id": "delete-9cabd8-to-tags-a399d0",
-            "from": "delete-9cabd8",
-            "to": "tags-a399d0"
+            "id": "get-71bb27-to-responses-112e6a",
+            "from": "get-71bb27",
+            "to": "responses-112e6a"
           },
           {
-            "id": "delete-9cabd8-to-operationid-89c57d",
-            "from": "delete-9cabd8",
-            "to": "operationid-89c57d"
+            "id": "responses-112e6a-to-codes-81099e",
+            "from": "responses-112e6a",
+            "to": "codes-81099e"
           },
           {
-            "id": "root-to-components-6981f2",
+            "id": "root-to-components-c00f09",
             "from": "root",
-            "to": "components-6981f2"
+            "to": "components-c00f09"
           },
           {
-            "id": "components-6981f2-to-customer-492901",
-            "from": "components-6981f2",
-            "to": "customer-492901"
+            "id": "components-c00f09-to-customer-b7fc97",
+            "from": "components-c00f09",
+            "to": "customer-b7fc97"
           },
           {
-            "id": "customer-492901-to-username-25c69e",
-            "from": "customer-492901",
-            "to": "username-25c69e"
+            "id": "customer-b7fc97-to-username-9bf32f",
+            "from": "customer-b7fc97",
+            "to": "username-9bf32f"
           },
           {
-            "id": "username-25c69e-to-example-b5551c",
-            "from": "username-25c69e",
-            "to": "example-b5551c"
+            "id": "username-9bf32f-to-example-ccec6e",
+            "from": "username-9bf32f",
+            "to": "example-ccec6e"
           },
           {
-            "id": "components-6981f2-to-order-909011",
-            "from": "components-6981f2",
-            "to": "order-909011"
+            "id": "components-c00f09-to-order-6fbb96",
+            "from": "components-c00f09",
+            "to": "order-6fbb96"
           },
           {
-            "id": "order-909011-to-properties-2d0946",
-            "from": "order-909011",
-            "to": "properties-2d0946"
+            "id": "order-6fbb96-to-properties-dfbc71",
+            "from": "order-6fbb96",
+            "to": "properties-dfbc71"
           },
           {
-            "id": "order-909011-to-status-92417b",
-            "from": "order-909011",
-            "to": "status-92417b"
+            "id": "order-6fbb96-to-status-95e7fd",
+            "from": "order-6fbb96",
+            "to": "status-95e7fd"
           },
           {
-            "id": "status-92417b-to-enum-d62a16",
-            "from": "status-92417b",
-            "to": "enum-d62a16"
+            "id": "status-95e7fd-to-enum-da3d1c",
+            "from": "status-95e7fd",
+            "to": "enum-da3d1c"
           }
         ]
       },
@@ -2377,12 +2377,12 @@
           "children": [
             {
               "titleString": "Info",
-              "key": "0d6109bd-8601-413b-b64b-59a8753ba5bf",
+              "key": "b5ded430-9997-4d47-9c01-95420a4e4d17",
               "totalChanges": 4,
               "children": [
                 {
                   "titleString": "title",
-                  "key": "64b33253-964d-4497-8b13-015c805e7c88",
+                  "key": "d5e4b711-725c-4fed-8900-798616163519",
                   "isLeaf": true,
                   "selectable": true,
                   "change": {
@@ -2401,7 +2401,7 @@
                 },
                 {
                   "titleString": "description",
-                  "key": "9d9862ed-d55a-4d39-879f-381e15f4d8da",
+                  "key": "309b9333-4d19-400a-a4e5-946e9cbaadcf",
                   "isLeaf": true,
                   "selectable": true,
                   "change": {
@@ -2420,7 +2420,7 @@
                 },
                 {
                   "titleString": "termsOfService",
-                  "key": "d98aa6f0-7341-404d-83af-b88381e72bc0",
+                  "key": "a81bddce-1055-43b0-8b5d-623b774c479b",
                   "isLeaf": true,
                   "selectable": true,
                   "change": {
@@ -2439,12 +2439,12 @@
                 },
                 {
                   "titleString": "Contact",
-                  "key": "aee7e2a6-35c6-4826-b1ff-73a278b9251e",
+                  "key": "fd5471c9-d8f1-4335-8246-ab0a8c21fe9d",
                   "totalChanges": 1,
                   "children": [
                     {
                       "titleString": "email",
-                      "key": "2f5d77f0-d527-4e09-839a-a2851a50b3b2",
+                      "key": "3636a6fb-5f61-45dd-8313-8660bf737d40",
                       "isLeaf": true,
                       "selectable": true,
                       "change": {
@@ -2467,126 +2467,25 @@
             },
             {
               "titleString": "Paths",
-              "key": "df4d48ff-3011-4a02-bf2f-df563af8e6f2",
+              "key": "47ca5f67-ab17-4093-b550-cf3343436eb5",
               "totalChanges": 6,
               "breakingChanges": 2,
               "children": [
                 {
-                  "titleString": "/pet",
-                  "key": "a58eba5d-4700-4e1a-a8c2-fd0debdd550c",
-                  "totalChanges": 4,
-                  "breakingChanges": 1,
-                  "children": [
-                    {
-                      "titleString": "PUT",
-                      "key": "03c3f86c-783d-4597-80be-b3bc2f65dc01",
-                      "totalChanges": 4,
-                      "breakingChanges": 1,
-                      "children": [
-                        {
-                          "titleString": "tags",
-                          "key": "1a003739-5b37-4939-b1ab-cbd6b65d0b2f",
-                          "isLeaf": true,
-                          "selectable": true,
-                          "change": {
-                            "context": {
-                              "newLine": 56,
-                              "newColumn": 11
-                            },
-                            "change": 2,
-                            "property": "tags",
-                            "new": "jazz",
-                            "breaking": false
-                          }
-                        },
-                        {
-                          "titleString": "summary",
-                          "key": "bbe9adf6-5245-4f53-9f23-3b8cd4a936cb",
-                          "isLeaf": true,
-                          "selectable": true,
-                          "change": {
-                            "context": {
-                              "originalLine": 53,
-                              "originalColumn": 20,
-                              "newLine": 58,
-                              "newColumn": 20
-                            },
-                            "change": 1,
-                            "property": "summary",
-                            "original": "Update an existing pet",
-                            "new": "Update an existing pet, but with Jazz",
-                            "breaking": false
-                          }
-                        },
-                        {
-                          "titleString": "Responses",
-                          "key": "3f194246-3a71-48e1-8e2e-157bdf8c50bc",
-                          "totalChanges": 1,
-                          "children": [
-                            {
-                              "titleString": "418",
-                              "key": "fa494d13-5869-4d97-a302-dc6730cdef55",
-                              "isLeaf": true,
-                              "selectable": true,
-                              "change": {
-                                "context": {
-                                  "newLine": 107,
-                                  "newColumn": 18
-                                },
-                                "change": 3,
-                                "property": "codes",
-                                "new": "418",
-                                "breaking": false
-                              }
-                            }
-                          ]
-                        },
-                        {
-                          "titleString": "Requestbody",
-                          "key": "9a0746cd-7784-4abc-b0f2-2c5fab04fbc1",
-                          "totalChanges": 1,
-                          "breakingChanges": 1,
-                          "children": [
-                            {
-                              "titleString": "required",
-                              "key": "f5dd0fa0-8c37-4b82-8fe0-683d5b20c83d",
-                              "isLeaf": true,
-                              "selectable": true,
-                              "change": {
-                                "context": {
-                                  "originalLine": 75,
-                                  "originalColumn": 23,
-                                  "newLine": 80,
-                                  "newColumn": 23
-                                },
-                                "change": 1,
-                                "property": "required",
-                                "original": "true",
-                                "new": "false",
-                                "breaking": true
-                              }
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "titleString": "/pet/findByTags",
-                  "key": "ab4f6192-688e-463b-b336-7542e0ca2477",
+                  "key": "d8ef9f43-f5af-449b-b16b-784aabb2c540",
                   "totalChanges": 2,
                   "breakingChanges": 1,
                   "children": [
                     {
                       "titleString": "GET",
-                      "key": "83fad8de-23cb-490b-8752-a4410ad25a56",
+                      "key": "9f4669c7-5e7b-4e55-9811-2a0230e48920",
                       "totalChanges": 2,
                       "breakingChanges": 1,
                       "children": [
                         {
                           "titleString": "tags",
-                          "key": "7b0934e1-a50f-4c80-9cb3-63a5c3b99e9b",
+                          "key": "b4654b47-538a-40ed-a816-3a9451e54666",
                           "isLeaf": true,
                           "selectable": true,
                           "change": {
@@ -2602,23 +2501,23 @@
                         },
                         {
                           "titleString": "Parameters",
-                          "key": "0956aee1-66b2-4fa9-832d-608e7d53e861",
+                          "key": "e40a5961-2a63-4525-aa64-708d1d784780",
                           "children": [
                             {
                               "titleString": "Schema",
-                              "key": "8bbebff8-1c91-4bf5-9d2e-5a68da3aaefc",
+                              "key": "3190cb55-f66c-416c-8867-ae4135d88596",
                               "totalChanges": 1,
                               "breakingChanges": 1,
                               "children": [
                                 {
                                   "titleString": "Schema",
-                                  "key": "eeab6707-7e79-47b1-a14d-0fdd3c79b3c1",
+                                  "key": "8959c5f8-2e44-4a51-81b8-898988e7496e",
                                   "totalChanges": 1,
                                   "breakingChanges": 1,
                                   "children": [
                                     {
                                       "titleString": "type",
-                                      "key": "53c915cb-bc36-4930-a712-1f99052a0caf",
+                                      "key": "648739e4-a503-4b91-a875-95328d44c0d3",
                                       "isLeaf": true,
                                       "selectable": true,
                                       "change": {
@@ -2644,16 +2543,117 @@
                       ]
                     }
                   ]
+                },
+                {
+                  "titleString": "/pet",
+                  "key": "a4717d4d-52c8-408d-a7d8-f078b3da8b22",
+                  "totalChanges": 4,
+                  "breakingChanges": 1,
+                  "children": [
+                    {
+                      "titleString": "PUT",
+                      "key": "af76ba7f-43f7-4957-9de7-1f25969d4ef7",
+                      "totalChanges": 4,
+                      "breakingChanges": 1,
+                      "children": [
+                        {
+                          "titleString": "tags",
+                          "key": "b65a0a75-1e7c-4f71-a46f-6ccc32c313ee",
+                          "isLeaf": true,
+                          "selectable": true,
+                          "change": {
+                            "context": {
+                              "newLine": 56,
+                              "newColumn": 11
+                            },
+                            "change": 2,
+                            "property": "tags",
+                            "new": "jazz",
+                            "breaking": false
+                          }
+                        },
+                        {
+                          "titleString": "summary",
+                          "key": "dc3ff513-19d1-4c26-9290-013422b115a1",
+                          "isLeaf": true,
+                          "selectable": true,
+                          "change": {
+                            "context": {
+                              "originalLine": 53,
+                              "originalColumn": 20,
+                              "newLine": 58,
+                              "newColumn": 20
+                            },
+                            "change": 1,
+                            "property": "summary",
+                            "original": "Update an existing pet",
+                            "new": "Update an existing pet, but with Jazz",
+                            "breaking": false
+                          }
+                        },
+                        {
+                          "titleString": "Responses",
+                          "key": "a6c1a58c-28f2-4faa-afab-d74d40a2729b",
+                          "totalChanges": 1,
+                          "children": [
+                            {
+                              "titleString": "418",
+                              "key": "bbf11956-c737-4ec4-b47a-08a8a0a3eb53",
+                              "isLeaf": true,
+                              "selectable": true,
+                              "change": {
+                                "context": {
+                                  "newLine": 107,
+                                  "newColumn": 18
+                                },
+                                "change": 3,
+                                "property": "codes",
+                                "new": "418",
+                                "breaking": false
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "titleString": "Requestbody",
+                          "key": "d4a92c4d-4301-40ef-a9c8-a05a1e3add68",
+                          "totalChanges": 1,
+                          "breakingChanges": 1,
+                          "children": [
+                            {
+                              "titleString": "required",
+                              "key": "47e92bea-7c04-49bf-afff-e2564cdfecfe",
+                              "isLeaf": true,
+                              "selectable": true,
+                              "change": {
+                                "context": {
+                                  "originalLine": 75,
+                                  "originalColumn": 23,
+                                  "newLine": 80,
+                                  "newColumn": 23
+                                },
+                                "change": 1,
+                                "property": "required",
+                                "original": "true",
+                                "new": "false",
+                                "breaking": true
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
                 }
               ]
             },
             {
               "titleString": "Tags",
-              "key": "8b67e1b4-01ad-401d-89f6-45dc90a68800",
+              "key": "a48e67c4-7ccf-46f3-9ba9-20ad0d5662a7",
               "children": [
                 {
                   "titleString": "jazz",
-                  "key": "e7c22c46-8244-41be-96e5-12c21b6e0885",
+                  "key": "0c80bad8-e0ed-4665-91dd-d13a8bceb83b",
                   "isLeaf": true,
                   "selectable": true,
                   "change": {
@@ -2670,27 +2670,27 @@
             },
             {
               "titleString": "Components",
-              "key": "caf75728-b314-40d0-a81e-48f697f14e8e",
+              "key": "67678e28-e589-4d10-b3d0-3839ecfc14e6",
               "totalChanges": 1,
               "children": [
                 {
                   "titleString": "petstore_auth",
-                  "key": "52226cb7-7fe3-4019-9e7b-9e35943483cb",
+                  "key": "4b9af7a2-be81-4f24-869c-a9da0f6eb63b",
                   "totalChanges": 1,
                   "children": [
                     {
                       "titleString": "oAuth Flows",
-                      "key": "4aecb518-aea5-4fe5-a01e-6328b815770e",
+                      "key": "03848387-a188-418c-9edc-402fd2ed5b11",
                       "totalChanges": 1,
                       "children": [
                         {
                           "titleString": "oAuth Flow",
-                          "key": "5cb3042c-b062-47b0-83bb-5d055c6f5314",
+                          "key": "dcb1bc42-7f43-431d-9e30-499bfc4df5bf",
                           "totalChanges": 1,
                           "children": [
                             {
                               "titleString": "scopes",
-                              "key": "ec04c4bf-64c7-4bcf-81ec-c6d54c980c68",
+                              "key": "1da2e9e8-cbc6-4440-a8f2-570dbf3bed86",
                               "isLeaf": true,
                               "selectable": true,
                               "change": {
@@ -2723,14 +2723,14 @@
             "height": 25
           },
           {
-            "id": "info-5e898e",
+            "id": "info-ba3ab8",
             "disabled": true,
             "text": "info",
             "height": 25,
             "width": 150
           },
           {
-            "id": "title-d98dc6",
+            "id": "title-0429ee",
             "text": "title",
             "height": 45,
             "width": 250,
@@ -2749,7 +2749,7 @@
             }
           },
           {
-            "id": "description-c6fdfb",
+            "id": "description-d916e4",
             "text": "description",
             "height": 45,
             "width": 250,
@@ -2768,7 +2768,7 @@
             }
           },
           {
-            "id": "termsofservice-697d2c",
+            "id": "termsofservice-5ce4fa",
             "text": "termsOfService",
             "height": 45,
             "width": 250,
@@ -2787,14 +2787,14 @@
             }
           },
           {
-            "id": "contact-cccc7e",
+            "id": "contact-dafb10",
             "disabled": true,
             "text": "contact",
             "height": 25,
             "width": 150
           },
           {
-            "id": "email-692879",
+            "id": "email-50c510",
             "text": "email",
             "height": 45,
             "width": 150,
@@ -2813,126 +2813,28 @@
             }
           },
           {
-            "id": "paths-4c7704",
+            "id": "paths-a966e9",
             "disabled": true,
             "text": "paths",
             "height": 25,
             "width": 150
           },
           {
-            "id": "/pet-aca3db",
-            "disabled": true,
-            "text": "/pet",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "put-1e6fe7",
-            "disabled": true,
-            "text": "put",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "tags-800622",
-            "text": "tags",
-            "height": 45,
-            "width": 150,
-            "data": {
-              "context": {
-                "newLine": 56,
-                "newColumn": 11
-              },
-              "change": 2,
-              "property": "tags",
-              "new": "jazz",
-              "breaking": false
-            }
-          },
-          {
-            "id": "summary-1396d9",
-            "text": "summary",
-            "height": 45,
-            "width": 250,
-            "data": {
-              "context": {
-                "originalLine": 53,
-                "originalColumn": 20,
-                "newLine": 58,
-                "newColumn": 20
-              },
-              "change": 1,
-              "property": "summary",
-              "original": "Update an existing pet",
-              "new": "Update an existing pet, but with Jazz",
-              "breaking": false
-            }
-          },
-          {
-            "id": "responses-fe5a06",
-            "disabled": true,
-            "text": "responses",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "codes-7b44bf",
-            "text": "codes",
-            "height": 45,
-            "width": 150,
-            "data": {
-              "context": {
-                "newLine": 107,
-                "newColumn": 18
-              },
-              "change": 3,
-              "property": "codes",
-              "new": "418",
-              "breaking": false
-            }
-          },
-          {
-            "id": "requestbody-2e273e",
-            "disabled": true,
-            "text": "requestbody",
-            "height": 25,
-            "width": 150
-          },
-          {
-            "id": "required-e90c50",
-            "text": "required",
-            "height": 45,
-            "width": 150,
-            "data": {
-              "context": {
-                "originalLine": 75,
-                "originalColumn": 23,
-                "newLine": 80,
-                "newColumn": 23
-              },
-              "change": 1,
-              "property": "required",
-              "original": "true",
-              "new": "false",
-              "breaking": true
-            }
-          },
-          {
-            "id": "/pet/findbytags-ae4df4",
+            "id": "/pet/findbytags-0c8cee",
             "disabled": true,
             "text": "/pet/findbytags",
             "height": 25,
             "width": 150
           },
           {
-            "id": "get-f9ac82",
+            "id": "get-8bdacd",
             "disabled": true,
             "text": "get",
             "height": 25,
             "width": 150
           },
           {
-            "id": "tags-87f7b4",
+            "id": "tags-c2a8d0",
             "text": "tags",
             "height": 45,
             "width": 150,
@@ -2948,28 +2850,28 @@
             }
           },
           {
-            "id": "parameters-7df038",
+            "id": "parameters-ca0e49",
             "disabled": true,
             "text": "parameters",
             "height": 25,
             "width": 150
           },
           {
-            "id": "schema-73ba0f",
+            "id": "schema-374acc",
             "disabled": true,
             "text": "schema",
             "height": 25,
             "width": 150
           },
           {
-            "id": "schema-479922",
+            "id": "schema-db9346",
             "disabled": true,
             "text": "schema",
             "height": 25,
             "width": 150
           },
           {
-            "id": "type-e0aecc",
+            "id": "type-c6d3f9",
             "text": "type",
             "height": 45,
             "width": 150,
@@ -2988,14 +2890,112 @@
             }
           },
           {
-            "id": "tags-563a3a",
+            "id": "/pet-7ea546",
+            "disabled": true,
+            "text": "/pet",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "put-d30aeb",
+            "disabled": true,
+            "text": "put",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "tags-17b50c",
+            "text": "tags",
+            "height": 45,
+            "width": 150,
+            "data": {
+              "context": {
+                "newLine": 56,
+                "newColumn": 11
+              },
+              "change": 2,
+              "property": "tags",
+              "new": "jazz",
+              "breaking": false
+            }
+          },
+          {
+            "id": "summary-a46333",
+            "text": "summary",
+            "height": 45,
+            "width": 250,
+            "data": {
+              "context": {
+                "originalLine": 53,
+                "originalColumn": 20,
+                "newLine": 58,
+                "newColumn": 20
+              },
+              "change": 1,
+              "property": "summary",
+              "original": "Update an existing pet",
+              "new": "Update an existing pet, but with Jazz",
+              "breaking": false
+            }
+          },
+          {
+            "id": "responses-55f9c1",
+            "disabled": true,
+            "text": "responses",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "codes-59a1ea",
+            "text": "codes",
+            "height": 45,
+            "width": 150,
+            "data": {
+              "context": {
+                "newLine": 107,
+                "newColumn": 18
+              },
+              "change": 3,
+              "property": "codes",
+              "new": "418",
+              "breaking": false
+            }
+          },
+          {
+            "id": "requestbody-6819f1",
+            "disabled": true,
+            "text": "requestbody",
+            "height": 25,
+            "width": 150
+          },
+          {
+            "id": "required-800189",
+            "text": "required",
+            "height": 45,
+            "width": 150,
+            "data": {
+              "context": {
+                "originalLine": 75,
+                "originalColumn": 23,
+                "newLine": 80,
+                "newColumn": 23
+              },
+              "change": 1,
+              "property": "required",
+              "original": "true",
+              "new": "false",
+              "breaking": true
+            }
+          },
+          {
+            "id": "tags-4f7441",
             "disabled": true,
             "text": "tags",
             "height": 25,
             "width": 150
           },
           {
-            "id": "jazz-a0472b",
+            "id": "jazz-238911",
             "text": "jazz",
             "height": 27,
             "width": 150,
@@ -3010,35 +3010,35 @@
             }
           },
           {
-            "id": "components-afd54d",
+            "id": "components-c0a184",
             "disabled": true,
             "text": "components",
             "height": 25,
             "width": 150
           },
           {
-            "id": "petstore_auth-c9a5de",
+            "id": "petstore_auth-68ddf7",
             "disabled": true,
             "text": "petstore_auth",
             "height": 25,
             "width": 150
           },
           {
-            "id": "oauth flows-f7e96a",
+            "id": "oauth flows-ccdc71",
             "disabled": true,
             "text": "oauth flows",
             "height": 25,
             "width": 150
           },
           {
-            "id": "oauth flow-a31c54",
+            "id": "oauth flow-16ef01",
             "disabled": true,
             "text": "oauth flow",
             "height": 25,
             "width": 150
           },
           {
-            "id": "scopes-1f63e5",
+            "id": "scopes-fd6090",
             "text": "scopes",
             "height": 45,
             "width": 150,
@@ -3056,149 +3056,149 @@
         ],
         "edges": [
           {
-            "id": "root-to-info-5e898e",
+            "id": "root-to-info-ba3ab8",
             "from": "root",
-            "to": "info-5e898e"
+            "to": "info-ba3ab8"
           },
           {
-            "id": "info-5e898e-to-title-d98dc6",
-            "from": "info-5e898e",
-            "to": "title-d98dc6"
+            "id": "info-ba3ab8-to-title-0429ee",
+            "from": "info-ba3ab8",
+            "to": "title-0429ee"
           },
           {
-            "id": "info-5e898e-to-description-c6fdfb",
-            "from": "info-5e898e",
-            "to": "description-c6fdfb"
+            "id": "info-ba3ab8-to-description-d916e4",
+            "from": "info-ba3ab8",
+            "to": "description-d916e4"
           },
           {
-            "id": "info-5e898e-to-termsofservice-697d2c",
-            "from": "info-5e898e",
-            "to": "termsofservice-697d2c"
+            "id": "info-ba3ab8-to-termsofservice-5ce4fa",
+            "from": "info-ba3ab8",
+            "to": "termsofservice-5ce4fa"
           },
           {
-            "id": "info-5e898e-to-contact-cccc7e",
-            "from": "info-5e898e",
-            "to": "contact-cccc7e"
+            "id": "info-ba3ab8-to-contact-dafb10",
+            "from": "info-ba3ab8",
+            "to": "contact-dafb10"
           },
           {
-            "id": "contact-cccc7e-to-email-692879",
-            "from": "contact-cccc7e",
-            "to": "email-692879"
+            "id": "contact-dafb10-to-email-50c510",
+            "from": "contact-dafb10",
+            "to": "email-50c510"
           },
           {
-            "id": "root-to-paths-4c7704",
+            "id": "root-to-paths-a966e9",
             "from": "root",
-            "to": "paths-4c7704"
+            "to": "paths-a966e9"
           },
           {
-            "id": "paths-4c7704-to-/pet-aca3db",
-            "from": "paths-4c7704",
-            "to": "/pet-aca3db"
+            "id": "paths-a966e9-to-/pet/findbytags-0c8cee",
+            "from": "paths-a966e9",
+            "to": "/pet/findbytags-0c8cee"
           },
           {
-            "id": "/pet-aca3db-to-put-1e6fe7",
-            "from": "/pet-aca3db",
-            "to": "put-1e6fe7"
+            "id": "/pet/findbytags-0c8cee-to-get-8bdacd",
+            "from": "/pet/findbytags-0c8cee",
+            "to": "get-8bdacd"
           },
           {
-            "id": "put-1e6fe7-to-tags-800622",
-            "from": "put-1e6fe7",
-            "to": "tags-800622"
+            "id": "get-8bdacd-to-tags-c2a8d0",
+            "from": "get-8bdacd",
+            "to": "tags-c2a8d0"
           },
           {
-            "id": "put-1e6fe7-to-summary-1396d9",
-            "from": "put-1e6fe7",
-            "to": "summary-1396d9"
+            "id": "get-8bdacd-to-parameters-ca0e49",
+            "from": "get-8bdacd",
+            "to": "parameters-ca0e49"
           },
           {
-            "id": "put-1e6fe7-to-responses-fe5a06",
-            "from": "put-1e6fe7",
-            "to": "responses-fe5a06"
+            "id": "parameters-ca0e49-to-schema-374acc",
+            "from": "parameters-ca0e49",
+            "to": "schema-374acc"
           },
           {
-            "id": "responses-fe5a06-to-codes-7b44bf",
-            "from": "responses-fe5a06",
-            "to": "codes-7b44bf"
+            "id": "schema-374acc-to-schema-db9346",
+            "from": "schema-374acc",
+            "to": "schema-db9346"
           },
           {
-            "id": "put-1e6fe7-to-requestbody-2e273e",
-            "from": "put-1e6fe7",
-            "to": "requestbody-2e273e"
+            "id": "schema-db9346-to-type-c6d3f9",
+            "from": "schema-db9346",
+            "to": "type-c6d3f9"
           },
           {
-            "id": "requestbody-2e273e-to-required-e90c50",
-            "from": "requestbody-2e273e",
-            "to": "required-e90c50"
+            "id": "paths-a966e9-to-/pet-7ea546",
+            "from": "paths-a966e9",
+            "to": "/pet-7ea546"
           },
           {
-            "id": "paths-4c7704-to-/pet/findbytags-ae4df4",
-            "from": "paths-4c7704",
-            "to": "/pet/findbytags-ae4df4"
+            "id": "/pet-7ea546-to-put-d30aeb",
+            "from": "/pet-7ea546",
+            "to": "put-d30aeb"
           },
           {
-            "id": "/pet/findbytags-ae4df4-to-get-f9ac82",
-            "from": "/pet/findbytags-ae4df4",
-            "to": "get-f9ac82"
+            "id": "put-d30aeb-to-tags-17b50c",
+            "from": "put-d30aeb",
+            "to": "tags-17b50c"
           },
           {
-            "id": "get-f9ac82-to-tags-87f7b4",
-            "from": "get-f9ac82",
-            "to": "tags-87f7b4"
+            "id": "put-d30aeb-to-summary-a46333",
+            "from": "put-d30aeb",
+            "to": "summary-a46333"
           },
           {
-            "id": "get-f9ac82-to-parameters-7df038",
-            "from": "get-f9ac82",
-            "to": "parameters-7df038"
+            "id": "put-d30aeb-to-responses-55f9c1",
+            "from": "put-d30aeb",
+            "to": "responses-55f9c1"
           },
           {
-            "id": "parameters-7df038-to-schema-73ba0f",
-            "from": "parameters-7df038",
-            "to": "schema-73ba0f"
+            "id": "responses-55f9c1-to-codes-59a1ea",
+            "from": "responses-55f9c1",
+            "to": "codes-59a1ea"
           },
           {
-            "id": "schema-73ba0f-to-schema-479922",
-            "from": "schema-73ba0f",
-            "to": "schema-479922"
+            "id": "put-d30aeb-to-requestbody-6819f1",
+            "from": "put-d30aeb",
+            "to": "requestbody-6819f1"
           },
           {
-            "id": "schema-479922-to-type-e0aecc",
-            "from": "schema-479922",
-            "to": "type-e0aecc"
+            "id": "requestbody-6819f1-to-required-800189",
+            "from": "requestbody-6819f1",
+            "to": "required-800189"
           },
           {
-            "id": "root-to-tags-563a3a",
+            "id": "root-to-tags-4f7441",
             "from": "root",
-            "to": "tags-563a3a"
+            "to": "tags-4f7441"
           },
           {
-            "id": "tags-563a3a-to-jazz-a0472b",
-            "from": "tags-563a3a",
-            "to": "jazz-a0472b"
+            "id": "tags-4f7441-to-jazz-238911",
+            "from": "tags-4f7441",
+            "to": "jazz-238911"
           },
           {
-            "id": "root-to-components-afd54d",
+            "id": "root-to-components-c0a184",
             "from": "root",
-            "to": "components-afd54d"
+            "to": "components-c0a184"
           },
           {
-            "id": "components-afd54d-to-petstore_auth-c9a5de",
-            "from": "components-afd54d",
-            "to": "petstore_auth-c9a5de"
+            "id": "components-c0a184-to-petstore_auth-68ddf7",
+            "from": "components-c0a184",
+            "to": "petstore_auth-68ddf7"
           },
           {
-            "id": "petstore_auth-c9a5de-to-oauth flows-f7e96a",
-            "from": "petstore_auth-c9a5de",
-            "to": "oauth flows-f7e96a"
+            "id": "petstore_auth-68ddf7-to-oauth flows-ccdc71",
+            "from": "petstore_auth-68ddf7",
+            "to": "oauth flows-ccdc71"
           },
           {
-            "id": "oauth flows-f7e96a-to-oauth flow-a31c54",
-            "from": "oauth flows-f7e96a",
-            "to": "oauth flow-a31c54"
+            "id": "oauth flows-ccdc71-to-oauth flow-16ef01",
+            "from": "oauth flows-ccdc71",
+            "to": "oauth flow-16ef01"
           },
           {
-            "id": "oauth flow-a31c54-to-scopes-1f63e5",
-            "from": "oauth flow-a31c54",
-            "to": "scopes-1f63e5"
+            "id": "oauth flow-16ef01-to-scopes-fd6090",
+            "from": "oauth flow-16ef01",
+            "to": "scopes-fd6090"
           }
         ]
       },

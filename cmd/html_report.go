@@ -1,32 +1,31 @@
-// Copyright 2022 Princess B33f Heavy Industries / Dave Shanley
+// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
 // SPDX-License-Identifier: MIT
 
 package cmd
 
 import (
-    "encoding/json"
     "errors"
     "fmt"
-    "github.com/pb33f/libopenapi/what-changed/reports"
     "github.com/pb33f/openapi-changes/git"
+    html_report "github.com/pb33f/openapi-changes/html-report"
     "github.com/pb33f/openapi-changes/model"
     "github.com/pterm/pterm"
     "github.com/spf13/cobra"
     "github.com/twinj/uuid"
     "os"
-    "path"
     "time"
 )
 
-func GetReportCommand() *cobra.Command {
+func GetHTMLReportCommand() *cobra.Command {
 
     cmd := &cobra.Command{
-        SilenceUsage:  true,
+        SilenceUsage:  false,
         SilenceErrors: false,
-        Use:           "report",
-        Short:         "Generate a machine readable report for what has changed",
-        Long:          "Generate a report for what has changed between two OpenAPI specs, or a single spec, over time.",
-        Example:       "openapi-changes report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+        Use:           "html-report",
+        Short:         "Generate the sexiest, most interactive diffing experience you have ever seen.",
+        Long: "Generate a ready to go, super sexy, and highly interactive HTML report that " +
+            "you can explore and review in your browser",
+        Example: "openapi-changes html-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
         RunE: func(cmd *cobra.Command, args []string) error {
 
             // check for two args (left and right)
@@ -55,20 +54,25 @@ func GetReportCommand() *cobra.Command {
                         return err
                     }
 
-                    report, er := runGitHistoryReport(args[0], args[1], latestFlag)
+                    report, er := runGitHistoryHTMLReport(args[0], args[1], latestFlag)
 
                     if er != nil {
-                        pterm.Error.Println(er.Error())
-                        return er
+                        for x := range er {
+                            pterm.Error.Println(er[x].Error())
+                        }
+                        return er[0]
                     }
 
-                    jsonBytes, _ := json.MarshalIndent(report, "", "  ")
-                    fmt.Println(string(jsonBytes))
+                    err = os.WriteFile("report.html", report, 0664)
+                    if err != nil {
+                        pterm.Error.Println(err.Error())
+                        return err
+                    }
                     return nil
 
                 } else {
 
-                    report, errs := runLeftRightReport(args[0], args[1])
+                    report, errs := runLeftRightHTMLReport(args[0], args[1])
                     if len(errs) > 0 {
                         for e := range errs {
                             pterm.Error.Println(errs[e].Error())
@@ -76,8 +80,7 @@ func GetReportCommand() *cobra.Command {
                         return errors.New("unable to process specifications")
                     }
 
-                    jsonBytes, _ := json.MarshalIndent(report, "", "  ")
-                    fmt.Println(string(jsonBytes))
+                    err = os.WriteFile("report.html", report, 0664)
                     return nil
                 }
             }
@@ -88,34 +91,24 @@ func GetReportCommand() *cobra.Command {
     return cmd
 }
 
-type Report struct {
-    Summary map[string]*reports.Changed `json:"reportSummary"`
-    Commit  *model.Commit               `json:"commitDetails"`
-}
-
-type HistoricalReport struct {
-    GitRepoPath   string    `json:"gitRepoPath"`
-    GitFilePath   string    `json:"gitFilePath"`
-    Filename      string    `json:"filename"`
-    DateGenerated string    `json:"dateGenerated"`
-    Reports       []*Report `json:"reports"`
-}
-
-func runGitHistoryReport(gitPath, filePath string, latest bool) (*HistoricalReport, error) {
+func runGitHistoryHTMLReport(gitPath, filePath string, latest bool) ([]byte, []error) {
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
         pterm.Error.Println(err.Error())
-        return nil, err
+        return nil, []error{err}
     }
 
     // build commit history.
     commitHistory, err := git.ExtractHistoryUsingLib(gitPath, filePath)
     if err != nil {
-        return nil, err
+        return nil, []error{err}
     }
 
     // populate history with changes and data
-    git.PopulateHistoryWithChanges(commitHistory, nil)
+    errs := git.PopulateHistoryWithChanges(commitHistory, nil)
+    if errs != nil {
+        return nil, errs
+    }
 
     if latest {
         commitHistory = commitHistory[:1]
@@ -128,17 +121,11 @@ func runGitHistoryReport(gitPath, filePath string, latest bool) (*HistoricalRepo
         }
     }
 
-    return &HistoricalReport{
-        GitRepoPath:   gitPath,
-        GitFilePath:   filePath,
-        Filename:      path.Base(filePath),
-        DateGenerated: time.Now().String(),
-        Reports:       reports,
-    }, nil
-
+    generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
+    return generator.GenerateReport(false), nil
 }
 
-func runLeftRightReport(left, right string) (*Report, []error) {
+func runLeftRightHTMLReport(left, right string) ([]byte, []error) {
 
     var leftBytes, rightBytes []byte
     var errs []error
@@ -172,14 +159,6 @@ func runLeftRightReport(left, right string) (*Report, []error) {
     if len(errs) > 0 {
         return nil, errs
     }
-    return createReport(commits[0]), nil
-}
-
-func createReport(commit *model.Commit) *Report {
-    // wipe the bytes out from the specInfo instance in the vacuum report.
-    if commit.QualityReport != nil {
-        commit.QualityReport.SpecInfo.SpecBytes = nil
-    }
-    report := reports.CreateOverallReport(commit.Changes)
-    return &Report{report.ChangeReport, commit}
+    generator := html_report.NewHTMLReport(false, time.Now(), commits)
+    return generator.GenerateReport(false), nil
 }

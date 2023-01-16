@@ -1,4 +1,4 @@
-import {ChangeState, NavState, ReportState, useChangeStore, useNavStore} from "@/model/store";
+import {ChangeState, NavState, ReportState, useChangeStore, useNavStore, useReportStore} from "@/model/store";
 import {Button, Drawer, Statistic, Timeline} from "antd";
 import React, {useContext, useEffect, useRef} from "react";
 import {
@@ -19,18 +19,24 @@ import {useStore} from "zustand";
 
 export function Navigation() {
 
-    const store = useContext(ReportStoreContext)
+    const selectedReportItem = useReportStore((report: ReportState) => report.selectedReportItem);
     const navOpen = useNavStore((state: NavState) => state.navOpen)
     const closeNav = useNavStore((state: NavState) => state.closeNav)
-    const report = useStore(store, (report: ReportState) => report.report);
-    const selectedIndex = useStore(store, (report: ReportState) => report.selectedReportIndex);
-    const selectedReportItem = useStore(store, (report: ReportState) => report.selectedReportItem);
+    const report = useReportStore((report: ReportState) => report.report);
+    const selectedIndex = useReportStore((report: ReportState) => report.selectedReportIndex);
+    const highlightedIndex = useReportStore((report: ReportState) => report.highlightedReportIndex);
 
     useEffect(() => {
         if (navOpen) {
-            closeNav();
+            setTimeout(() => {
+                closeNav();
+            }, 100)
         }
     }, [selectedReportItem])
+
+    if(!report) {
+        return null;
+    }
 
     let border = '1px dashed var(--secondary-color)'
     let background = 'var(--background-color)'
@@ -147,19 +153,16 @@ export interface TimelineChangeItemTitleProps {
 
 export function TimelineChangeItem(props: TimelineChangeItemProps) {
 
-    const store = useContext(ReportStoreContext)
-    const setSelectedReportIndex = useStore(store, (report: ReportState) => report.setSelectedReportIndex);
-    const selectedReportIndex = useStore(store, (report: ReportState) => report.selectedReportIndex);
-    const setSelectedReport =useStore(store, (report: ReportState) => report.setSelectedReport);
+    const setSelectedReportIndex =  useReportStore((report: ReportState) => report.setSelectedReportIndex);
+    const setHighlightedReportIndex = useReportStore((report: ReportState) => report.setHighlightedReportIndex);
+
+    const selectedReportIndex =  useReportStore((report: ReportState) => report.selectedReportIndex);
+    const highlightedReportIndex =  useReportStore((report: ReportState) => report.highlightedReportIndex);
+
+    const setSelectedReport = useReportStore((report: ReportState) => report.setSelectedReport);
     const setCurrentChange = useChangeStore((state: ChangeState) => state.setCurrentChange)
     // const  = useReportStore((report: ReportState) => report.setSelectedReport);
-    const report = useStore(store, (report: ReportState) => report.report);
-
-
-    const selectReport = (index: number) => {
-        setSelectedReport(report.reportItems[index])
-        setCurrentChange(null);
-    }
+    const report =  useReportStore((report: ReportState) => report.report);
 
     let changeStats: JSX.Element
     const mobile = (window.innerWidth < 1000)
@@ -205,15 +208,21 @@ export function TimelineChangeItem(props: TimelineChangeItemProps) {
             />
         </div>)
     }
+    if (!report) {
+        return <div>no report</div>
+    }
 
     return (
         <div
-            className={(selectedReportIndex == props.reverseIndex) ? 'nav-change-container-active' : 'nav-change-container'}
+            className={(highlightedReportIndex == props.reverseIndex) ? 'nav-change-container-active' : 'nav-change-container'}
             onMouseOver={() => {
-                setSelectedReportIndex(props.reverseIndex)
+                setHighlightedReportIndex(props.reverseIndex)
             }}
             onClick={() => {
-                selectReport(props.index);
+                setSelectedReportIndex(props.reverseIndex)
+                setHighlightedReportIndex(props.reverseIndex)
+                setSelectedReport(report.reportItems[props.index])
+                setCurrentChange(null);
             }}>
             <span className='nav-change-date'>{new Date(props.time).toLocaleString()}</span>
             {changeStats}

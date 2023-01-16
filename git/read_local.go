@@ -87,19 +87,19 @@ func ExtractHistoryFromFile(repoDirectory, filePath string) []*model.Commit {
     return commitHistory
 }
 
-func ExtractHistoryUsingLib(repoDirectory, filePath string) []*model.Commit {
+func ExtractHistoryUsingLib(repoDirectory, filePath string) ([]*model.Commit, error) {
     var commitHistory []*model.Commit
     var err error
 
     r, e := git.PlainOpen(repoDirectory)
     if e != nil {
-        return commitHistory
+        return nil, err
     }
 
     var ref *plumbing.Reference
     ref, err = r.Head()
     if err != nil {
-        return commitHistory
+        return nil, err
     }
 
     var commitIterator object.CommitIter
@@ -108,7 +108,7 @@ func ExtractHistoryUsingLib(repoDirectory, filePath string) []*model.Commit {
         FileName: &filePath,
     })
     if err != nil {
-        return commitHistory
+        return commitHistory, err
     }
 
     // Iterate over all commits and save file for each
@@ -119,7 +119,7 @@ func ExtractHistoryUsingLib(repoDirectory, filePath string) []*model.Commit {
             break
         }
         if err != nil {
-            return commitHistory
+            return nil, err
         }
         var srcFile *object.File
         srcFile, err = commit.File(filePath)
@@ -129,11 +129,11 @@ func ExtractHistoryUsingLib(repoDirectory, filePath string) []*model.Commit {
         var reader io.ReadCloser
         reader, err = srcFile.Blob.Reader()
         if err != nil {
-            return commitHistory
+            return nil, err
         }
         _, err = buf.ReadFrom(reader)
         if err != nil {
-            return commitHistory
+            return nil, err
         }
 
         commitHistory = append(commitHistory,
@@ -149,10 +149,10 @@ func ExtractHistoryUsingLib(repoDirectory, filePath string) []*model.Commit {
             })
     }
     commitIterator.Close()
-    return commitHistory
+    return commitHistory, nil
 }
 
-func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.SpinnerPrinter, quality bool) []error {
+func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.SpinnerPrinter) []error {
     for c := range commitHistory {
         cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", commitHistory[c].Hash, commitHistory[c].FilePath))
         var ou, er bytes.Buffer
@@ -165,7 +165,7 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.Sp
         }
         commitHistory[c].Data = ou.Bytes()
     }
-    errors := BuildCommitChangelog(commitHistory, quality)
+    errors := BuildCommitChangelog(commitHistory)
     if len(errors) > 0 {
         return errors
     }
@@ -175,7 +175,7 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.Sp
     return nil
 }
 
-func BuildCommitChangelog(commitHistory []*model.Commit, quality bool) []error {
+func BuildCommitChangelog(commitHistory []*model.Commit) []error {
     var errors []error
     for c := len(commitHistory) - 1; c > -1; c-- {
         var oldBits, newBits []byte
@@ -214,18 +214,11 @@ func BuildCommitChangelog(commitHistory []*model.Commit, quality bool) []error {
         if len(oldBits) == 0 && len(newBits) > 0 {
             newDoc, _ = libopenapi.NewDocument(newBits)
         }
-
         if newDoc != nil {
             commitHistory[c].Document = newDoc
         }
-
         if oldDoc != nil {
             commitHistory[c].OldDocument = oldDoc
-        }
-
-        // run vacuum stats
-        if quality {
-            commitHistory[c].QualityReport = CheckStats(newDoc.GetSpecInfo())
         }
     }
     return nil

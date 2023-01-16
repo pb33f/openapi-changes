@@ -2,7 +2,7 @@ import React, {useContext, useEffect, useRef, useState} from "react";
 import {DiffEditor, Monaco} from "@monaco-editor/react"
 import {Change} from '@/model';
 import '@/components/tree/Tree.css'
-import {EditorState, ReportState, useEditorStore} from "@/model/store";
+import {EditorState, ReportState, useEditorStore, useReportStore} from "@/model/store";
 import {Switch} from "antd";
 import './Editor.css';
 import {ReportStoreContext} from "@/OpenAPIChanges";
@@ -46,11 +46,8 @@ const updatePosition = (currentChange: Change, editorRef: any, origCol: number, 
 }
 
 export function EditorComponent(props: EditorComponentProps) {
-
-    const store = useContext(ReportStoreContext)
-
-    const originalSpec: string = useStore(store, (report: ReportState) => report.selectedReportItem.originalSpec);
-    const modifiedSpec: string = useStore(store, (report: ReportState) => report.selectedReportItem.modifiedSpec);
+    const originalSpec: string | undefined = useReportStore((report: ReportState) => report.selectedReportItem?.originalSpec);
+    const modifiedSpec: string | undefined = useReportStore((report: ReportState) => report.selectedReportItem?.modifiedSpec);
     const editorRef = useRef<any>(null);
     const monacoRef = useRef<any>(null);
     const [mod] = useState(modifiedSpec);

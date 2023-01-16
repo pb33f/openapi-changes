@@ -4,7 +4,6 @@
 package builder
 
 import (
-    "fmt"
     v3 "github.com/pb33f/libopenapi/datamodel/low/v3"
     wcModel "github.com/pb33f/libopenapi/what-changed/model"
     "github.com/pb33f/libopenapi/what-changed/reports"
@@ -333,9 +332,6 @@ func BuildTreeMapNode(parent *model.TreeNode, field reflect.Value) {
             v := field.MapIndex(e)
             switch t := v.Interface().(type) {
             default:
-                if strings.ToLower(e.String()) == "codes" {
-                    fmt.Sprint("codes")
-                }
                 tn := &model.TreeNode{
                     TitleString: e.String(),
                     Key:         uuid.NewV4().String(),
@@ -362,5 +358,4 @@ func countChanges(i any) (int, int) {
         return ch.TotalChanges(), ch.TotalBreakingChanges()
     }
     return -1, -1
-
 }

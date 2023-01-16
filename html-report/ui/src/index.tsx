@@ -10,8 +10,8 @@ const root = ReactDOM.createRoot(
 //import data from '../data.json'
 let data: any
 root.render(
-  <React.StrictMode>
+   <React.StrictMode>
     <OpenAPIChanges report={data}/>
-  </React.StrictMode>
+   </React.StrictMode>
 );
 

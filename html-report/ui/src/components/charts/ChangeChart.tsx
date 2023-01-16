@@ -1,4 +1,4 @@
-import {ReportState} from "@/model/store";
+import {ReportState, useReportStore} from "@/model/store";
 import {ReportItem} from "@/model/report";
 import React, {useContext, useEffect, useRef} from "react";
 
@@ -25,8 +25,6 @@ ChartJS.register(
 );
 
 import '../navigation/Navigation.css';
-import {ReportStoreContext} from "@/OpenAPIChanges";
-import {useStore} from "zustand";
 
 
 export interface ChangeChartProps {
@@ -35,15 +33,17 @@ export interface ChangeChartProps {
 
 export function ChangeChart(props: ChangeChartProps) {
 
-
-    const store = useContext(ReportStoreContext)
-    const report = useStore(store, (report: ReportState) => report.report);
+    const report = useReportStore((report: ReportState) => report.report);
     const labels: string[] = [];
     const dataset: any[] = [];
     const totalData: number[] = [];
     const breakingData: number[] = [];
     const chartRef = useRef(null);
     const mobile = (window.innerWidth < 1000)
+
+    if (!report) {
+        return null
+    }
 
     report.reportItems.forEach((item: ReportItem) => {
         const time = new Date(item.statistics.commit.date)
@@ -88,15 +88,15 @@ export function ChangeChart(props: ChangeChartProps) {
     useEffect(() => {
         const chart: any = chartRef.current;
         if (chart) {
-            chart.setActiveElements([
-                {
-                    datasetIndex: 0,
-                    index: props.selectedIndex,
-                }, {
-                    datasetIndex: 1,
-                    index: props.selectedIndex,
-                }
-            ]);
+            // chart.setActiveElements([
+            //     {
+            //         datasetIndex: 0,
+            //         index: props.selectedIndex,
+            //     }, {
+            //         datasetIndex: 1,
+            //         index: props.selectedIndex,
+            //     }
+            // ]);
         }
 
     }, [props.selectedIndex]);

@@ -32,7 +32,7 @@ module.exports = {
             },
         ]
     },
-    devtool: prod ? undefined : 'source-map',
+    //devtool: prod ? undefined : 'source-map',
     devServer: {
         compress: true,
         port: 3000

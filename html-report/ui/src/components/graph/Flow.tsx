@@ -1,4 +1,4 @@
-import React, {useContext, useRef, useState} from 'react';
+import React, {useContext, useEffect, useRef, useState} from 'react';
 import {Canvas, CanvasPosition, CanvasRef, Edge, EdgeData, ElkRoot, MarkerArrow, NodeData} from 'reaflow';
 import {ReactZoomPanPinchRef, TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
 import {
@@ -8,7 +8,7 @@ import {
     ReportState,
     useChangeStore,
     useDrawerStore,
-    useGraphStore,
+    useGraphStore, useReportStore,
 
 } from "@/model/store";
 import {Button, Space} from "antd";
@@ -17,9 +17,9 @@ import {NodeIndexOutlined, ReloadOutlined, ZoomInOutlined, ZoomOutOutlined} from
 import {CustomNode} from "@/components/graph/CustomNode";
 import {getNextDirection} from "@/utils/utils";
 import {loader} from "@monaco-editor/react";
-import init = loader.init;
 import {ReportStoreContext} from "@/OpenAPIChanges";
 import {useStore} from "zustand";
+import {Report} from "@/model/report";
 
 const HorizontalFlow = () => {
     const drawerOpen = useDrawerStore((state: DrawerState) => state.drawerOpen)
@@ -32,18 +32,16 @@ const HorizontalFlow = () => {
     const transRef = useRef(null);
     const setZoomPanPinch = useGraphStore(state => state.setZoomPanPinch);
     const zoomPanPinch = useGraphStore(state => state.zoomPanPinch);
-
-    const store = useContext(ReportStoreContext)
-
-    const nodeData: NodeData[] | undefined = useStore(store, (report: ReportState) => report.selectedReportItem.graph?.nodes)
-    const edgeData: EdgeData[] | undefined = useStore(store, (report: ReportState) => report.selectedReportItem.graph?.edges)
+    const report: Report | undefined = useReportStore((report: ReportState) => report.report)
+    const nodeData: NodeData[] | undefined = useReportStore((report: ReportState) => report.selectedReportItem?.graph?.nodes)
+    const edgeData: EdgeData[] | undefined = useReportStore((report: ReportState) => report.selectedReportItem?.graph?.edges)
 
     if (!nodeData || !edgeData) {
         return (<div>unable to render graph, no nodes or edges!</div>)
     }
 
     const [nodes, setNodes] = useState<NodeData[]>(nodeData)
-    const [edges] = useState<EdgeData[]>(edgeData)
+    const [edges, setEdges] = useState<EdgeData[]>(edgeData)
     const [selections, setSelections] = useState<string[]>([]);
 
     let timer: any
@@ -53,11 +51,9 @@ const HorizontalFlow = () => {
             const maxWidth = window.innerWidth - 50;
             const maxHeight = window.innerHeight - 328;
             setSize({
-
                 width: maxWidth,
                 height: maxHeight,
             });
-            console.log(window.innerHeight, window.innerWidth)
         }, 100)
     }
 
@@ -65,19 +61,27 @@ const HorizontalFlow = () => {
         changeSize(false)
     }
 
+    useEffect(() => {
+        // render the entire thing once things change.
+        setNodes([...nodeData]);
+        setEdges([...edgeData]);
+    }, [nodeData, edgeData])
+
     const onInit = React.useCallback(
         (ref: ReactZoomPanPinchRef) => {
             window.addEventListener('resize', () => {
                 watchSize()
             })
+            // if we're dealing with just a left/right, start off facing right.
+            if (report && report.reportItems.length  <= 2) {
+                setDirection('RIGHT')
+            }
             setZoomPanPinch(ref);
         },
         [setZoomPanPinch]
     );
 
     let scale = 1;
-
-
     const maxWidth = window.innerWidth - 50;
     const maxHeight = window.innerHeight - 328;
 

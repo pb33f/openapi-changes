@@ -3,15 +3,16 @@ import PieChart from "../charts/Pie";
 import {ReportSummary} from "./ReportSummary";
 import {ChangeStatistics} from "@/model";
 import './ReportContainer.css'
-import {ReportState} from "@/model/store";
-import {ReportStoreContext} from "@/OpenAPIChanges";
-import {useStore} from "zustand";
+import {ReportState, useReportStore} from "@/model/store";
 
 export const ReportContainer: React.FC = () => {
-    const store = useContext(ReportStoreContext)
+    const stats: ChangeStatistics | undefined =
+        useReportStore((report: ReportState) => report.selectedReportItem?.statistics);
 
-    const stats: ChangeStatistics =
-        useStore(store, (report: ReportState) => report.selectedReportItem.statistics);
+    if (!stats) {
+        return <div>no report.</div>
+    }
+
     const overallChanges = [
         {
             type: "Modifications",

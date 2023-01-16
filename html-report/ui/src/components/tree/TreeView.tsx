@@ -7,7 +7,7 @@ import {DownOutlined, EditOutlined, MinusSquareOutlined, PlusSquareOutlined} fro
 import {EditorComponent} from "@/components/editor/Editor";
 import {Allotment} from "allotment";
 import {BeefyTreeNode} from "@/model/beefy-tree-node";
-import {ChangeState, EditorState, ReportState, useChangeStore, useEditorStore} from "@/model/store";
+import {ChangeState, EditorState, ReportState, useChangeStore, useEditorStore, useReportStore} from "@/model/store";
 import {ChangeTitleComponent, OriginalModifiedCols} from "@/components/drawer/Drawer";
 import {GoDiff} from "react-icons/go";
 import {CheckPropIsVerb, Verb} from "@/components/verb/Verb";
@@ -90,9 +90,8 @@ const TreeTitleNode = (props: TreeTitleNodeProps) => {
 const {DirectoryTree} = Tree;
 
 export function TreeViewComponent() {
-    const store = useContext(ReportStoreContext)
-    const selectedReport = useStore(store, (report: ReportState) => report.selectedReportItem);
-    const treeData: BeefyTreeNode[] | undefined = selectedReport.tree;
+    const selectedReport = useReportStore((report: ReportState) => report.selectedReportItem);
+    const treeData: BeefyTreeNode[] | undefined = selectedReport?.tree;
     const sbs = useEditorStore((editor: EditorState) => editor.sideBySide);
     const setSbs = useEditorStore((editor: EditorState) => editor.setSideBySide);
 
@@ -117,20 +116,20 @@ export function TreeViewComponent() {
         visitNode(treeData[0])
     }
 
+
     const treeRef = useRef<any>();
-    const currentChange = useChangeStore((state: ChangeState) => state.currentChange)
-    const setCurrentChange = useChangeStore((state: ChangeState) => state.setCurrentChange)
-    const selectedKeysInState = useChangeStore((state: ChangeState) => state.selectedChangeKeys)
-    const setSelectedKeysInState = useChangeStore((state: ChangeState) => state.setSelectedChangeKeys)
-    const [expandedKeys, setExpandedKeys] = useState<React.Key[]>(['root']);
+    const currentChange = useChangeStore((state: ChangeState) => state.currentChange);
+    const setCurrentChange = useChangeStore((state: ChangeState) => state.setCurrentChange);
+    const selectedKeysInState = useChangeStore((state: ChangeState) => state.selectedChangeKeys);
+    const setSelectedKeysInState = useChangeStore((state: ChangeState) => state.setSelectedChangeKeys);
+    const expandedKeys = useChangeStore((state: ChangeState) => state.expandedChangeKeys);
+    const setExpandedKeys = useChangeStore((state: ChangeState) => state.setExpandedChangeKeys);
     const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
-    const [autoExpandParent, setAutoExpandParent] = useState<boolean>(true);
     const lookupMap = useChangeStore((state: ChangeState) => state.treeMapLookup)
     const [height, setHeight] = useState(0);
 
     const onExpand = (expandedKeysValue: React.Key[], info: any) => {
         setExpandedKeys(expandedKeysValue);
-        setAutoExpandParent(false);
     };
 
     const onSelect = (selectedKeysValue: React.Key[], info: any) => {
@@ -138,15 +137,13 @@ export function TreeViewComponent() {
             setSelectedKeys(selectedKeysValue);
             setSelectedKeysInState(selectedKeysValue)
             setCurrentChange(info.node.change);
-        } else {
-            setExpandedKeys(selectedKeysValue);
         }
     };
 
 
     //let listener: boolean
     const treeContainer = useCallback((node: any) => {
-        if(window.innerWidth < 1000 && sbs) {
+        if (window.innerWidth < 1000 && sbs) {
             setSbs(false)
         }
 
@@ -168,10 +165,6 @@ export function TreeViewComponent() {
         if (lookupKey && treeRef) {
             treeRef.current.scrollTo({key: lookupKey, align: 'top'})
         }
-        // if (!listener) {
-        //     listener = true;
-        //    //window.addEventListener('resize', watchSize);
-        // }
     }, []);
 
 
@@ -204,6 +197,9 @@ export function TreeViewComponent() {
         view = selectedView;
     }
 
+    if (!treeData) {
+        return <span>this is a cunt.</span>
+    }
     let mobile = (window.innerWidth < 1000);
     if (!mobile) {
         return (
@@ -221,6 +217,7 @@ export function TreeViewComponent() {
                                 virtual={false}
                                 switcherIcon={<DownOutlined/>}
                                 defaultExpandAll
+                                //expandedKeys={expandedKeys}
                                 onExpand={onExpand}
                                 onSelect={onSelect}
                                 selectedKeys={selectedKeys}

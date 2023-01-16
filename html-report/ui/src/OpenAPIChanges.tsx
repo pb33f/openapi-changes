@@ -1,4 +1,4 @@
-import React, {createContext, useContext} from 'react';
+import React, {createContext, useContext, useEffect, useState} from 'react';
 import './variables.css';
 import "allotment/dist/style.css";
 import './OpenAPIChanges.css';
@@ -7,7 +7,7 @@ import {Header} from "./components/header";
 import {ReportContainer} from "./components/report-statistics/ReportContainer";
 import {GraphViewComponent} from "@/components/graph/GraphView";
 import {TreeViewComponent} from "@/components/tree/TreeView";
-import {ChangeState, DrawerState, ReportState, useChangeStore, useDrawerStore,} from "@/model/store";
+import {ChangeState, DrawerState, ReportState, useChangeStore, useDrawerStore, useReportStore,} from "@/model/store";
 import {BeefyTreeNode} from "@/model";
 import {NodeData} from "reaflow";
 import {TreeGraphMap} from "@/model/graph";
@@ -22,23 +22,11 @@ export interface OpenAPIChangesProps {
 export let ReportStoreContext: React.Context<StoreApi<ReportState>>
 
 function OpenAPIChanges(props: OpenAPIChangesProps) {
-
-    const useReportStore = createStore<ReportState>((set) => ({
-        report: props.report,
-        selectedReportIndex: props.report.reportItems.length - 1,
-        selectedReportItem: props.report.reportItems[0],
-        setSelectedReportIndex: (selectedReportIndex: number) => set({selectedReportIndex}),
-        setSelectedReport: (selectedReportItem: ReportItem) => set({selectedReportItem}),
-    }));
-
-    ReportStoreContext = createContext(useReportStore)
-    const store = useContext(ReportStoreContext)
-
     const closeDrawer = useDrawerStore((state: DrawerState) => state.closeDrawer)
     const nodeMap: Map<String, TreeGraphMap> = new Map<String, TreeGraphMap>();
     const lookupMap = useChangeStore((state: ChangeState) => state.treeMapLookup)
-    const treeData: BeefyTreeNode[] | undefined = useStore(store, (report: ReportState) => report.selectedReportItem.tree)
-    const graphData: NodeData[] | undefined = useStore(store, (report: ReportState) => report.selectedReportItem.graph?.nodes)
+    const treeData: BeefyTreeNode[] | undefined  = useReportStore((report: ReportState) => report.selectedReportItem?.tree)
+    const graphData: NodeData[] | undefined = useReportStore((report: ReportState) => report.selectedReportItem?.graph?.nodes)
 
     if (treeData) {
         treeData.forEach((btn: BeefyTreeNode) => {
@@ -59,9 +47,8 @@ function OpenAPIChanges(props: OpenAPIChangesProps) {
         }
     });
 
-
     return (
-        <ReportStoreContext.Provider value={store}>
+
             <ConfigProvider
                 theme={{
                     algorithm: theme.darkAlgorithm,
@@ -116,7 +103,7 @@ function OpenAPIChanges(props: OpenAPIChangesProps) {
 
                 </div>
             </ConfigProvider>
-        </ReportStoreContext.Provider>
+
     );
 }
 

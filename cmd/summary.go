@@ -35,7 +35,6 @@ func GetSummaryCommand() *cobra.Command {
             if len(args) == 2 {
 
                 latestFlag, _ := cmd.Flags().GetBool("top")
-                includeQuality, _ := cmd.Flags().GetBool("quality")
 
                 // check if the first arg is a directory, if so - process as a git history operation.
                 p := args[0]
@@ -54,7 +53,7 @@ func GetSummaryCommand() *cobra.Command {
                         return err
                     }
 
-                    err = runGitHistorySummary(args[0], args[1], latestFlag, includeQuality)
+                    err = runGitHistorySummary(args[0], args[1], latestFlag)
 
                     if err != nil {
                         pterm.Error.Println(err.Error())
@@ -62,7 +61,7 @@ func GetSummaryCommand() *cobra.Command {
                     }
                 } else {
 
-                    errs := runLeftRightSummary(args[0], args[1], includeQuality)
+                    errs := runLeftRightSummary(args[0], args[1])
                     if len(errs) > 0 {
                         for e := range errs {
                             pterm.Error.Println(errs[e].Error())
@@ -79,7 +78,7 @@ func GetSummaryCommand() *cobra.Command {
     return cmd
 }
 
-func runLeftRightSummary(left, right string, quality bool) []error {
+func runLeftRightSummary(left, right string) []error {
 
     var leftBytes, rightBytes []byte
     var errs []error
@@ -109,7 +108,7 @@ func runLeftRightSummary(left, right string, quality bool) []error {
         },
     }
 
-    errs = git.BuildCommitChangelog(commits, quality)
+    errs = git.BuildCommitChangelog(commits)
     if len(errs) > 0 {
         return errs
     }
@@ -120,7 +119,7 @@ func runLeftRightSummary(left, right string, quality bool) []error {
     return nil
 }
 
-func runGitHistorySummary(gitPath, filePath string, latest, quality bool) error {
+func runGitHistorySummary(gitPath, filePath string, latest bool) error {
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
         pterm.Error.Println(err.Error())
@@ -134,7 +133,7 @@ func runGitHistorySummary(gitPath, filePath string, latest, quality bool) error 
     commitHistory := git.ExtractHistoryFromFile(gitPath, filePath)
 
     // populate history with changes and data
-    git.PopulateHistoryWithChanges(commitHistory, spinner, quality)
+    git.PopulateHistoryWithChanges(commitHistory, spinner)
 
     if latest {
         commitHistory = commitHistory[:1]

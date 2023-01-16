@@ -23,18 +23,19 @@ const TextWidthSizeBumpIncrement = 10
 
 func BuildGraph(obj any) ([]*model.NodeData[any], []*model.EdgeData[any]) {
 
-    // todo: start here tomorrow.
     var nodes []*model.NodeData[any]
     var edges []*model.EdgeData[any]
-
     initHeight := DefaultHeight
+
     n := &model.NodeData[any]{
         Id:     "root",
         Text:   "Document",
         Height: &initHeight,
     }
+
     nodes = append(nodes, n)
     exploreGraphObject(n, obj, &nodes, &edges)
+
     return nodes, edges
 }
 
@@ -56,7 +57,6 @@ func exploreGraphObject(parent *model.NodeData[any], object any, nodes *[]*model
                 topChanges := field.Elem().Interface().(wcModel.PropertyChanges).Changes
 
                 for x := range topChanges {
-
                     newWidth := calcWidth(topChanges[x].New)
                     origWidth := calcWidth(topChanges[x].Original)
                     if (newWidth > origWidth) && (newWidth > width) {

@@ -1,7 +1,7 @@
 import React, {useContext} from "react";
 import './Header.css'
 import {Button} from "antd";
-import {DrawerState, NavState, ReportState, useDrawerStore, useNavStore} from "@/model/store";
+import {DrawerState, NavState, ReportState, useDrawerStore, useNavStore, useReportStore} from "@/model/store";
 import {FieldTimeOutlined} from "@ant-design/icons";
 import {Navigation} from "@/components/navigation/Navigation";
 import {ReportStoreContext} from "@/OpenAPIChanges";
@@ -11,8 +11,7 @@ import {useStore} from "zustand";
 export const Header = () => {
     const toggleNav = useNavStore((state: NavState) => state.openNav)
     const closeDrawer = useDrawerStore((state: DrawerState) => state.closeDrawer)
-    const store = useContext(ReportStoreContext)
-    const report = useStore(store, (state: ReportState) => state.report)
+    const report = useReportStore((state: ReportState) => state.report)
 
     const navButtonClicked = () => {
         closeDrawer()
@@ -28,14 +27,25 @@ export const Header = () => {
             height: '40px',
         }
     }
+    if (!report) {
+        return (<header>no report</header>)
+    }
+
+    let button: JSX.Element;
+    if (report.reportItems.length > 2) {
+      button = <Button style={style}
+                       size={mobile? 'small' : 'large'}
+                       ghost={true}
+                       type='primary'
+                       icon={<FieldTimeOutlined style={{fontSize: '1em'}}/>}
+                       onClick={navButtonClicked}>Timeline</Button>
+    } else {
+        button = (<span></span>);
+    }
+
     return (
         <header>
-            <Button style={style}
-                    size={mobile? 'small' : 'large'}
-                    ghost={true}
-                    type='primary'
-                    icon={<FieldTimeOutlined style={{fontSize: '1em'}}/>}
-                    onClick={navButtonClicked}>Timeline</Button>
+            {button}
             <a href="https://github.com/pb33f/openapi-changes">
                 OpenAPI changes report
             </a>
