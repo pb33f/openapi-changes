@@ -6,6 +6,8 @@ See what has changed with your OpenAPI Specification, between a single change, o
 
 However, if you do want to try out this early code?
 
+Remember.. it's early!
+
 ### 1. Clone the repo
 
 ```bash
