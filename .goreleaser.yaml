@@ -35,11 +35,11 @@ brews:
       name: goreleaserbot
       email: goreleaser@quobix.com
 
-    homepage: "https://quobix.com/vacuum"
-    description: "The worlds fastest and most scalable OpenAPI linter"
+    homepage: "https://pb33f.io/openapi-changes"
+    description: "The worlds sexiest OpenAPI diffing and change detection engine"
 
     install: |
-      bin.install "vacuum"
+      bin.install "openapi-changes"
 
 snapshot:
   name_template: "{{ .Tag }}"
