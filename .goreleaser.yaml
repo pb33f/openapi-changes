@@ -28,8 +28,8 @@ changelog:
       - '^test:'
 brews:
   - tap:
-      owner: daveshanley
-      name: homebrew-vacuum
+      owner: pb33f
+      name: openapi-changes
 
     commit_author:
       name: goreleaserbot
