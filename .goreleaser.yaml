@@ -29,7 +29,7 @@ changelog:
 brews:
   - tap:
       owner: pb33f
-      name: openapi-changes
+      name: homebrew-taps
 
     commit_author:
       name: goreleaserbot
