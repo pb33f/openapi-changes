@@ -54,7 +54,10 @@ func GetConsoleCommand() *cobra.Command {
                         return err
                     }
 
-                    return runGitHistoryConsole(args[0], args[1], latestFlag)
+                    errs := runGitHistoryConsole(args[0], args[1], latestFlag)
+                    if errs != nil {
+                        return errs[0]
+                    }
 
                 } else {
                     errs := runLeftRightCompare(args[0], args[1])
@@ -75,18 +78,21 @@ func GetConsoleCommand() *cobra.Command {
     return cmd
 }
 
-func runGitHistoryConsole(gitPath, filePath string, latest bool) error {
+func runGitHistoryConsole(gitPath, filePath string, latest bool) []error {
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
         pterm.Error.Println(err.Error())
-        return err
+        return []error{err}
     }
 
     spinner, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Extracting history for '%s' in repo '%s",
         filePath, gitPath))
 
     // build commit history.
-    commitHistory := git.ExtractHistoryFromFile(gitPath, filePath)
+    commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath)
+    if err != nil {
+        return err
+    }
 
     // populate history with changes and data
     git.PopulateHistoryWithChanges(commitHistory, spinner)

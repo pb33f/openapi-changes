@@ -130,7 +130,10 @@ func runGitHistorySummary(gitPath, filePath string, latest bool) error {
         filePath, gitPath))
 
     // build commit history.
-    commitHistory := git.ExtractHistoryFromFile(gitPath, filePath)
+    commitHistory, errs := git.ExtractHistoryFromFile(gitPath, filePath)
+    if errs != nil {
+        return errs[0]
+    }
 
     // populate history with changes and data
     git.PopulateHistoryWithChanges(commitHistory, spinner)
