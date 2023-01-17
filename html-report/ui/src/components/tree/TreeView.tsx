@@ -198,7 +198,7 @@ export function TreeViewComponent() {
     }
 
     if (!treeData) {
-        return <span>this is a cunt.</span>
+        return <span>no tree data, there were no changes detected in this commit.</span>
     }
     let mobile = (window.innerWidth < 1000);
     if (!mobile) {

@@ -12,7 +12,10 @@ import (
     "github.com/pterm/pterm"
     "github.com/spf13/cobra"
     "github.com/twinj/uuid"
+    "net/url"
     "os"
+    "path/filepath"
+    "strings"
     "time"
 )
 
@@ -30,8 +33,42 @@ func GetHTMLReportCommand() *cobra.Command {
 
             // check for two args (left and right)
             if len(args) < 2 {
-                pterm.Error.Println("Two arguments are required to compare left and right OpenAPI Specifications.")
-                return nil
+
+                // check if arg is an url (like a github url)
+                url, err := url.Parse(args[0])
+                if err == nil {
+
+                    if url.Host == "github.com" {
+
+                        //report, er := runGitHistoryHTMLReport(args[0], args[1], latestFlag)
+                        fmt.Sprint(url)
+                        path := url.Path
+                        dir, file := filepath.Split(path)
+                        dirSegments := strings.Split(dir, "/")
+                        user := dirSegments[1]
+                        repo := dirSegments[2]
+                        filePath := fmt.Sprintf("%s%s", strings.Join(dirSegments[5:], "/"), file)
+
+                        report, er := runGithubHistoryHTMLReport(user, repo, filePath, false)
+                        if err != nil {
+                            return er[0]
+                        }
+                        err = os.WriteFile("github-report.html", report, 0664)
+                        if err != nil {
+                            pterm.Error.Println(err.Error())
+                            return err
+                        }
+                        return nil
+
+                    } else {
+
+                    }
+
+                } else {
+
+                    pterm.Error.Println("Two arguments are required to compare left and right OpenAPI Specifications.")
+                    return nil
+                }
             }
             if len(args) == 2 {
 
@@ -99,13 +136,46 @@ func runGitHistoryHTMLReport(gitPath, filePath string, latest bool) ([]byte, []e
     }
 
     // build commit history.
-    commitHistory, err := git.ExtractHistoryUsingLib(gitPath, filePath)
+    commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath)
     if err != nil {
-        return nil, []error{err}
+        return nil, err
     }
 
     // populate history with changes and data
     errs := git.PopulateHistoryWithChanges(commitHistory, nil)
+    if errs != nil {
+        return nil, errs
+    }
+
+    if latest {
+        commitHistory = commitHistory[:1]
+    }
+
+    var reports []*Report
+    for r := range commitHistory {
+        if commitHistory[r].Changes != nil {
+            reports = append(reports, createReport(commitHistory[r]))
+        }
+    }
+
+    generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
+    return generator.GenerateReport(false), nil
+}
+
+func runGithubHistoryHTMLReport(username, repo, filePath string, latest bool) ([]byte, []error) {
+    if username == "" || repo == "" || filePath == "" {
+        err := errors.New("please supply valid github username/repo and filepath")
+        pterm.Error.Println(err.Error())
+        return nil, []error{err}
+    }
+
+    githubCommits, err := git.GetCommitsForGithubFile(username, repo, filePath)
+
+    if err != nil {
+        return nil, []error{err}
+    }
+
+    commitHistory, errs := git.ConvertGithubCommitsIntoModel(githubCommits)
     if errs != nil {
         return nil, errs
     }
