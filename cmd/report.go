@@ -168,7 +168,7 @@ func runLeftRightReport(left, right string) (*Report, []error) {
         },
     }
 
-    errs = git.BuildCommitChangelog(commits)
+    commits, errs = git.BuildCommitChangelog(commits)
     if len(errs) > 0 {
         return nil, errs
     }

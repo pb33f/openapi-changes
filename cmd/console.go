@@ -139,7 +139,7 @@ func runLeftRightCompare(left, right string) []error {
         },
     }
 
-    errs = git.BuildCommitChangelog(commits)
+    commits, errs = git.BuildCommitChangelog(commits)
     if len(errs) > 0 {
         return errs
     }
