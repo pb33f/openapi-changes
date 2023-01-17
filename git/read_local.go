@@ -11,6 +11,8 @@ import (
     "github.com/go-git/go-git/v5/plumbing/object"
     "github.com/go-git/go-git/v5/storage/memory"
     "github.com/pb33f/libopenapi"
+    "github.com/pb33f/libopenapi/resolver"
+
     // "github.com/pb33f/openapi-changes/builder"
     "github.com/pb33f/openapi-changes/model"
     "github.com/pterm/pterm"
@@ -229,7 +231,7 @@ func ExtractHistoryUsingLib(repoDirectory, filePath string) ([]*model.Commit, er
     return commitHistory, nil
 }
 
-func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.SpinnerPrinter) []error {
+func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.SpinnerPrinter) ([]*model.Commit, []error) {
     for c := range commitHistory {
         cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", commitHistory[c].Hash, commitHistory[c].FilePath))
         var ou, er bytes.Buffer
@@ -238,22 +240,24 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.Sp
         cmd.Dir = commitHistory[c].RepoDirectory
         err := cmd.Run()
         if err != nil {
-            return []error{err}
+            return nil, []error{err}
         }
         commitHistory[c].Data = ou.Bytes()
     }
-    errors := BuildCommitChangelog(commitHistory)
+    cleaned, errors := BuildCommitChangelog(commitHistory)
     if len(errors) > 0 {
-        return errors
+        return nil, errors
     }
     if printer != nil {
         printer.UpdateText(fmt.Sprintf("Parsed %d commits", len(commitHistory)))
     }
-    return nil
+    return cleaned, nil
 }
 
-func BuildCommitChangelog(commitHistory []*model.Commit) []error {
+func BuildCommitChangelog(commitHistory []*model.Commit) ([]*model.Commit, []error) {
     var errors []error
+    var cleaned []*model.Commit
+
     for c := len(commitHistory) - 1; c > -1; c-- {
         var oldBits, newBits []byte
         if len(commitHistory) == c+1 {
@@ -277,14 +281,22 @@ func BuildCommitChangelog(commitHistory []*model.Commit) []error {
                 errors = append(errors, err)
             }
             if len(errors) > 0 {
-                return errors
+                for x := range errors {
+                    if _, ok := errors[x].(*resolver.ResolvingError); !ok {
+                        return nil, errors
+                    }
+                }
             }
             changes, errs := libopenapi.CompareDocuments(oldDoc, newDoc)
             if errs != nil {
                 errors = append(errors, errs...)
             }
             if len(errors) > 0 {
-                return errors
+                for x := range errors {
+                    if _, ok := errors[x].(*resolver.ResolvingError); !ok {
+                        return nil, errors
+                    }
+                }
             }
             commitHistory[c].Changes = changes
         }
@@ -297,8 +309,14 @@ func BuildCommitChangelog(commitHistory []*model.Commit) []error {
         if oldDoc != nil {
             commitHistory[c].OldDocument = oldDoc
         }
+        if (c == len(commitHistory)-1) || commitHistory[c].Changes != nil {
+            cleaned = append(cleaned, commitHistory[c])
+        }
     }
-    return nil
+    for i, j := 0, len(cleaned)-1; i < j; i, j = i+1, j-1 {
+        cleaned[i], cleaned[j] = cleaned[j], cleaned[i]
+    }
+    return cleaned, nil
 }
 
 func ExtractPathAndFile(location string) (string, string) {

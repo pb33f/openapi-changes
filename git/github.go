@@ -7,7 +7,9 @@ import (
     "encoding/json"
     "fmt"
     "github.com/pb33f/openapi-changes/model"
+    "github.com/pterm/pterm"
     "io/ioutil"
+    "net"
     "net/http"
     "net/url"
     "os"
@@ -46,8 +48,18 @@ type APIFile struct {
 
 func GetCommitsForGithubFile(user, repo, path string) ([]*APICommit, error) {
 
+    t := &http.Transport{
+        Dial: (&net.Dialer{
+            Timeout:   60 * time.Second,
+            KeepAlive: 30 * time.Second,
+        }).Dial,
+        TLSHandshakeTimeout: 60 * time.Second,
+    }
+
     u := fmt.Sprintf(GithubCommitAPI+"%s/%s/commits?path=%s", user, repo, path)
-    client := &http.Client{}
+    client := &http.Client{
+        Transport: t,
+    }
     req, _ := http.NewRequest("GET", u, nil)
     ghAuth := os.Getenv("GH_TOKEN")
     if ghAuth != "" {
@@ -72,9 +84,15 @@ func GetCommitsForGithubFile(user, repo, path string) ([]*APICommit, error) {
         return nil, err
     }
 
+    kbSize := 0
+    threshold := 50000
+    cutoffIndex := 0
+    count := 0
     var extractFilesFromCommit = func(user, repo, path string, commit *APICommit, d chan bool, e chan error) {
         u = fmt.Sprintf(GithubCommitAPI+"%s/%s/commits/%s", user, repo, commit.Hash)
-        cl := &http.Client{}
+        cl := &http.Client{
+            Transport: t,
+        }
         r, _ := http.NewRequest(http.MethodGet, u, nil)
         if ghAuth != "" {
             r.Header.Set(GithubAuthHeader, fmt.Sprintf("Bearer %s", ghAuth))
@@ -125,6 +143,12 @@ func GetCommitsForGithubFile(user, repo, path string) ([]*APICommit, error) {
                     return
                 }
                 b, er = ioutil.ReadAll(res.Body)
+                kbSize += (len(b) / 1024) * 2
+                if kbSize > threshold {
+                    cutoffIndex = count
+                } else {
+                    count++
+                }
                 if er != nil {
                     e <- er
                     return
@@ -139,6 +163,7 @@ func GetCommitsForGithubFile(user, repo, path string) ([]*APICommit, error) {
     errChan := make(chan error)
 
     totalCommits := len(commits)
+    //totalCommits := 5
     completedCommits := 0
 
     for x := range commits {
@@ -153,12 +178,16 @@ func GetCommitsForGithubFile(user, repo, path string) ([]*APICommit, error) {
             return nil, e
         }
     }
-
+    if cutoffIndex > 0 {
+        pterm.Warning.Printf("Report exceeds %dMB in size (%dMB), results limited to %d changes in the timeline",
+            threshold/1024, kbSize/1024, cutoffIndex-1)
+        commits = commits[:cutoffIndex]
+    }
     return commits, nil
 }
 
 func ConvertGithubCommitsIntoModel(ghCommits []*APICommit) ([]*model.Commit, []error) {
-    normalized := make([]*model.Commit, len(ghCommits))
+    var normalized []*model.Commit
     for x := range ghCommits {
         for y := range ghCommits[x].Files {
             if len(ghCommits[x].Files[y].Bytes) > 0 {
@@ -171,13 +200,13 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit) ([]*model.Commit, []e
                     CommitDate:  t,
                     Data:        ghCommits[x].Files[y].Bytes,
                 }
-                normalized[x] = nc
+
+                normalized = append(normalized, nc)
+
             }
         }
     }
-    errs := BuildCommitChangelog(normalized)
-    if errs != nil {
-        return nil, errs
-    }
-    return normalized, nil
+    var errs []error
+    normalized, errs = BuildCommitChangelog(normalized)
+    return normalized, errs
 }

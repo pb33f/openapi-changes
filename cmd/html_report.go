@@ -6,6 +6,7 @@ package cmd
 import (
     "errors"
     "fmt"
+    "github.com/pb33f/libopenapi/resolver"
     "github.com/pb33f/openapi-changes/git"
     html_report "github.com/pb33f/openapi-changes/html-report"
     "github.com/pb33f/openapi-changes/model"
@@ -40,8 +41,6 @@ func GetHTMLReportCommand() *cobra.Command {
 
                     if url.Host == "github.com" {
 
-                        //report, er := runGitHistoryHTMLReport(args[0], args[1], latestFlag)
-                        fmt.Sprint(url)
                         path := url.Path
                         dir, file := filepath.Split(path)
                         dirSegments := strings.Split(dir, "/")
@@ -59,8 +58,6 @@ func GetHTMLReportCommand() *cobra.Command {
                             return err
                         }
                         return nil
-
-                    } else {
 
                     }
 
@@ -142,9 +139,9 @@ func runGitHistoryHTMLReport(gitPath, filePath string, latest bool) ([]byte, []e
     }
 
     // populate history with changes and data
-    errs := git.PopulateHistoryWithChanges(commitHistory, nil)
-    if errs != nil {
-        return nil, errs
+    commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, nil)
+    if err != nil {
+        return nil, err
     }
 
     if latest {
@@ -177,7 +174,13 @@ func runGithubHistoryHTMLReport(username, repo, filePath string, latest bool) ([
 
     commitHistory, errs := git.ConvertGithubCommitsIntoModel(githubCommits)
     if errs != nil {
-        return nil, errs
+        for x := range errs {
+            if rerr, ok := errs[x].(*resolver.ResolvingError); ok {
+                fmt.Printf("Infinite loop detected (ignoring): %s\n", rerr.Path)
+            } else {
+                return nil, errs
+            }
+        }
     }
 
     if latest {
@@ -192,7 +195,7 @@ func runGithubHistoryHTMLReport(username, repo, filePath string, latest bool) ([
     }
 
     generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
-    return generator.GenerateReport(false), nil
+    return generator.GenerateReport(true), nil
 }
 
 func runLeftRightHTMLReport(left, right string) ([]byte, []error) {
@@ -225,10 +228,10 @@ func runLeftRightHTMLReport(left, right string) ([]byte, []error) {
         },
     }
 
-    errs = git.BuildCommitChangelog(commits)
+    commits, errs = git.BuildCommitChangelog(commits)
     if len(errs) > 0 {
         return nil, errs
     }
     generator := html_report.NewHTMLReport(false, time.Now(), commits)
-    return generator.GenerateReport(false), nil
+    return generator.GenerateReport(true), nil
 }
