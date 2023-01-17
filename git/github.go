@@ -14,6 +14,7 @@ import (
     "net/url"
     "os"
     "path/filepath"
+    "strings"
     "time"
 )
 
@@ -125,9 +126,11 @@ func GetCommitsForGithubFile(user, repo, path string) ([]*APICommit, error) {
 
             // make sure we extract the one we want.
             rawURL, _ := url.Parse(commit.Files[x].RawURL)
-            _, file := filepath.Split(rawURL.Path)
-            _, lookyLoo := filepath.Split(path)
-            if file == lookyLoo {
+            dir, file := filepath.Split(rawURL.Path)
+            lookyDir, lookyLoo := filepath.Split(path)
+            dir = strings.ReplaceAll(dir, fmt.Sprintf("/%s/%s/raw/%s/", user, repo, commit.Hash), "")
+
+            if file == lookyLoo && dir == lookyDir {
                 r, _ = http.NewRequest(http.MethodGet, commit.Files[x].RawURL, nil)
                 if ghAuth != "" {
                     r.Header.Set(GithubAuthHeader, fmt.Sprintf("Bearer %s", ghAuth))
@@ -200,9 +203,7 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit) ([]*model.Commit, []e
                     CommitDate:  t,
                     Data:        ghCommits[x].Files[y].Bytes,
                 }
-
                 normalized = append(normalized, nc)
-
             }
         }
     }
