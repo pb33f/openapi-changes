@@ -58,8 +58,10 @@ func GetReportCommand() *cobra.Command {
                     report, er := runGitHistoryReport(args[0], args[1], latestFlag)
 
                     if er != nil {
-                        pterm.Error.Println(er.Error())
-                        return er
+                        for x := range er {
+                            pterm.Error.Println(er[x].Error())
+                        }
+                        return er[0]
                     }
 
                     jsonBytes, _ := json.MarshalIndent(report, "", "  ")
@@ -101,15 +103,15 @@ type HistoricalReport struct {
     Reports       []*Report `json:"reports"`
 }
 
-func runGitHistoryReport(gitPath, filePath string, latest bool) (*HistoricalReport, error) {
+func runGitHistoryReport(gitPath, filePath string, latest bool) (*HistoricalReport, []error) {
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
         pterm.Error.Println(err.Error())
-        return nil, err
+        return nil, []error{err}
     }
 
     // build commit history.
-    commitHistory, err := git.ExtractHistoryUsingLib(gitPath, filePath)
+    commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath)
     if err != nil {
         return nil, err
     }
@@ -176,10 +178,6 @@ func runLeftRightReport(left, right string) (*Report, []error) {
 }
 
 func createReport(commit *model.Commit) *Report {
-    // wipe the bytes out from the specInfo instance in the vacuum report.
-    if commit.QualityReport != nil {
-        commit.QualityReport.SpecInfo.SpecBytes = nil
-    }
     report := reports.CreateOverallReport(commit.Changes)
     return &Report{report.ChangeReport, commit}
 }
