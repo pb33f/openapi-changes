@@ -6,17 +6,10 @@ package git
 import (
     "bytes"
     "fmt"
-    "github.com/go-git/go-git/v5"
-    "github.com/go-git/go-git/v5/plumbing"
-    "github.com/go-git/go-git/v5/plumbing/object"
-    "github.com/go-git/go-git/v5/storage/memory"
     "github.com/pb33f/libopenapi"
     "github.com/pb33f/libopenapi/resolver"
-
-    // "github.com/pb33f/openapi-changes/builder"
     "github.com/pb33f/openapi-changes/model"
     "github.com/pterm/pterm"
-    "io"
     "os/exec"
     "path"
     "strings"
@@ -90,146 +83,146 @@ func ExtractHistoryFromFile(repoDirectory, filePath string) ([]*model.Commit, []
     return commitHistory, nil
 }
 
-func ExtractHistoryFromGithub(user, repo, filePath string) ([]*model.Commit, error) {
+//func ExtractHistoryFromGithub(user, repo, filePath string) ([]*model.Commit, error) {
+//
+//    var commitHistory []*model.Commit
+//    url := fmt.Sprintf("https://github.com/%s/%s", user, repo)
+//    r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+//        URL: url,
+//    })
+//
+//    var ref *plumbing.Reference
+//    ref, err = r.Head()
+//    if err != nil {
+//        return nil, err
+//    }
+//
+//    var commitIterator object.CommitIter
+//    commitIterator, err = r.Log(&git.LogOptions{
+//        From: ref.Hash(),
+//        //FileName: &filePath,
+//        PathFilter: func(path string) bool {
+//            if path == filePath {
+//                fmt.Print(filePath)
+//                return true
+//            }
+//            return false
+//        },
+//    })
+//    if err != nil {
+//        return commitHistory, err
+//    }
+//
+//    // Iterate over all commits and save file for each
+//    var commit *object.Commit
+//    for {
+//        commit, err = commitIterator.Next()
+//        if err == io.EOF {
+//            break
+//        }
+//        if err != nil {
+//            return nil, err
+//        }
+//        var srcFile *object.File
+//        srcFile, err = commit.File(filePath)
+//        if err != nil {
+//            continue
+//        }
+//        buf := new(bytes.Buffer)
+//
+//        var reader io.ReadCloser
+//        reader, err = srcFile.Blob.Reader()
+//        if err != nil {
+//            return nil, err
+//        }
+//        _, err = buf.ReadFrom(reader)
+//        if err != nil {
+//            return nil, err
+//        }
+//
+//        commitHistory = append(commitHistory,
+//            &model.Commit{
+//                CommitDate:  commit.Author.When,
+//                Hash:        commit.Hash.String(),
+//                Message:     commit.Message,
+//                Author:      commit.Author.Name,
+//                AuthorEmail: commit.Author.Email,
+//                //RepoDirectory: repoDirectory,
+//                FilePath: filePath,
+//                Data:     buf.Bytes(),
+//            })
+//    }
+//    commitIterator.Close()
+//    return commitHistory, nil
+//
+//}
 
-    var commitHistory []*model.Commit
-    url := fmt.Sprintf("https://github.com/%s/%s", user, repo)
-    r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
-        URL: url,
-    })
-
-    var ref *plumbing.Reference
-    ref, err = r.Head()
-    if err != nil {
-        return nil, err
-    }
-
-    var commitIterator object.CommitIter
-    commitIterator, err = r.Log(&git.LogOptions{
-        From: ref.Hash(),
-        //FileName: &filePath,
-        PathFilter: func(path string) bool {
-            if path == filePath {
-                fmt.Print(filePath)
-                return true
-            }
-            return false
-        },
-    })
-    if err != nil {
-        return commitHistory, err
-    }
-
-    // Iterate over all commits and save file for each
-    var commit *object.Commit
-    for {
-        commit, err = commitIterator.Next()
-        if err == io.EOF {
-            break
-        }
-        if err != nil {
-            return nil, err
-        }
-        var srcFile *object.File
-        srcFile, err = commit.File(filePath)
-        if err != nil {
-            continue
-        }
-        buf := new(bytes.Buffer)
-
-        var reader io.ReadCloser
-        reader, err = srcFile.Blob.Reader()
-        if err != nil {
-            return nil, err
-        }
-        _, err = buf.ReadFrom(reader)
-        if err != nil {
-            return nil, err
-        }
-
-        commitHistory = append(commitHistory,
-            &model.Commit{
-                CommitDate:  commit.Author.When,
-                Hash:        commit.Hash.String(),
-                Message:     commit.Message,
-                Author:      commit.Author.Name,
-                AuthorEmail: commit.Author.Email,
-                //RepoDirectory: repoDirectory,
-                FilePath: filePath,
-                Data:     buf.Bytes(),
-            })
-    }
-    commitIterator.Close()
-    return commitHistory, nil
-
-}
-
-func ExtractHistoryUsingLib(repoDirectory, filePath string) ([]*model.Commit, error) {
-    var commitHistory []*model.Commit
-    var err error
-
-    r, e := git.PlainOpen(repoDirectory)
-    if e != nil {
-        return nil, err
-    }
-
-    var ref *plumbing.Reference
-    ref, err = r.Head()
-    if err != nil {
-        return nil, err
-    }
-
-    var commitIterator object.CommitIter
-    commitIterator, err = r.Log(&git.LogOptions{
-        From:     ref.Hash(),
-        FileName: &filePath,
-    })
-    if err != nil {
-        return commitHistory, err
-    }
-
-    // Iterate over all commits and save file for each
-    var commit *object.Commit
-    for {
-        commit, err = commitIterator.Next()
-        if err == io.EOF {
-            break
-        }
-        if err != nil {
-            return nil, err
-        }
-        var srcFile *object.File
-        srcFile, err = commit.File(filePath)
-        if err != nil {
-            continue
-        }
-        buf := new(bytes.Buffer)
-
-        var reader io.ReadCloser
-        reader, err = srcFile.Blob.Reader()
-        if err != nil {
-            return nil, err
-        }
-        _, err = buf.ReadFrom(reader)
-        if err != nil {
-            return nil, err
-        }
-
-        commitHistory = append(commitHistory,
-            &model.Commit{
-                CommitDate:    commit.Author.When,
-                Hash:          commit.Hash.String(),
-                Message:       commit.Message,
-                Author:        commit.Author.Name,
-                AuthorEmail:   commit.Author.Email,
-                RepoDirectory: repoDirectory,
-                FilePath:      filePath,
-                Data:          buf.Bytes(),
-            })
-    }
-    commitIterator.Close()
-    return commitHistory, nil
-}
+//func ExtractHistoryUsingLib(repoDirectory, filePath string) ([]*model.Commit, error) {
+//    var commitHistory []*model.Commit
+//    var err error
+//
+//    r, e := git.PlainOpen(repoDirectory)
+//    if e != nil {
+//        return nil, err
+//    }
+//
+//    var ref *plumbing.Reference
+//    ref, err = r.Head()
+//    if err != nil {
+//        return nil, err
+//    }
+//
+//    var commitIterator object.CommitIter
+//    commitIterator, err = r.Log(&git.LogOptions{
+//        From:     ref.Hash(),
+//        FileName: &filePath,
+//    })
+//    if err != nil {
+//        return commitHistory, err
+//    }
+//
+//    // Iterate over all commits and save file for each
+//    var commit *object.Commit
+//    for {
+//        commit, err = commitIterator.Next()
+//        if err == io.EOF {
+//            break
+//        }
+//        if err != nil {
+//            return nil, err
+//        }
+//        var srcFile *object.File
+//        srcFile, err = commit.File(filePath)
+//        if err != nil {
+//            continue
+//        }
+//        buf := new(bytes.Buffer)
+//
+//        var reader io.ReadCloser
+//        reader, err = srcFile.Blob.Reader()
+//        if err != nil {
+//            return nil, err
+//        }
+//        _, err = buf.ReadFrom(reader)
+//        if err != nil {
+//            return nil, err
+//        }
+//
+//        commitHistory = append(commitHistory,
+//            &model.Commit{
+//                CommitDate:    commit.Author.When,
+//                Hash:          commit.Hash.String(),
+//                Message:       commit.Message,
+//                Author:        commit.Author.Name,
+//                AuthorEmail:   commit.Author.Email,
+//                RepoDirectory: repoDirectory,
+//                FilePath:      filePath,
+//                Data:          buf.Bytes(),
+//            })
+//    }
+//    commitIterator.Close()
+//    return commitHistory, nil
+//}
 
 func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.SpinnerPrinter) ([]*model.Commit, []error) {
     for c := range commitHistory {
