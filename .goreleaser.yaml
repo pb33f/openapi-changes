@@ -12,7 +12,7 @@ builds:
       - darwin
     hooks:
         post:
-          - upx --brute "{{ .Path }}"
+          - upx "{{ .Path }}"
 archives:
   - replacements:
       darwin: darwin
