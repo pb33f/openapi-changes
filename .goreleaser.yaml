@@ -10,6 +10,9 @@ builds:
       - linux
       - windows
       - darwin
+    hooks:
+        post:
+          - upx --brute "{{ .Path }}"
 archives:
   - replacements:
       darwin: darwin
