@@ -6,7 +6,7 @@ import {CheckPropIsVerb, GetVerbColor} from "@/components/verb/Verb";
 import {Tag} from "antd";
 import * as Styled from "@/components/graph/styled";
 
-export const CustomNode = (nodeProps: NodeProps) => {
+export const ChangeNode = (nodeProps: NodeProps) => {
     const ref = React.useRef(null);
     return (
         <Node {...nodeProps} label={<React.Fragment/>}

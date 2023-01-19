@@ -10,6 +10,10 @@
             </div>
         </div>
     </body>
+<script>
+    let rawData = {{ .Report }}
+        window.data = JSON.parse(JSON.stringify(rawData));
+</script>
 {{- if not .TestMode -}}
     <script>
         {{ .BundledJS }}

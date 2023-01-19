@@ -23,7 +23,7 @@ const (
     REVPARSE  = "rev-parse"
     TOPLEVEL  = "--show-toplevel"
     NOPAGER   = "--no-pager"
-    LOGFORMAT = "--pretty=%cD||%h||%s"
+    LOGFORMAT = "--pretty=%cD||%h||%s||%an||%ae"
     DIV       = "--"
 )
 
@@ -68,13 +68,15 @@ func ExtractHistoryFromFile(repoDirectory, filePath string) ([]*model.Commit, []
     lines := strings.Split(outStr, "\n")
     for k := range lines {
         c := strings.Split(lines[k], "||")
-        if len(c) == 3 {
+        if len(c) == 5 {
             date, _ := time.Parse("Mon, 2 Jan 2006 15:04:05 -0400", c[0])
             commitHistory = append(commitHistory,
                 &model.Commit{
                     CommitDate:    date,
                     Hash:          c[1],
                     Message:       c[2],
+                    Author:        c[3],
+                    AuthorEmail:   c[4],
                     RepoDirectory: repoDirectory,
                     FilePath:      filePath,
                 })

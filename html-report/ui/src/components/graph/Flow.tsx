@@ -14,7 +14,7 @@ import {
 import {Button, Space} from "antd";
 import './Flow.css';
 import {NodeIndexOutlined, ReloadOutlined, ZoomInOutlined, ZoomOutOutlined} from "@ant-design/icons";
-import {CustomNode} from "@/components/graph/CustomNode";
+import {ChangeNode} from "@/components/graph/ChangeNode";
 import {getNextDirection} from "@/utils/utils";
 import {loader} from "@monaco-editor/react";
 import {ReportStoreContext} from "@/OpenAPIChanges";
@@ -45,7 +45,7 @@ const HorizontalFlow = () => {
     const [selections, setSelections] = useState<string[]>([]);
 
     let timer: any
-    const changeSize = (state: boolean) => {
+    const changeSize = () => {
         clearTimeout(timer);
         timer = setTimeout(() => {
             const maxWidth = window.innerWidth - 50;
@@ -58,7 +58,7 @@ const HorizontalFlow = () => {
     }
 
     const watchSize = () => {
-        changeSize(false)
+        changeSize()
     }
 
     useEffect(() => {
@@ -81,7 +81,7 @@ const HorizontalFlow = () => {
         [setZoomPanPinch]
     );
 
-    let scale = 1;
+
     const maxWidth = window.innerWidth - 50;
     const maxHeight = window.innerHeight - 328;
 
@@ -116,21 +116,28 @@ const HorizontalFlow = () => {
     const onLayoutChange = React.useCallback(
         (layout: ElkRoot) => {
             if (layout.width && layout.height) {
+                const areaSize = layout.width * layout.height;
+                const changeRatio = Math.abs((areaSize * 100) / (size.width * size.height) - 100);
+                const width = (layout.width as number) + 500;
                 setSize({
-                    width: (layout.width as number),
-                    height: (maxHeight as number),
+                    width: width,
+                    height: maxHeight,
                 });
                 requestAnimationFrame(() => {
                     setTimeout(() => {
-                        const canvas = document.querySelector(".changes-canvas") as HTMLElement;
-                        if (zoomPanPinch && canvas) zoomPanPinch.zoomToElement(canvas);
+                        if (changeRatio > 20 ) {
+                            const canvas = document.querySelector(".changes-canvas") as HTMLElement;
+                            if (zoomPanPinch && canvas) {
+                                zoomPanPinch.zoomToElement(canvas);
+                            }
+                        }
                     });
                 });
             }
         },
-        [size.height, size.width]
+        [size.height, size.width, zoomPanPinch]
     );
-
+    let scale = 1.5;
     const mobile = (window.innerWidth < 1000)
     let fit = true;
     if (mobile) {
@@ -207,7 +214,7 @@ const HorizontalFlow = () => {
                         arrow={<MarkerArrow style={{fill: 'var(--secondary-color)'}}/>}
                         edge={props => <Edge {...props} className='edge'
                                              style={{stroke: 'var(--secondary-color)'}}/>}
-                        node={props => <CustomNode {...props} onClick={onNodeClick}
+                        node={props => <ChangeNode {...props} onClick={onNodeClick}
                         />}
                     />
                     </TransformComponent>
@@ -215,7 +222,6 @@ const HorizontalFlow = () => {
             )}
         </TransformWrapper>
     );
-
 };
 
 export default HorizontalFlow;

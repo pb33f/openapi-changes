@@ -48,7 +48,7 @@ export function ChangeChart(props: ChangeChartProps) {
     report.reportItems.forEach((item: ReportItem) => {
         const time = new Date(item.statistics.commit.date)
         if (!mobile) {
-            labels.push(time.toLocaleString())
+            labels.push(time.toLocaleDateString())
         } else {
             labels.push(item.statistics.commit.hash.substring(0,6))
         }
@@ -88,15 +88,15 @@ export function ChangeChart(props: ChangeChartProps) {
     useEffect(() => {
         const chart: any = chartRef.current;
         if (chart) {
-            // chart.setActiveElements([
-            //     {
-            //         datasetIndex: 0,
-            //         index: props.selectedIndex,
-            //     }, {
-            //         datasetIndex: 1,
-            //         index: props.selectedIndex,
-            //     }
-            // ]);
+            chart.setActiveElements([
+                {
+                    datasetIndex: 0,
+                    index: props.selectedIndex,
+                }, {
+                    datasetIndex: 1,
+                    index: props.selectedIndex,
+                }
+            ]);
         }
 
     }, [props.selectedIndex]);

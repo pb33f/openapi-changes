@@ -21,6 +21,14 @@
     background-color: var(--rule-recommended-background);
 }
 
+.nav-change-container-selected {
+    background-color: var(--secondary-color-very-lowalpha);
+    padding: 5px;
+    border: 1px solid var(--primary-color);
+    cursor: pointer;
+}
+
+
 .navigation-changes-chart {
     margin-bottom: 20px;
 }
@@ -46,8 +54,12 @@
 .nav-change-statistics {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
+    justify-content: flex-start;
     padding: 0 10px 0 10px;
+}
+
+.nav-change-statistics > div {
+    padding-right: 50px;
 }
 
 .nav-doc-created {
