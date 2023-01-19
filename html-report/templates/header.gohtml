@@ -25,8 +25,7 @@
             {{ .BundledCSS }}
             .preloader {
                 width: 100vh;
-                height: 100vh;
-                margin: calc(50vh - 40px) auto;
+                margin: calc(50vh - 611px) auto;
                 text-align: center;
             }
             .lds-ellipsis {
@@ -84,9 +83,5 @@
                     transform: translate(24px, 0);
                 }
             }</style>
-        <script>
-            let rawData = {{ .Report }}
-            window.data = JSON.parse(JSON.stringify(rawData));
-        </script>
     </head>
 {{ end}}

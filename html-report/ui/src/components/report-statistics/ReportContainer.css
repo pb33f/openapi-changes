@@ -18,7 +18,8 @@
 .report-summary-stats {
     display: flex;
     flex-direction: row;
-    height: 70px
+    height: 70px;
+    justify-content: flex-end;
 }
 
 .commit {
@@ -27,10 +28,11 @@
     white-space: nowrap;
     font-size: 0.8rem;
     height: 60px;
-    max-width: 750px;
+    width: calc(100vw - 698px);
     max-height: 50px;
     border: 1px dashed var(--secondary-color-very-lowalpha);
     background-color: var(--rule-item-background);
+    text-align: right;
     padding: 5px;
 }
 .commit-changed {
@@ -40,12 +42,17 @@
     color: var(--secondary-color);
 }
 
+.commit-date {
+    color: var(--neon-pink);
+    display: inline-block;
+    border: 1px solid var(--neon-pink);
+    padding: 1px 3px 1px 3px;
+}
+
 section.report-header {
     height: 220px;
     overflow: hidden;
 }
-
-
 
 @media only screen and (max-width: 1000px) {
     .report-summary  {

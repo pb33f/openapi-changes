@@ -11,7 +11,6 @@ export interface GraphViewProps {
 
 export const GraphViewComponent = (props: GraphViewProps) => {
     const drawerOpen = useDrawerStore((state: DrawerState) => state.drawerOpen)
-
     return (
         <>
          <HorizontalFlow />

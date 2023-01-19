@@ -84,6 +84,8 @@ export const ReportContainer: React.FC = () => {
         ]
     };
 
+
+
     return (
         <div className="report-container">
             <PieChart chartData={overallData} title='Changes by type'/>

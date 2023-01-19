@@ -8,6 +8,7 @@ import {Report, ReportItem} from "@/model/report";
 // data is supplied externally at boot time off the window object
 // which is set before the react application is booted.
 let data: any = (window as any).data
+//import data from '../../data.json'
 
 export interface DrawerState {
     drawerOpen: boolean;
@@ -29,10 +30,7 @@ export interface GraphState {
     zoomPanPinch: ReactZoomPanPinchRef | undefined;
 
     setZoomPanPinch: (ref: ReactZoomPanPinchRef) => void;
-
 }
-
-
 
 export interface ReportState {
     report: Report | undefined

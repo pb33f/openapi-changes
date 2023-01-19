@@ -90,20 +90,7 @@ func GetReportCommand() *cobra.Command {
     return cmd
 }
 
-type Report struct {
-    Summary map[string]*reports.Changed `json:"reportSummary"`
-    Commit  *model.Commit               `json:"commitDetails"`
-}
-
-type HistoricalReport struct {
-    GitRepoPath   string    `json:"gitRepoPath"`
-    GitFilePath   string    `json:"gitFilePath"`
-    Filename      string    `json:"filename"`
-    DateGenerated string    `json:"dateGenerated"`
-    Reports       []*Report `json:"reports"`
-}
-
-func runGitHistoryReport(gitPath, filePath string, latest bool) (*HistoricalReport, []error) {
+func runGitHistoryReport(gitPath, filePath string, latest bool) (*model.HistoricalReport, []error) {
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
         pterm.Error.Println(err.Error())
@@ -123,14 +110,14 @@ func runGitHistoryReport(gitPath, filePath string, latest bool) (*HistoricalRepo
         commitHistory = commitHistory[:1]
     }
 
-    var reports []*Report
+    var reports []*model.Report
     for r := range commitHistory {
         if commitHistory[r].Changes != nil {
             reports = append(reports, createReport(commitHistory[r]))
         }
     }
 
-    return &HistoricalReport{
+    return &model.HistoricalReport{
         GitRepoPath:   gitPath,
         GitFilePath:   filePath,
         Filename:      path.Base(filePath),
@@ -140,7 +127,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool) (*HistoricalRepo
 
 }
 
-func runLeftRightReport(left, right string) (*Report, []error) {
+func runLeftRightReport(left, right string) (*model.Report, []error) {
 
     var leftBytes, rightBytes []byte
     var errs []error
@@ -177,7 +164,7 @@ func runLeftRightReport(left, right string) (*Report, []error) {
     return createReport(commits[0]), nil
 }
 
-func createReport(commit *model.Commit) *Report {
+func createReport(commit *model.Commit) *model.Report {
     report := reports.CreateOverallReport(commit.Changes)
-    return &Report{report.ChangeReport, commit}
+    return &model.Report{Summary: report.ChangeReport, Commit: commit}
 }

@@ -40,14 +40,7 @@ func GetHTMLReportCommand() *cobra.Command {
                 if err == nil {
 
                     if url.Host == "github.com" {
-
-                        path := url.Path
-                        dir, file := filepath.Split(path)
-                        dirSegments := strings.Split(dir, "/")
-                        user := dirSegments[1]
-                        repo := dirSegments[2]
-                        filePath := fmt.Sprintf("%s%s", strings.Join(dirSegments[5:], "/"), file)
-
+                        user, repo, filePath := extractGithubDetailsFromURL(url)
                         report, er := runGithubHistoryHTMLReport(user, repo, filePath, false)
                         if err != nil {
                             return er[0]
@@ -125,6 +118,16 @@ func GetHTMLReportCommand() *cobra.Command {
     return cmd
 }
 
+func extractGithubDetailsFromURL(url *url.URL) (string, string, string) {
+    path := url.Path
+    dir, file := filepath.Split(path)
+    dirSegments := strings.Split(dir, "/")
+    user := dirSegments[1]
+    repo := dirSegments[2]
+    filePath := fmt.Sprintf("%s%s", strings.Join(dirSegments[5:], "/"), file)
+    return user, repo, filePath
+}
+
 func runGitHistoryHTMLReport(gitPath, filePath string, latest bool) ([]byte, []error) {
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
@@ -148,7 +151,7 @@ func runGitHistoryHTMLReport(gitPath, filePath string, latest bool) ([]byte, []e
         commitHistory = commitHistory[:1]
     }
 
-    var reports []*Report
+    var reports []*model.Report
     for r := range commitHistory {
         if commitHistory[r].Changes != nil {
             reports = append(reports, createReport(commitHistory[r]))
@@ -187,7 +190,7 @@ func runGithubHistoryHTMLReport(username, repo, filePath string, latest bool) ([
         commitHistory = commitHistory[:1]
     }
 
-    var reports []*Report
+    var reports []*model.Report
     for r := range commitHistory {
         if commitHistory[r].Changes != nil {
             reports = append(reports, createReport(commitHistory[r]))
@@ -195,7 +198,7 @@ func runGithubHistoryHTMLReport(username, repo, filePath string, latest bool) ([
     }
 
     generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
-    return generator.GenerateReport(true), nil
+    return generator.GenerateReport(false), nil
 }
 
 func runLeftRightHTMLReport(left, right string) ([]byte, []error) {
@@ -233,5 +236,5 @@ func runLeftRightHTMLReport(left, right string) ([]byte, []error) {
         return nil, errs
     }
     generator := html_report.NewHTMLReport(false, time.Now(), commits)
-    return generator.GenerateReport(true), nil
+    return generator.GenerateReport(false), nil
 }
