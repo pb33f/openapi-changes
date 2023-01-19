@@ -1,5 +1,4 @@
 import Tree from "antd/es/tree";
-import data from '../../../data.json'
 import * as React from "react";
 import {ReactNode, useCallback, useContext, useEffect, useRef, useState} from "react";
 import {Badge} from "antd";
@@ -94,39 +93,19 @@ export function TreeViewComponent() {
     const treeData: BeefyTreeNode[] | undefined = selectedReport?.tree;
     const sbs = useEditorStore((editor: EditorState) => editor.sideBySide);
     const setSbs = useEditorStore((editor: EditorState) => editor.setSideBySide);
-
-    //const [sbs, setSbs] = React.useState(() => window.innerWidth > 1000);
-    //let timer: any
-    // const changeSize = (state: boolean) => {
-    //     clearTimeout(timer);
-    //     timer = setTimeout(() => {
-    //         setSbs(state)
-    //     }, 100)
-    // }
-    //
-    // const watchSize = () => {
-    //     if (window.innerWidth < 1000) {
-    //         changeSize(true)
-    //     } else {
-    //         changeSize(false)
-    //     }
-    // }
-
-    if (treeData) {
-        visitNode(treeData[0])
-    }
-
-
     const treeRef = useRef<any>();
     const currentChange = useChangeStore((state: ChangeState) => state.currentChange);
     const setCurrentChange = useChangeStore((state: ChangeState) => state.setCurrentChange);
     const selectedKeysInState = useChangeStore((state: ChangeState) => state.selectedChangeKeys);
     const setSelectedKeysInState = useChangeStore((state: ChangeState) => state.setSelectedChangeKeys);
-    const expandedKeys = useChangeStore((state: ChangeState) => state.expandedChangeKeys);
-    const setExpandedKeys = useChangeStore((state: ChangeState) => state.setExpandedChangeKeys);
+   const setExpandedKeys = useChangeStore((state: ChangeState) => state.setExpandedChangeKeys);
     const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
     const lookupMap = useChangeStore((state: ChangeState) => state.treeMapLookup)
     const [height, setHeight] = useState(0);
+
+    if (treeData) {
+        visitNode(treeData[0])
+    }
 
     const onExpand = (expandedKeysValue: React.Key[], info: any) => {
         setExpandedKeys(expandedKeysValue);
