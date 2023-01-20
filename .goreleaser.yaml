@@ -10,9 +10,6 @@ builds:
       - linux
       - windows
       - darwin
-    hooks:
-        post:
-          - upx "{{ .Path }}"
 archives:
   - replacements:
       darwin: darwin
