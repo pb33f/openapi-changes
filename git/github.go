@@ -5,9 +5,9 @@ package git
 
 import (
     "encoding/json"
+    "errors"
     "fmt"
     "github.com/pb33f/openapi-changes/model"
-    "github.com/pterm/pterm"
     "io/ioutil"
     "net"
     "net/http"
@@ -47,7 +47,9 @@ type APIFile struct {
     Bytes   []byte `json:"-"`
 }
 
-func GetCommitsForGithubFile(user, repo, path string) ([]*APICommit, error) {
+func GetCommitsForGithubFile(user, repo, path string,
+    progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError,
+    forceCutoff bool) ([]*APICommit, error) {
 
     t := &http.Transport{
         Dial: (&net.Dialer{
@@ -72,16 +74,20 @@ func GetCommitsForGithubFile(user, repo, path string) ([]*APICommit, error) {
     }
     if resp.StatusCode != 200 {
         body, _ := ioutil.ReadAll(resp.Body)
-        return nil, fmt.Errorf("HTTP error %d, cannot proceed: %s", resp.StatusCode, string(body))
+        errMsg := fmt.Sprintf("HTTP error %d, cannot proceed: %s", resp.StatusCode, string(body))
+        model.SendProgressError("read commit history", errMsg, progressErrorChan)
+        return nil, errors.New(errMsg)
     }
 
     body, err := ioutil.ReadAll(resp.Body)
     if err != nil {
+        model.SendProgressError("read commit API response", err.Error(), progressErrorChan)
         return nil, err
     }
     var commits []*APICommit
     err = json.Unmarshal(body, &commits)
     if err != nil {
+        model.SendProgressError("unmarshal commit history API response", err.Error(), progressErrorChan)
         return nil, err
     }
 
@@ -100,23 +106,32 @@ func GetCommitsForGithubFile(user, repo, path string) ([]*APICommit, error) {
         }
         res, er := cl.Do(r)
 
-        if err != nil {
-            e <- err
+        if er != nil {
+            model.SendProgressError(fmt.Sprintf("fetching commit %s via API", commit.Hash),
+                err.Error(), progressErrorChan)
+            e <- er
             return
         }
         if res.StatusCode != 200 {
             b, _ := ioutil.ReadAll(res.Body)
-            e <- fmt.Errorf("HTTP error %d, cannot proceed: %s", res.StatusCode, string(b))
+            errString := fmt.Sprintf("HTTP error %d, cannot proceed: %s", res.StatusCode, string(b))
+            model.SendProgressError(fmt.Sprintf("fetching commit %s via API", commit.Hash),
+                err.Error(), progressErrorChan)
+            e <- fmt.Errorf(errString)
             return
         }
         b, er := ioutil.ReadAll(res.Body)
         if er != nil {
+            model.SendProgressError(fmt.Sprintf("reading commit body %s via API", commit.Hash),
+                err.Error(), progressErrorChan)
             e <- er
             return
         }
         var f *APICommit
         err = json.Unmarshal(b, &f)
         if err != nil {
+            model.SendProgressError(fmt.Sprintf("unmarshalling commit %s via API", commit.Hash),
+                err.Error(), progressErrorChan)
             e <- err
             return
         }
@@ -137,12 +152,17 @@ func GetCommitsForGithubFile(user, repo, path string) ([]*APICommit, error) {
                 }
                 res, er = cl.Do(r)
                 if er != nil {
+                    model.SendProgressError(fmt.Sprintf("reading commit %s file at %s via API",
+                        commit.Hash, commit.Files[x].RawURL), er.Error(), progressErrorChan)
                     e <- er
                     return
                 }
                 if res.StatusCode != 200 {
                     k, _ := ioutil.ReadAll(res.Body)
-                    e <- fmt.Errorf("HTTP error %d, cannot proceed: %s", res.StatusCode, string(k))
+                    errMsg := fmt.Sprintf("HTTP error %d, cannot proceed: %s", res.StatusCode, string(k))
+                    model.SendProgressError(fmt.Sprintf("reading commit %s file at %s via API",
+                        commit.Hash, commit.Files[x].RawURL), errMsg, progressErrorChan)
+                    e <- fmt.Errorf(errMsg)
                     return
                 }
                 b, er = ioutil.ReadAll(res.Body)
@@ -153,12 +173,18 @@ func GetCommitsForGithubFile(user, repo, path string) ([]*APICommit, error) {
                     count++
                 }
                 if er != nil {
+                    model.SendProgressError(fmt.Sprintf("reading commit body %s file at %s via API",
+                        commit.Hash, commit.Files[x].RawURL), er.Error(), progressErrorChan)
                     e <- er
                     return
                 }
+                model.SendProgressUpdate(commit.Hash,
+                    fmt.Sprintf("%d bytes read for file %s", len(b), file), false, progressChan)
                 commit.Files[x].Bytes = b
             }
         }
+        model.SendProgressUpdate(commit.Hash,
+            fmt.Sprintf("commit %s parsed", commit.Hash), true, progressChan)
         d <- true
     }
 
@@ -170,6 +196,8 @@ func GetCommitsForGithubFile(user, repo, path string) ([]*APICommit, error) {
     completedCommits := 0
 
     for x := range commits {
+        model.SendProgressUpdate(fmt.Sprintf("commit: %s", commits[x].Hash),
+            fmt.Sprintf("commit %s being fetched", commits[x].Hash), false, progressChan)
         go extractFilesFromCommit(user, repo, path, commits[x], sigChan, errChan)
     }
 
@@ -181,16 +209,21 @@ func GetCommitsForGithubFile(user, repo, path string) ([]*APICommit, error) {
             return nil, e
         }
     }
-    if cutoffIndex > 0 {
-        pterm.Warning.Printf("Report exceeds %dMB in size (%dMB), results limited to %d changes in the timeline",
+    if forceCutoff && cutoffIndex > 0 {
+        msg := fmt.Sprintf("Report exceeds %dMB in size (%dMB), results limited to %d changes in the timeline",
             threshold/1024, kbSize/1024, cutoffIndex-1)
+        model.SendProgressWarning("large report", msg, progressChan)
         commits = commits[:cutoffIndex]
     }
     return commits, nil
 }
 
-func ConvertGithubCommitsIntoModel(ghCommits []*APICommit) ([]*model.Commit, []error) {
+func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
+    progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError) ([]*model.Commit, []error) {
     var normalized []*model.Commit
+
+    model.SendProgressUpdate("converting commits", "converting github commits into a model", false, progressChan)
+
     for x := range ghCommits {
         for y := range ghCommits[x].Files {
             if len(ghCommits[x].Files[y].Bytes) > 0 {
@@ -203,11 +236,28 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit) ([]*model.Commit, []e
                     CommitDate:  t,
                     Data:        ghCommits[x].Files[y].Bytes,
                 }
+                model.SendProgressUpdate("converting commits",
+                    fmt.Sprintf("converted commit %s", nc.Hash), false, progressChan)
                 normalized = append(normalized, nc)
             }
         }
     }
     var errs []error
+    model.SendProgressUpdate("converting commits", "building models", false, progressChan)
+    //TODO: feed in the channels to the changelog.
     normalized, errs = BuildCommitChangelog(normalized)
+
+    if len(errs) > 0 {
+        model.SendProgressError("converting commits",
+            fmt.Sprintf("%d errors detected when normalizing", len(normalized)), progressErrorChan)
+    } else {
+
+        if len(normalized) > 0 {
+            model.SendProgressUpdate("converting commits",
+                fmt.Sprintf("%d commits normalized", len(normalized)), true, progressChan)
+        } else {
+            model.SendProgressError("converting commits", "no commits were normalized! Check URL", progressErrorChan)
+        }
+    }
     return normalized, errs
 }

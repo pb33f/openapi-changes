@@ -27,6 +27,43 @@ func GetSummaryCommand() *cobra.Command {
         Example:       "openapi-changes summary /path/to/git/repo path/to/file/in/repo/openapi.yaml",
         RunE: func(cmd *cobra.Command, args []string) error {
 
+            updateChan := make(chan *model.ProgressUpdate)
+            errorChan := make(chan model.ProgressError)
+            doneChan := make(chan bool)
+            failed := false
+
+            PrintBanner()
+
+            listenForUpdates := func(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) {
+                spinner, _ := pterm.DefaultSpinner.Start("starting work.")
+                for {
+                    select {
+                    case update, ok := <-updateChan:
+                        if ok {
+                            spinner.UpdateText(update.Message)
+                            if update.Warning {
+                                pterm.Warning.Println(update.Message)
+                            }
+                        } else {
+                            if !failed {
+                                spinner.Info("printing summary")
+                            } else {
+                                spinner.Fail("failed to complete. sorry!")
+                            }
+                            doneChan <- true
+                            return
+                        }
+                    case err := <-errorChan:
+                        failed = true
+                        spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
+                        pterm.Println()
+                        pterm.Println()
+                        doneChan <- true
+                        return
+                    }
+                }
+            }
+
             // check for two args (left and right)
             if len(args) < 2 {
                 pterm.Error.Println("Two arguments are required to compare left and right OpenAPI Specifications.")
@@ -53,7 +90,11 @@ func GetSummaryCommand() *cobra.Command {
                         return err
                     }
 
-                    err = runGitHistorySummary(args[0], args[1], latestFlag)
+                    go listenForUpdates(updateChan, errorChan)
+
+                    err = runGitHistorySummary(args[0], args[1], latestFlag, updateChan, errorChan)
+
+                    <-doneChan
 
                     if err != nil {
                         pterm.Error.Println(err.Error())
@@ -119,28 +160,36 @@ func runLeftRightSummary(left, right string) []error {
     return nil
 }
 
-func runGitHistorySummary(gitPath, filePath string, latest bool) error {
+func runGitHistorySummary(gitPath, filePath string, latest bool,
+    updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) error {
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
-        pterm.Error.Println(err.Error())
+        model.SendProgressError("git", err.Error(), errorChan)
         return err
     }
 
-    spinner, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Extracting history for '%s' in repo '%s",
-        filePath, gitPath))
+    model.SendProgressUpdate("extraction",
+        fmt.Sprintf("Extracting history for '%s' in repo '%s",
+            filePath, gitPath), false, updateChan)
 
     // build commit history.
-    commitHistory, errs := git.ExtractHistoryFromFile(gitPath, filePath)
+    commitHistory, errs := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan)
     if errs != nil {
+        model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(errs)), errorChan)
         return errs[0]
     }
 
     // populate history with changes and data
-    git.PopulateHistoryWithChanges(commitHistory, spinner)
+    git.PopulateHistoryWithChanges(commitHistory, updateChan, errorChan)
 
     if latest {
         commitHistory = commitHistory[:1]
     }
+    model.SendProgressUpdate("extraction",
+        fmt.Sprintf("extracted %d commits from history", len(commitHistory)), true, updateChan)
+
+    close(updateChan)
+
     return printSummaryDetails(commitHistory)
 }
 
