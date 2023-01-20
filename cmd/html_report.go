@@ -32,6 +32,43 @@ func GetHTMLReportCommand() *cobra.Command {
         Example: "openapi-changes html-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
         RunE: func(cmd *cobra.Command, args []string) error {
 
+            updateChan := make(chan *model.ProgressUpdate)
+            errorChan := make(chan model.ProgressError)
+            doneChan := make(chan bool)
+            failed := false
+
+            PrintBanner()
+
+            listenForUpdates := func(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) {
+                spinner, _ := pterm.DefaultSpinner.Start("starting work.")
+                for {
+                    select {
+                    case update, ok := <-updateChan:
+                        if ok {
+                            spinner.UpdateText(update.Message)
+                            if update.Warning {
+                                pterm.Warning.Println(update.Message)
+                            }
+                        } else {
+                            if !failed {
+                                spinner.Info("all done, html report is ready.")
+                            } else {
+                                spinner.Fail("failed to complete. sorry!")
+                            }
+                            doneChan <- true
+                            return
+                        }
+                    case err := <-errorChan:
+                        failed = true
+                        spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
+                        pterm.Println()
+                        pterm.Println()
+                        doneChan <- true
+                        return
+                    }
+                }
+            }
+
             // check for two args (left and right)
             if len(args) < 2 {
 
@@ -40,22 +77,39 @@ func GetHTMLReportCommand() *cobra.Command {
                 if err == nil {
 
                     if url.Host == "github.com" {
-                        user, repo, filePath := extractGithubDetailsFromURL(url)
-                        report, er := runGithubHistoryHTMLReport(user, repo, filePath, false)
+                        go listenForUpdates(updateChan, errorChan)
+
+                        user, repo, filePath, err := extractGithubDetailsFromURL(url)
+                        if err != nil {
+                            errorChan <- model.ProgressError{
+                                Job:     "github url",
+                                Message: fmt.Sprintf("error extracting github details from url: %s", err.Error()),
+                            }
+                            <-doneChan
+                            return err
+                        }
+                        report, er := runGithubHistoryHTMLReport(user, repo, filePath, false, updateChan, errorChan)
+
+                        // wait for things to be completed.
+                        <-doneChan
+
                         if err != nil {
                             return er[0]
                         }
-                        err = os.WriteFile("github-report.html", report, 0664)
-                        if err != nil {
-                            pterm.Error.Println(err.Error())
-                            return err
+                        if !failed {
+                            err = os.WriteFile("report.html", report, 0664)
+                            if err != nil {
+                                pterm.Error.Println(err.Error())
+                                return err
+                            }
+                            pterm.Success.Printf("%s report written to file 'report.html' (%dkb)", url.String(), len(report)/1024)
+                            pterm.Println()
+                            pterm.Println()
                         }
                         return nil
-
                     }
 
                 } else {
-
                     pterm.Error.Println("Two arguments are required to compare left and right OpenAPI Specifications.")
                     return nil
                 }
@@ -80,9 +134,10 @@ func GetHTMLReportCommand() *cobra.Command {
                         pterm.Error.Printf("Cannot open file/repository: '%s'", args[1])
                         return err
                     }
+                    go listenForUpdates(updateChan, errorChan)
 
-                    report, er := runGitHistoryHTMLReport(args[0], args[1], latestFlag)
-
+                    report, er := runGitHistoryHTMLReport(args[0], args[1], latestFlag, updateChan, errorChan)
+                    <-doneChan
                     if er != nil {
                         for x := range er {
                             pterm.Error.Println(er[x].Error())
@@ -95,6 +150,9 @@ func GetHTMLReportCommand() *cobra.Command {
                         pterm.Error.Println(err.Error())
                         return err
                     }
+                    pterm.Success.Printf("report written to file 'report.html' (%dkb)", len(report)/1024)
+                    pterm.Println()
+                    pterm.Println()
                     return nil
 
                 } else {
@@ -108,6 +166,9 @@ func GetHTMLReportCommand() *cobra.Command {
                     }
 
                     err = os.WriteFile("report.html", report, 0664)
+                    pterm.Success.Printf("report written to file 'report.html' (%dkb)", len(report)/1024)
+                    pterm.Println()
+                    pterm.Println()
                     return nil
                 }
             }
@@ -118,31 +179,37 @@ func GetHTMLReportCommand() *cobra.Command {
     return cmd
 }
 
-func extractGithubDetailsFromURL(url *url.URL) (string, string, string) {
+func extractGithubDetailsFromURL(url *url.URL) (string, string, string, error) {
     path := url.Path
     dir, file := filepath.Split(path)
     dirSegments := strings.Split(dir, "/")
-    user := dirSegments[1]
-    repo := dirSegments[2]
-    filePath := fmt.Sprintf("%s%s", strings.Join(dirSegments[5:], "/"), file)
-    return user, repo, filePath
+    if len(dirSegments) > 6 {
+        user := dirSegments[1]
+        repo := dirSegments[2]
+        filePath := fmt.Sprintf("%s%s", strings.Join(dirSegments[5:], "/"), file)
+        return user, repo, filePath, nil
+    } else {
+        return "", "", "", fmt.Errorf("url: '%s' not correctly formed", url.String())
+    }
 }
 
-func runGitHistoryHTMLReport(gitPath, filePath string, latest bool) ([]byte, []error) {
+func runGitHistoryHTMLReport(gitPath, filePath string, latest bool,
+    progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []error) {
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
-        pterm.Error.Println(err.Error())
+        model.SendProgressError("reading paths",
+            err.Error(), errorChan)
         return nil, []error{err}
     }
 
     // build commit history.
-    commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath)
+    commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, progressChan, errorChan)
     if err != nil {
         return nil, err
     }
 
     // populate history with changes and data
-    commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, nil)
+    commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, progressChan, errorChan)
     if err != nil {
         return nil, err
     }
@@ -158,29 +225,35 @@ func runGitHistoryHTMLReport(gitPath, filePath string, latest bool) ([]byte, []e
         }
     }
 
+    model.SendProgressUpdate("extraction",
+        fmt.Sprintf("extracted %d reports from history", len(reports)), true, progressChan)
+
+    close(progressChan)
+
     generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
     return generator.GenerateReport(false), nil
 }
 
-func runGithubHistoryHTMLReport(username, repo, filePath string, latest bool) ([]byte, []error) {
+func runGithubHistoryHTMLReport(username, repo, filePath string, latest bool,
+    progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []error) {
+
     if username == "" || repo == "" || filePath == "" {
         err := errors.New("please supply valid github username/repo and filepath")
-        pterm.Error.Println(err.Error())
+        model.SendProgressError("git", err.Error(), errorChan)
         return nil, []error{err}
     }
 
-    githubCommits, err := git.GetCommitsForGithubFile(username, repo, filePath)
+    githubCommits, err := git.GetCommitsForGithubFile(username, repo, filePath, progressChan, errorChan, true)
 
     if err != nil {
         return nil, []error{err}
     }
 
-    commitHistory, errs := git.ConvertGithubCommitsIntoModel(githubCommits)
+    commitHistory, errs := git.ConvertGithubCommitsIntoModel(githubCommits, progressChan, errorChan)
     if errs != nil {
         for x := range errs {
-            if rerr, ok := errs[x].(*resolver.ResolvingError); ok {
-                fmt.Printf("Infinite loop detected (ignoring): %s\n", rerr.Path)
-            } else {
+            if _, ok := errs[x].(*resolver.ResolvingError); !ok {
+                model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(errs)), errorChan)
                 return nil, errs
             }
         }
@@ -197,7 +270,12 @@ func runGithubHistoryHTMLReport(username, repo, filePath string, latest bool) ([
         }
     }
 
+    model.SendProgressUpdate("extraction",
+        fmt.Sprintf("extracted %d reports from history", len(reports)), true, progressChan)
+
     generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
+
+    close(progressChan)
     return generator.GenerateReport(false), nil
 }
 

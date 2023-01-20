@@ -9,7 +9,6 @@ import (
     "github.com/pb33f/libopenapi"
     "github.com/pb33f/libopenapi/resolver"
     "github.com/pb33f/openapi-changes/model"
-    "github.com/pterm/pterm"
     "os/exec"
     "path"
     "strings"
@@ -51,7 +50,8 @@ func GetTopLevel(dir string) (string, error) {
     return outStr, nil
 }
 
-func ExtractHistoryFromFile(repoDirectory, filePath string) ([]*model.Commit, []error) {
+func ExtractHistoryFromFile(repoDirectory, filePath string,
+    progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]*model.Commit, []error) {
 
     cmd := exec.Command(GIT, NOPAGER, LOG, LOGFORMAT, DIV, filePath)
     var stdout, stderr bytes.Buffer
@@ -61,6 +61,7 @@ func ExtractHistoryFromFile(repoDirectory, filePath string) ([]*model.Commit, []
     err := cmd.Run()
     var commitHistory []*model.Commit
     if err != nil {
+        model.SendProgressError("git", err.Error(), errorChan)
         return nil, []error{err}
     }
 
@@ -80,153 +81,18 @@ func ExtractHistoryFromFile(repoDirectory, filePath string) ([]*model.Commit, []
                     RepoDirectory: repoDirectory,
                     FilePath:      filePath,
                 })
+            model.SendProgressUpdate(c[1],
+                fmt.Sprintf("extacted commit '%s'", c[1]), false, progressChan)
         }
     }
+    model.SendProgressUpdate("extraction",
+        fmt.Sprintf("%d commits extracted", len(commitHistory)), true, progressChan)
     return commitHistory, nil
 }
 
-//func ExtractHistoryFromGithub(user, repo, filePath string) ([]*model.Commit, error) {
-//
-//    var commitHistory []*model.Commit
-//    url := fmt.Sprintf("https://github.com/%s/%s", user, repo)
-//    r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
-//        URL: url,
-//    })
-//
-//    var ref *plumbing.Reference
-//    ref, err = r.Head()
-//    if err != nil {
-//        return nil, err
-//    }
-//
-//    var commitIterator object.CommitIter
-//    commitIterator, err = r.Log(&git.LogOptions{
-//        From: ref.Hash(),
-//        //FileName: &filePath,
-//        PathFilter: func(path string) bool {
-//            if path == filePath {
-//                fmt.Print(filePath)
-//                return true
-//            }
-//            return false
-//        },
-//    })
-//    if err != nil {
-//        return commitHistory, err
-//    }
-//
-//    // Iterate over all commits and save file for each
-//    var commit *object.Commit
-//    for {
-//        commit, err = commitIterator.Next()
-//        if err == io.EOF {
-//            break
-//        }
-//        if err != nil {
-//            return nil, err
-//        }
-//        var srcFile *object.File
-//        srcFile, err = commit.File(filePath)
-//        if err != nil {
-//            continue
-//        }
-//        buf := new(bytes.Buffer)
-//
-//        var reader io.ReadCloser
-//        reader, err = srcFile.Blob.Reader()
-//        if err != nil {
-//            return nil, err
-//        }
-//        _, err = buf.ReadFrom(reader)
-//        if err != nil {
-//            return nil, err
-//        }
-//
-//        commitHistory = append(commitHistory,
-//            &model.Commit{
-//                CommitDate:  commit.Author.When,
-//                Hash:        commit.Hash.String(),
-//                Message:     commit.Message,
-//                Author:      commit.Author.Name,
-//                AuthorEmail: commit.Author.Email,
-//                //RepoDirectory: repoDirectory,
-//                FilePath: filePath,
-//                Data:     buf.Bytes(),
-//            })
-//    }
-//    commitIterator.Close()
-//    return commitHistory, nil
-//
-//}
+func PopulateHistoryWithChanges(commitHistory []*model.Commit,
+    progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]*model.Commit, []error) {
 
-//func ExtractHistoryUsingLib(repoDirectory, filePath string) ([]*model.Commit, error) {
-//    var commitHistory []*model.Commit
-//    var err error
-//
-//    r, e := git.PlainOpen(repoDirectory)
-//    if e != nil {
-//        return nil, err
-//    }
-//
-//    var ref *plumbing.Reference
-//    ref, err = r.Head()
-//    if err != nil {
-//        return nil, err
-//    }
-//
-//    var commitIterator object.CommitIter
-//    commitIterator, err = r.Log(&git.LogOptions{
-//        From:     ref.Hash(),
-//        FileName: &filePath,
-//    })
-//    if err != nil {
-//        return commitHistory, err
-//    }
-//
-//    // Iterate over all commits and save file for each
-//    var commit *object.Commit
-//    for {
-//        commit, err = commitIterator.Next()
-//        if err == io.EOF {
-//            break
-//        }
-//        if err != nil {
-//            return nil, err
-//        }
-//        var srcFile *object.File
-//        srcFile, err = commit.File(filePath)
-//        if err != nil {
-//            continue
-//        }
-//        buf := new(bytes.Buffer)
-//
-//        var reader io.ReadCloser
-//        reader, err = srcFile.Blob.Reader()
-//        if err != nil {
-//            return nil, err
-//        }
-//        _, err = buf.ReadFrom(reader)
-//        if err != nil {
-//            return nil, err
-//        }
-//
-//        commitHistory = append(commitHistory,
-//            &model.Commit{
-//                CommitDate:    commit.Author.When,
-//                Hash:          commit.Hash.String(),
-//                Message:       commit.Message,
-//                Author:        commit.Author.Name,
-//                AuthorEmail:   commit.Author.Email,
-//                RepoDirectory: repoDirectory,
-//                FilePath:      filePath,
-//                Data:          buf.Bytes(),
-//            })
-//    }
-//    commitIterator.Close()
-//    return commitHistory, nil
-//}
-
-func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.SpinnerPrinter) ([]*model.Commit, []error) {
     for c := range commitHistory {
         cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", commitHistory[c].Hash, commitHistory[c].FilePath))
         var ou, er bytes.Buffer
@@ -238,14 +104,20 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, printer *pterm.Sp
             return nil, []error{err}
         }
         commitHistory[c].Data = ou.Bytes()
+        model.SendProgressUpdate("population",
+            fmt.Sprintf("%d bytes extracted from commit '%s'",
+                len(commitHistory[c].Data), commitHistory[c].Hash), false, progressChan)
+
     }
     cleaned, errors := BuildCommitChangelog(commitHistory)
     if len(errors) > 0 {
+        model.SendProgressError("git",
+            fmt.Sprintf("%d error(s) found building commit change log", len(errors)), errorChan)
+
         return nil, errors
     }
-    if printer != nil {
-        printer.UpdateText(fmt.Sprintf("Parsed %d commits", len(commitHistory)))
-    }
+    model.SendProgressUpdate("populated",
+        fmt.Sprintf("%d commits processed and populated", len(cleaned)), true, progressChan)
     return cleaned, nil
 }
 

@@ -29,6 +29,43 @@ func GetReportCommand() *cobra.Command {
         Example:       "openapi-changes report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
         RunE: func(cmd *cobra.Command, args []string) error {
 
+            updateChan := make(chan *model.ProgressUpdate)
+            errorChan := make(chan model.ProgressError)
+            doneChan := make(chan bool)
+            failed := false
+
+            PrintBanner()
+
+            listenForUpdates := func(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) {
+                spinner, _ := pterm.DefaultSpinner.Start("starting work.")
+                for {
+                    select {
+                    case update, ok := <-updateChan:
+                        if ok {
+                            spinner.UpdateText(update.Message)
+                            if update.Warning {
+                                pterm.Warning.Println(update.Message)
+                            }
+                        } else {
+                            if !failed {
+                                spinner.Info("report is ready, are you?")
+                            } else {
+                                spinner.Fail("failed to complete. sorry!")
+                            }
+                            doneChan <- true
+                            return
+                        }
+                    case err := <-errorChan:
+                        failed = true
+                        spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
+                        pterm.Println()
+                        pterm.Println()
+                        doneChan <- true
+                        return
+                    }
+                }
+            }
+
             // check for two args (left and right)
             if len(args) < 2 {
                 pterm.Error.Println("Two arguments are required to compare left and right OpenAPI Specifications.")
@@ -55,7 +92,11 @@ func GetReportCommand() *cobra.Command {
                         return err
                     }
 
-                    report, er := runGitHistoryReport(args[0], args[1], latestFlag)
+                    go listenForUpdates(updateChan, errorChan)
+
+                    report, er := runGitHistoryReport(args[0], args[1], latestFlag, updateChan, errorChan)
+
+                    <-doneChan
 
                     if er != nil {
                         for x := range er {
@@ -90,21 +131,31 @@ func GetReportCommand() *cobra.Command {
     return cmd
 }
 
-func runGitHistoryReport(gitPath, filePath string, latest bool) (*model.HistoricalReport, []error) {
+func runGitHistoryReport(gitPath, filePath string, latest bool,
+    updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) (*model.HistoricalReport, []error) {
+
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
-        pterm.Error.Println(err.Error())
+        model.SendProgressError("git", err.Error(), errorChan)
         return nil, []error{err}
     }
 
+    model.SendProgressUpdate("extraction",
+        fmt.Sprintf("Extracting history for '%s' in repo '%s",
+            filePath, gitPath), false, updateChan)
+
     // build commit history.
-    commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath)
+    commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan)
     if err != nil {
         return nil, err
     }
 
     // populate history with changes and data
-    git.PopulateHistoryWithChanges(commitHistory, nil)
+    commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, updateChan, errorChan)
+    if err != nil {
+        model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(err)), errorChan)
+        return nil, err
+    }
 
     if latest {
         commitHistory = commitHistory[:1]
@@ -116,6 +167,10 @@ func runGitHistoryReport(gitPath, filePath string, latest bool) (*model.Historic
             reports = append(reports, createReport(commitHistory[r]))
         }
     }
+    model.SendProgressUpdate("extraction",
+        fmt.Sprintf("extracted %d reports from history", len(reports)), true, updateChan)
+
+    close(updateChan)
 
     return &model.HistoricalReport{
         GitRepoPath:   gitPath,
