@@ -21,7 +21,6 @@ func buildConsoleTreeNode(list *[]pterm.LeveledListItem, object any, level int) 
     }
     v := reflect.ValueOf(object).Elem()
     num := v.NumField()
-    //var topChanges []*wcModel.Change
     upper := cases.Title(language.English)
     for i := 0; i < num; i++ {
         fName := v.Type().Field(i).Name

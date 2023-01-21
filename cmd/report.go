@@ -13,6 +13,7 @@ import (
     "github.com/pterm/pterm"
     "github.com/spf13/cobra"
     "github.com/twinj/uuid"
+    "net/url"
     "os"
     "path"
     "time"
@@ -33,33 +34,25 @@ func GetReportCommand() *cobra.Command {
             errorChan := make(chan model.ProgressError)
             doneChan := make(chan bool)
             failed := false
+            latestFlag, _ := cmd.Flags().GetBool("top")
 
-            PrintBanner()
+            // if there are no args, print out how to use the console.
+            if len(args) == 0 {
+                PrintBanner()
+                PrintHowToUse("report")
+                return nil
+            }
 
             listenForUpdates := func(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) {
-                spinner, _ := pterm.DefaultSpinner.Start("starting work.")
                 for {
                     select {
-                    case update, ok := <-updateChan:
-                        if ok {
-                            spinner.UpdateText(update.Message)
-                            if update.Warning {
-                                pterm.Warning.Println(update.Message)
-                            }
-                        } else {
-                            if !failed {
-                                spinner.Info("report is ready, are you?")
-                            } else {
-                                spinner.Fail("failed to complete. sorry!")
-                            }
+                    case _, ok := <-updateChan:
+                        if !ok {
                             doneChan <- true
                             return
                         }
-                    case err := <-errorChan:
+                    case <-errorChan:
                         failed = true
-                        spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
-                        pterm.Println()
-                        pterm.Println()
                         doneChan <- true
                         return
                     }
@@ -68,12 +61,53 @@ func GetReportCommand() *cobra.Command {
 
             // check for two args (left and right)
             if len(args) < 2 {
-                pterm.Error.Println("Two arguments are required to compare left and right OpenAPI Specifications.")
-                return nil
+
+                // check if arg is an url (like a github url)
+                url, err := url.Parse(args[0])
+                if err == nil {
+
+                    if url.Host == "github.com" {
+                        go listenForUpdates(updateChan, errorChan)
+
+                        user, repo, filePath, err := extractGithubDetailsFromURL(url)
+                        if err != nil {
+                            errorChan <- model.ProgressError{
+                                Job:     "github url",
+                                Message: fmt.Sprintf("error extracting github details from url: %s", err.Error()),
+                            }
+                            <-doneChan
+                            return err
+                        }
+                        report, er := runGithubHistoryReport(user, repo, filePath, latestFlag, updateChan, errorChan)
+
+                        // wait for things to be completed.
+                        <-doneChan
+
+                        if failed {
+                            pterm.Error.Println("report failed to generate.")
+                            pterm.Println()
+                            pterm.Println()
+                            return errors.New("report failed to generate")
+                        }
+
+                        if er != nil {
+                            for x := range er {
+                                pterm.Error.Println(er[x].Error())
+                            }
+                            return er[0]
+                        }
+
+                        jsonBytes, _ := json.MarshalIndent(report, "", "  ")
+                        fmt.Println(string(jsonBytes))
+                        return nil
+                    }
+
+                } else {
+                    pterm.Error.Println("Two arguments are required to compare left and right OpenAPI Specifications.")
+                    return nil
+                }
             }
             if len(args) == 2 {
-
-                latestFlag, _ := cmd.Flags().GetBool("top")
 
                 // check if the first arg is a directory, if so - process as a git history operation.
                 p := args[0]
@@ -97,6 +131,13 @@ func GetReportCommand() *cobra.Command {
                     report, er := runGitHistoryReport(args[0], args[1], latestFlag, updateChan, errorChan)
 
                     <-doneChan
+
+                    if failed {
+                        pterm.Error.Println("report failed to generate.")
+                        pterm.Println()
+                        pterm.Println()
+                        return errors.New("report failed to generate")
+                    }
 
                     if er != nil {
                         for x := range er {
@@ -178,6 +219,39 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
         Filename:      path.Base(filePath),
         DateGenerated: time.Now().String(),
         Reports:       reports,
+    }, nil
+
+}
+
+func runGithubHistoryReport(username, repo, filePath string, latest bool,
+    progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) (*model.HistoricalReport, []error) {
+
+    commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false)
+    if errs != nil {
+        return nil, errs
+    }
+
+    if latest {
+        commitHistory = commitHistory[:1]
+    }
+
+    var ghReports []*model.Report
+    for r := range commitHistory {
+        if commitHistory[r].Changes != nil {
+            ghReports = append(ghReports, createReport(commitHistory[r]))
+        }
+    }
+    model.SendProgressUpdate("extraction",
+        fmt.Sprintf("extracted %d reports from history", len(ghReports)), true, progressChan)
+
+    close(progressChan)
+
+    return &model.HistoricalReport{
+        GitRepoPath:   fmt.Sprintf("%s/%s", username, repo),
+        GitFilePath:   filePath,
+        Filename:      path.Base(filePath),
+        DateGenerated: time.Now().String(),
+        Reports:       ghReports,
     }, nil
 
 }

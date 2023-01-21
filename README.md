@@ -1,12 +1,23 @@
 # OpenAPI - What Changed?
 
-See what has changed with your OpenAPI Specification, between a single change, or for all time!
+## The world's **_sexiest_** OpenAPI diff tool.
 
-> This is **REALLY EARLY CODE** and an early tool.
+We will get to the sexy part in a moment, but in a nutshell `openapi-changes` allows you 
+to see and explore what has changed with your OpenAPI Specification, between a single change, 
+or for all time!
 
-However, if you do want to try out this early code?
+> This is an early tool.
 
-Remember.. it's early! 
+## Install via homebrew tap
+
+```bash
+brew install pb33f/taps/openapi-changes
+```
+And you're ready to go!
+
+---
+
+However, if you want to check out the code yourself...
 
 ### 1. Clone the repo
 
@@ -26,89 +37,101 @@ cd openapi-changes
 go build openapi-changes.go
 ```
 
-### 3. Run the code using example git history
+## How is it the 'sexiest'?
 
-First argument is a path to the git repo (use the local repo via `.`)
+Run the `html-report` and `console` commands - and then tell us you disagree.
 
-Second argument is a path to the OpenAPI Spec from the repo root (`sample-specs/petstorev3.json`)
+---
+## How to use `openapi-changes`
 
+All the commands in `openapi-changes` perform the same job and do the same thing, the only
+difference between them is how you consume the results.
+
+### What kind of inputs does it use?
+
+There are three exciting flavors of inputs available to all commands.
+
+- View changes _over time_ from an OpenAPI spec in a **local git repository**
+- View changes _over time_ from an OpenAPI spec hosted on **github**
+- **Compare two specifications** against each other (original vs modified)
+
+There are four rendering commands available:
+
+- `summary`
+- `report`
+- `console`
+- `html-report`
+
+### Viewing results from a OpenAPI spec in a local git repository
+
+This requires two arguments. The first argument would be the path to the **root** of the local git repo. The second argument
+is the **path** to the OpenAPI spec from the root you want to check.
+
+**_e.g._** to see the history of the included sample spec, after checking out the code run: 
+```bash
+openapi-changes html-report . sample-specs/petstorev3.json
+```
+> When this method is used the `-t` | `--top` flag that will return **JUST** the latest changes, instead of all of them.
+
+### Viewing results from a OpenAPI spec hosted on Github
+
+The command accepts only a single argument, which is the URL to the OpenAPI spec on Github that 
+is to be checked. 
+
+**_e.g._** to see the history of the official [Petstore](https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/petstore.yaml)
+OpenAPI spec hosted on github?
 
 ```bash
-./openapi-changes console . sample-specs/petstorev3.json
+openapi-changes html-report https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/petstore.yaml
 ```
-View the example changes made to the OpenAPI spec, over time.
+> When this method is used the `-t` | `--top` flag that will return **JUST** the latest changes, instead of all of them.
 
-> To see just the latest changes (since last revision) use the `-t` flag (top)
-> `./openapi-changes -t console . sample-specs/petstorev3.json`
+### Viewing results from comparing two OpenAPI specifications
 
-### 3. Run the code using original and changes files (left/right)
+The commands accept two arguments, the first is the full path the **original** (left) OpenAPI spec, and the second
+argument is the full path to the **modified** specification (right). 
 
-First argument is the original OpenAPI spec file
-
-First argument is the new / updated OpenAPI spec file
+**_e.g._** to see changes between two included example OpenAPI specifications (check out the code first)
 
 ```bash
-./openapi-changes console sample-specs/petstorev3-original.json sample-specs/petstorev3.json
+openapi-changes html-report sample-specs/petstorev3-original.json sample-specs/petstorev3.json
 ```
-See a left / right comparison between two specifications.
 
-## See a summary of changes
+---
 
-Looking to use this tool as part of a CI/CD pipeline? Use the `summary` command instead of the 
-console to print out a summary of changes, including breaking changes.
+## `openapi-changes` rendering commands
 
-If any breaking changes are found, then an exit code of 1 is returned that should fail any CI/CD
-pipeline job.
+Each command renders the same report data (provided the arguments listed above) in a different way.
 
-The command functions the same as `console` except results are printed out to the console, it's not
-interactive, not as detailed and will return an exit code of 1 with any breaking changes.
+### `html-report` command
 
-Left / right file comparison:
+`html-report` will render the **_sexiest_** OpenAPI diff user interface you have ever seen. Explore changes 
+in interactive style, see your changes rendered in a tree, or a beautiful graph!
 
+_Example_:
 ```bash
-./openapi-changes summary sample-specs/petstorev3-original.json sample-specs/petstorev3.json
+openapi-changes html-report . sample-specs/petstorev3.json
 ```
 
-or git history for all time:
+### `summary` command
 
+`summary` renders out a simple tree of changes and a simple summary of the changes found. It's designed for CI/CD use
+or for quick checks in the terminal when looking at OpenAPI spec changes.
+
+If there is a breaking change detected, the application returns an exit code of 1.
+
+_Example_:
 ```bash
-./openapi-changes summary ./ sample-specs/petstorev3.json
+openapi-changes summary sample-specs/petstorev3-original.json sample-specs/petstorev3.json
 ```
 
-or just the latest revision:
+### `console` command
 
-```bash
-./openapi-changes -t summary sample-specs/petstorev3-original.json sample-specs/petstorev3.json
-```
+`console` renders a full interactive terminal UI that allows the exploration of all changes found in a document. The
+console supports selecting any individual commit made in the history of the OpenAPI document, and tell you what the
+changes were when it was committed.
 
-## Generate a machine-readable report
-
-Want to build an app that can use the change report? Then use the `report` command to generate a JSON
-report that is ready for importing into any other app for use. 
-
-All the same options as the other commands above.
-
-Left / right file comparison:
-
-> These examples use `jq` to make the output easier to read on a screen.
-
-```bash
-./openapi-changes report sample-specs/petstorev3-original.json sample-specs/petstorev3.json | jq
-```
-
-or git history for all time:
-
-```bash
-./openapi-changes report ./ sample-specs/petstorev3.json | jq
-```
-
-or just the latest revision:
-
-```bash
-./openapi-changes -t report sample-specs/petstorev3-original.json sample-specs/petstorev3.json | jq
-```
-
-## Terminal UI Controls
+**Terminal UI Controls**
 
 * `Up` / `Down` to select Revision
 * `Enter` to select Revision
@@ -116,3 +139,18 @@ or just the latest revision:
 * `Enter` to select Change
 * `Esc` to focus back on revisions
 * `Esc` or `Ctrl-C` to quit.
+
+_Example_:
+```bash
+openapi-changes console . sample-specs/petstorev3.json
+```
+
+### `report` command
+
+`report` will spit out a full JSON report of all the changes found. It's the exact same data that is used to
+render all the commands. It's ready to import into your own applications.
+
+_Example_:
+```bash
+openapi-changes report . sample-specs/petstorev3.json | jq
+```

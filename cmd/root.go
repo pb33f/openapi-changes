@@ -5,6 +5,7 @@ package cmd
 
 import (
     "fmt"
+    "github.com/pterm/pterm"
     "github.com/spf13/cobra"
     "os"
 )
@@ -22,7 +23,18 @@ var (
         Long: `openapi-changes can detect every change found in an OpenAPI specification.
 it can compare between two files, or a single file, over time.`,
         RunE: func(cmd *cobra.Command, args []string) error {
-            fmt.Println("Try the console command!")
+
+            PrintBanner()
+
+            fmt.Println("You have a few options when it comes to commands...")
+            fmt.Println()
+
+            _ = pterm.DefaultBulletList.WithItems([]pterm.BulletListItem{
+                {Level: 0, Text: "console", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
+                {Level: 0, Text: "summary", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
+                {Level: 0, Text: "report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
+                {Level: 0, Text: "html-report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
+            }).Render()
             return nil
         },
     }

@@ -6,7 +6,6 @@ package cmd
 import (
     "errors"
     "fmt"
-    "github.com/pb33f/libopenapi/resolver"
     "github.com/pb33f/openapi-changes/git"
     "github.com/pb33f/openapi-changes/model"
     "github.com/pb33f/openapi-changes/tui"
@@ -34,8 +33,15 @@ func GetConsoleCommand() *cobra.Command {
             errorChan := make(chan model.ProgressError)
             doneChan := make(chan bool)
             failed := false
+            latestFlag, _ := cmd.Flags().GetBool("top")
 
             PrintBanner()
+
+            // if there are no args, print out how to use the console.
+            if len(args) == 0 {
+                PrintHowToUse("console")
+                return nil
+            }
 
             listenForUpdates := func(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) {
                 spinner, _ := pterm.DefaultSpinner.Start("starting work.")
@@ -86,7 +92,7 @@ func GetConsoleCommand() *cobra.Command {
                             <-doneChan
                             return err
                         }
-                        commits, er := runGithubHistoryConsole(user, repo, filePath, false, updateChan, errorChan)
+                        commits, er := runGithubHistoryConsole(user, repo, filePath, latestFlag, updateChan, errorChan)
 
                         // wait for things to be completed.
                         <-doneChan
@@ -97,7 +103,7 @@ func GetConsoleCommand() *cobra.Command {
                         if !failed {
 
                             // boot.
-                            app := tui.BuildApplication(commits)
+                            app := tui.BuildApplication(commits, Version)
                             if err := app.Run(); err != nil {
                                 panic(err)
                             }
@@ -113,8 +119,6 @@ func GetConsoleCommand() *cobra.Command {
             }
 
             if len(args) == 2 {
-
-                latestFlag, _ := cmd.Flags().GetBool("top")
 
                 // check if the first arg is a directory, if so - process as a git history operation.
                 p := args[0]
@@ -145,7 +149,7 @@ func GetConsoleCommand() *cobra.Command {
                     }
 
                     // boot.
-                    app := tui.BuildApplication(commits)
+                    app := tui.BuildApplication(commits, Version)
                     if err := app.Run(); err != nil {
                         panic(err)
                     }
@@ -172,26 +176,10 @@ func GetConsoleCommand() *cobra.Command {
 func runGithubHistoryConsole(username, repo, filePath string, latest bool,
     progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]*model.Commit, []error) {
 
-    if username == "" || repo == "" || filePath == "" {
-        err := errors.New("please supply valid github username/repo and filepath")
-        model.SendProgressError("git", err.Error(), errorChan)
-        return nil, []error{err}
-    }
+    commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false)
 
-    githubCommits, err := git.GetCommitsForGithubFile(username, repo, filePath, progressChan, errorChan, false)
-
-    if err != nil {
-        return nil, []error{err}
-    }
-
-    commitHistory, errs := git.ConvertGithubCommitsIntoModel(githubCommits, progressChan, errorChan)
     if errs != nil {
-        for x := range errs {
-            if _, ok := errs[x].(*resolver.ResolvingError); !ok {
-                model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(errs)), errorChan)
-                return nil, errs
-            }
-        }
+        return nil, errs
     }
 
     if latest {
@@ -274,7 +262,7 @@ func runLeftRightCompare(left, right string) []error {
     if len(errs) > 0 {
         return errs
     }
-    app := tui.BuildApplication(commits)
+    app := tui.BuildApplication(commits, Version)
     if err := app.Run(); err != nil {
         return []error{err}
     }

@@ -39,6 +39,12 @@ func GetHTMLReportCommand() *cobra.Command {
 
             PrintBanner()
 
+            // if there are no args, print out how to use the console.
+            if len(args) == 0 {
+                PrintHowToUse("html-report")
+                return nil
+            }
+
             listenForUpdates := func(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) {
                 spinner, _ := pterm.DefaultSpinner.Start("starting work.")
                 for {
@@ -165,7 +171,7 @@ func GetHTMLReportCommand() *cobra.Command {
                         return errors.New("unable to process specifications")
                     }
 
-                    err = os.WriteFile("report.html", report, 0664)
+                    err = os.WriteFile("report.html", report, 644)
                     pterm.Success.Printf("report written to file 'report.html' (%dkb)", len(report)/1024)
                     pterm.Println()
                     pterm.Println()
@@ -237,19 +243,8 @@ func runGitHistoryHTMLReport(gitPath, filePath string, latest bool,
 func runGithubHistoryHTMLReport(username, repo, filePath string, latest bool,
     progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []error) {
 
-    if username == "" || repo == "" || filePath == "" {
-        err := errors.New("please supply valid github username/repo and filepath")
-        model.SendProgressError("git", err.Error(), errorChan)
-        return nil, []error{err}
-    }
+    commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, true)
 
-    githubCommits, err := git.GetCommitsForGithubFile(username, repo, filePath, progressChan, errorChan, true)
-
-    if err != nil {
-        return nil, []error{err}
-    }
-
-    commitHistory, errs := git.ConvertGithubCommitsIntoModel(githubCommits, progressChan, errorChan)
     if errs != nil {
         for x := range errs {
             if _, ok := errs[x].(*resolver.ResolvingError); !ok {

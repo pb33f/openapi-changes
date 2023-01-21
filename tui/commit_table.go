@@ -6,8 +6,8 @@ package tui
 import (
     "fmt"
     "github.com/gdamore/tcell/v2"
-    "github.com/rivo/tview"
     "github.com/pb33f/openapi-changes/model"
+    "github.com/rivo/tview"
 )
 
 func BuildCommitTable(commitHistory []*model.Commit) *tview.Table {
@@ -55,7 +55,12 @@ func RegisterModelsWithCommitTable(table *tview.Table,
     }).SetSelectedFunc(func(row int, column int) {
         ResetTableColors(table, row, MAGENTA_CELL_COLOR)
 
-        c := commitHistory[row-1]
+        rn := row - 1
+        if rn < 0 {
+            rn = 0
+        }
+
+        c := commitHistory[rn]
         activeCommit = c
         selectedRow = row
 
@@ -67,13 +72,20 @@ func RegisterModelsWithCommitTable(table *tview.Table,
     })
 
     table.SetSelectionChangedFunc(func(row int, column int) {
+        rn := row - 1
+        if rn < 0 {
+            rn = 0
+        }
         ResetTableColors(table, row, CYAN_CELL_COLOR)
-
-        c := commitHistory[row-1]
+        c := commitHistory[rn]
         activeCommit = c
-
         r := BuildTreeModel(c.Document, c.Changes)
         treeView.SetRoot(r)
+
+        if len(commitHistory) < 3 {
+            app.SetFocus(treeView)
+        }
+
         treeView.SetCurrentNode(r)
         treeView.SetTopLevel(0)
     })
