@@ -12,6 +12,7 @@ import (
     "github.com/pterm/pterm"
     "github.com/spf13/cobra"
     "github.com/twinj/uuid"
+    "net/url"
     "os"
     "time"
 )
@@ -31,8 +32,15 @@ func GetSummaryCommand() *cobra.Command {
             errorChan := make(chan model.ProgressError)
             doneChan := make(chan bool)
             failed := false
+            latestFlag, _ := cmd.Flags().GetBool("top")
 
             PrintBanner()
+
+            // if there are no args, print out how to use the console.
+            if len(args) == 0 {
+                PrintHowToUse("summary")
+                return nil
+            }
 
             listenForUpdates := func(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) {
                 spinner, _ := pterm.DefaultSpinner.Start("starting work.")
@@ -66,12 +74,38 @@ func GetSummaryCommand() *cobra.Command {
 
             // check for two args (left and right)
             if len(args) < 2 {
-                pterm.Error.Println("Two arguments are required to compare left and right OpenAPI Specifications.")
-                return nil
+
+                // check if arg is an url (like a github url)
+                url, err := url.Parse(args[0])
+                if err == nil {
+
+                    if url.Host == "github.com" {
+                        go listenForUpdates(updateChan, errorChan)
+
+                        user, repo, filePath, err := extractGithubDetailsFromURL(url)
+                        if err != nil {
+                            errorChan <- model.ProgressError{
+                                Job:     "github url",
+                                Message: fmt.Sprintf("error extracting github details from url: %s", err.Error()),
+                            }
+                            <-doneChan
+                            return err
+                        }
+                        err = runGithubHistorySummary(user, repo, filePath, latestFlag, updateChan, errorChan)
+                        // wait for things to be completed.
+                        <-doneChan
+                        if err != nil {
+                            return err
+                        }
+                        return nil
+                    }
+
+                } else {
+                    pterm.Error.Println("Two arguments are required to compare left and right OpenAPI Specifications.")
+                    return nil
+                }
             }
             if len(args) == 2 {
-
-                latestFlag, _ := cmd.Flags().GetBool("top")
 
                 // check if the first arg is a directory, if so - process as a git history operation.
                 p := args[0]
@@ -158,6 +192,24 @@ func runLeftRightSummary(left, right string) []error {
         return []error{e}
     }
     return nil
+}
+
+func runGithubHistorySummary(username, repo, filePath string, latest bool,
+    progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) error {
+    commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false)
+    if errs != nil {
+        return errs[0]
+    }
+    if latest {
+        commitHistory = commitHistory[:1]
+    }
+
+    model.SendProgressUpdate("extraction",
+        fmt.Sprintf("extracted %d commits from history", len(commitHistory)), true, progressChan)
+
+    close(progressChan)
+
+    return printSummaryDetails(commitHistory)
 }
 
 func runGitHistorySummary(gitPath, filePath string, latest bool,

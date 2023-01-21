@@ -7,6 +7,7 @@ import (
     "encoding/json"
     "errors"
     "fmt"
+    "github.com/pb33f/libopenapi/resolver"
     "github.com/pb33f/openapi-changes/model"
     "io/ioutil"
     "net"
@@ -18,8 +19,9 @@ import (
     "time"
 )
 
-const GithubCommitAPI = "https://api.github.com/repos/"
+const GithubRepoAPI = "https://api.github.com/repos/"
 const GithubAuthHeader = "Authorization"
+const GithubToken = "GH_TOKEN"
 
 type APICommitAuthor struct {
     Name  string `json:"name"`
@@ -51,22 +53,24 @@ func GetCommitsForGithubFile(user, repo, path string,
     progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError,
     forceCutoff bool) ([]*APICommit, error) {
 
+    // we can make a lot of http calls, very quickly - so ensure we give the client enough
+    // breathing space to cope with lots of TLS handshakes.
     t := &http.Transport{
-        Dial: (&net.Dialer{
+        DialContext: (&net.Dialer{
             Timeout:   60 * time.Second,
             KeepAlive: 30 * time.Second,
-        }).Dial,
+        }).DialContext,
         TLSHandshakeTimeout: 60 * time.Second,
     }
 
-    u := fmt.Sprintf(GithubCommitAPI+"%s/%s/commits?path=%s", user, repo, path)
+    u := fmt.Sprintf("%s%s/%s/commits?path=%s", GithubRepoAPI, user, repo, path)
     client := &http.Client{
         Transport: t,
     }
-    req, _ := http.NewRequest("GET", u, nil)
-    ghAuth := os.Getenv("GH_TOKEN")
+    req, _ := http.NewRequest(http.MethodGet, u, nil)
+    ghAuth := os.Getenv(GithubToken)
     if ghAuth != "" {
-        req.Header.Set("authorization", fmt.Sprintf("Bearer %s", ghAuth))
+        req.Header.Set(GithubAuthHeader, fmt.Sprintf("Bearer %s", ghAuth))
     }
     resp, err := client.Do(req)
     if err != nil {
@@ -96,7 +100,7 @@ func GetCommitsForGithubFile(user, repo, path string,
     cutoffIndex := 0
     count := 0
     var extractFilesFromCommit = func(user, repo, path string, commit *APICommit, d chan bool, e chan error) {
-        u = fmt.Sprintf(GithubCommitAPI+"%s/%s/commits/%s", user, repo, commit.Hash)
+        u = fmt.Sprintf("%s%s/%s/commits/%s", GithubRepoAPI, user, repo, commit.Hash)
         cl := &http.Client{
             Transport: t,
         }
@@ -192,7 +196,6 @@ func GetCommitsForGithubFile(user, repo, path string,
     errChan := make(chan error)
 
     totalCommits := len(commits)
-    //totalCommits := 5
     completedCommits := 0
 
     for x := range commits {
@@ -260,4 +263,32 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
         }
     }
     return normalized, errs
+}
+
+func ProcessGithubRepo(username string, repo string, filePath string,
+    progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
+    forceCutoff bool) ([]*model.Commit, []error) {
+
+    if username == "" || repo == "" || filePath == "" {
+        err := errors.New("please supply valid github username/repo and filepath")
+        model.SendProgressError("git", err.Error(), errorChan)
+        return nil, []error{err}
+    }
+
+    githubCommits, err := GetCommitsForGithubFile(username, repo, filePath, progressChan, errorChan, forceCutoff)
+
+    if err != nil {
+        return nil, []error{err}
+    }
+
+    commitHistory, errs := ConvertGithubCommitsIntoModel(githubCommits, progressChan, errorChan)
+    if errs != nil {
+        for x := range errs {
+            if _, ok := errs[x].(*resolver.ResolvingError); !ok {
+                model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(errs)), errorChan)
+            }
+        }
+        return commitHistory, errs
+    }
+    return commitHistory, nil
 }

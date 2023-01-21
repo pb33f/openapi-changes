@@ -4,16 +4,17 @@
 package tui
 
 import (
+    "fmt"
     "github.com/gdamore/tcell/v2"
     whatChanged "github.com/pb33f/libopenapi/what-changed/model"
-    "github.com/rivo/tview"
     "github.com/pb33f/openapi-changes/model"
+    "github.com/rivo/tview"
 )
 
 var activeCommit *model.Commit
 var selectedRow int
 
-func BuildApplication(commitHistory []*model.Commit) *tview.Application {
+func BuildApplication(commitHistory []*model.Commit, version string) *tview.Application {
 
     // first commit
     commit := commitHistory[0]
@@ -31,15 +32,30 @@ func BuildApplication(commitHistory []*model.Commit) *tview.Application {
     // build diff view from left and right text views.
     diffView := BuildDiffView(textViewOrig, textViewNew)
 
+    // title
+    title := tview.NewTextView().
+        SetDynamicColors(true).
+        SetWordWrap(true)
+
+    if len(commitHistory) < 3 {
+        _, _ = fmt.Fprintf(title, "[%s]openapi-changes: %s[default] | controls: up/down/enter to select "+
+            "change. Hit esc to back up.", MAGENTA, version)
+    } else {
+        _, _ = fmt.Fprintf(title, "[%s]openapi-changes: %s[default] | controls: up/down/enter to select commit, "+
+            "then same for change. Hit esc to back up a level.", MAGENTA, version)
+    }
+
     // build a grid to hold all views.
     grid := tview.NewGrid().
-        SetRows(0, 16).
+        SetRows(1, 8, 0, 16).
         SetColumns(0, 60).
         SetBorders(true)
     grid.SetGap(2, 2)
-    grid.AddItem(table, 0, 0, 1, 1, 0, 100, false).
-        AddItem(tree, 0, 1, 1, 1, 0, 100, false).
-        AddItem(diffView, 1, 0, 1, 2, 0, 100, false)
+
+    grid.AddItem(title, 0, 0, 1, 2, 0, 0, false).
+        AddItem(table, 1, 0, 1, 2, 0, 0, false).
+        AddItem(tree, 2, 0, 1, 2, 0, 0, false).
+        AddItem(diffView, 3, 0, 1, 2, 0, 0, false)
 
     // build an application.
     app := tview.NewApplication()
