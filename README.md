@@ -39,6 +39,8 @@ go build openapi-changes.go
 
 ## How is it the 'sexiest'?
 
+![](https://github.com/pb33f/openapi-changes/.github./assets/ui.gif)
+
 Run the `html-report` and `console` commands - and then tell us you disagree.
 
 ---
