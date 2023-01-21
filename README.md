@@ -39,9 +39,13 @@ go build openapi-changes.go
 
 ## How is it the 'sexiest'?
 
-![](https://github.com/pb33f/openapi-changes/.github./assets/ui.gif)
+Have you ever seen an OpenAPI diff report look like this?
 
-Run the `html-report` and `console` commands - and then tell us you disagree.
+![](https://github.com/pb33f/openapi-changes/blob/main/.github/assets/ui.gif)
+
+What about a terminal UI that does the same?
+
+![](https://github.com/pb33f/openapi-changes/blob/main/.github/assets/console.gif)
 
 ---
 ## How to use `openapi-changes`
