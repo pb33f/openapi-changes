@@ -43,5 +43,5 @@ func SendProgressError(job, message string, errorChan chan ProgressError) {
         Job:     job,
         Message: message,
     }
-    close(errorChan)
+
 }
