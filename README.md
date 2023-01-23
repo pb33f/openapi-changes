@@ -17,6 +17,19 @@ And you're ready to go!
 
 ---
 
+## Install via Docker
+
+```bash
+docker pull pb33f/openapi-changes
+```
+
+To run, mount the current working dir to the container like so:
+
+```
+docker run --rm -v $PWD:/work:rw pb33f/openapi-changes summary . sample-specs/petstorev3.json
+```
+> The `console` cannot run via docker.
+
 However, if you want to check out the code yourself...
 
 ### 1. Clone the repo

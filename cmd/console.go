@@ -151,7 +151,11 @@ func GetConsoleCommand() *cobra.Command {
                     // boot.
                     app := tui.BuildApplication(commits, Version)
                     if err := app.Run(); err != nil {
-                        panic(err)
+                        pterm.Error.Println("console is unable to start, are you running this inside a container?")
+                        pterm.Error.Println("the console requires a terminal to run, it cannot run on a headless system.")
+                        fmt.Println()
+                        fmt.Println()
+                        return err
                     }
 
                 } else {
