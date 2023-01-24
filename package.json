@@ -1,0 +1,33 @@
+{
+  "name": "@pb33f/openapi-changes",
+  "version": "0.0.0",
+  "description": "The world's sexiest and most detailed OpenAPI diff/changelog tool",
+  "type": "module",
+  "author": "Princess Beef Heavy Industries",
+  "license": "MIT",
+  "homepage": "https://pb33f.io/openapi-changes/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pb33f/openapi-changes.git"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "scripts": {
+    "postinstall": "node ./npm-install/postinstall.js"
+  },
+  "bin": {
+    "openapi-changes": "bin/openapi-changes.js"
+  },
+  "files": [
+    "npm-install"
+  ],
+  "dependencies": {
+    "node-fetch": "^3.2.10",
+    "tar": "^6.1.11"
+  },
+  "bugs": {
+    "url": "https://github.com/pb33f/openapi-changes/issues"
+  },
+  "main": "index.js"
+}
