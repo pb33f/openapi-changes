@@ -4,20 +4,57 @@
 
 We will get to the sexy part in a moment, but in a nutshell `openapi-changes` allows you 
 to see and explore what has changed with your OpenAPI Specification, between a single change, 
-or for all time!
+or for all time! 
 
-> This is an early tool.
+Explore OpenAPI change history using a terminal or a browser, you decide which experience suits you. Perfect for
+individual use, or in a CI/CD pipeline for automation.
 
-## Install via homebrew tap
+> This is an early tool and is active, daily development
+
+## How is it the 'sexiest'?
+
+Have you ever seen an OpenAPI diff report look like this?
+
+![](https://github.com/pb33f/openapi-changes/blob/main/.github/assets/ui.gif)
+
+What about a terminal UI that does the same?
+
+![](https://github.com/pb33f/openapi-changes/blob/main/.github/assets/console.gif)
+
+---
+
+Ready to try it out?
+
+## Install using homebrew tap
 
 ```bash
 brew install pb33f/taps/openapi-changes
 ```
-And you're ready to go!
 
 ---
 
-## Install via Docker
+## Install using npm or yarn
+
+```bash
+npm -i -g @pb33f/openapi-changes
+```
+
+If you prefer yarn _(recommended)_
+
+```bash
+yarn global add @pb33f/openapi-changes
+```
+
+---
+
+## Install using cURL
+
+```bash
+curl -fsSL https://pb33f.io/openapi-changes/install.sh | sh 
+```
+---
+
+## Install/run using Docker
 
 ```bash
 docker pull pb33f/openapi-changes
@@ -30,7 +67,11 @@ docker run --rm -v $PWD:/work:rw pb33f/openapi-changes summary . sample-specs/pe
 ```
 > The `console` cannot run via docker.
 
+---
+
 However, if you want to check out the code yourself...
+
+## Check out the code and build it.
 
 ### 1. Clone the repo
 
@@ -49,16 +90,6 @@ cd openapi-changes
 ```bash
 go build openapi-changes.go
 ```
-
-## How is it the 'sexiest'?
-
-Have you ever seen an OpenAPI diff report look like this?
-
-![](https://github.com/pb33f/openapi-changes/blob/main/.github/assets/ui.gif)
-
-What about a terminal UI that does the same?
-
-![](https://github.com/pb33f/openapi-changes/blob/main/.github/assets/console.gif)
 
 ---
 ## How to use `openapi-changes`
