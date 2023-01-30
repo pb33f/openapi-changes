@@ -47,7 +47,7 @@ func BuildApplication(commitHistory []*model.Commit, version string) *tview.Appl
 
     // build a grid to hold all views.
     grid := tview.NewGrid().
-        SetRows(1, 8, 0, 16).
+        SetRows(1, 8, 12, 0).
         SetColumns(0, 60).
         SetBorders(true)
     grid.SetGap(2, 2)

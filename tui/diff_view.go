@@ -45,114 +45,122 @@ func RenderDiff(left, right *tview.TextView, diffView *tview.Flex, change *whatC
     } else {
         left.Clear()
 
-        table := tview.NewTable()
-        table.SetBorders(false)
-        table.SetBorderPadding(0, 0, 0, 0)
+        if change.Context.OriginalLine != nil {
 
-        table.SetCell(0, 0, tview.NewTableCell("Original Value").SetTextColor(CYAN_CELL_COLOR))
-        table.SetCell(0, 1, tview.NewTableCell("Line").SetTextColor(tcell.ColorGrey))
-        table.SetCell(0, 2, tview.NewTableCell("Column").SetTextColor(tcell.ColorGrey))
+            table := tview.NewTable()
+            table.SetBorders(false)
+            table.SetBorderPadding(0, 0, 0, 0)
 
-        if change.NewObject == nil {
-            switch change.Breaking {
-            case true:
-                table.SetCell(0, 3, tview.NewTableCell("Breaking").SetTextColor(tcell.ColorRed))
-            }
-        }
+            table.SetCell(0, 0, tview.NewTableCell("Original Value").SetTextColor(CYAN_CELL_COLOR))
+            table.SetCell(0, 1, tview.NewTableCell("Line").SetTextColor(tcell.ColorGrey))
+            table.SetCell(0, 2, tview.NewTableCell("Column").SetTextColor(tcell.ColorGrey))
 
-        table.SetCell(1, 0, tview.NewTableCell(change.Original))
-        table.SetCell(1, 1,
-            tview.NewTableCell(fmt.Sprint(*change.Context.OriginalLine)).SetAlign(tview.AlignCenter))
-        table.SetCell(1, 2,
-            tview.NewTableCell(fmt.Sprint(*change.Context.OriginalColumn)).SetAlign(tview.AlignCenter))
-
-        if change.NewObject == nil {
-            switch change.Breaking {
-            case true:
-                table.SetCell(1, 3, tview.NewTableCell("YES!").
-                    SetTextColor(tcell.ColorRed).SetAlign(tview.AlignCenter))
-            }
-
-        }
-        y := tview.NewFlex()
-        y.SetDirection(tview.FlexRow)
-        y.AddItem(table, 3, 1, false).
-            AddItem(left, 0, 1, false)
-        diffView.AddItem(y, 0, 1, false)
-
-        left.SetWrap(false)
-        data := string(curr.OldData)
-        parsed := strings.Split(data, "\n")
-
-        var clipped []string
-
-        var startLine, currentLine, endLine int
-
-        if *change.Context.OriginalLine > 5 {
-            clipped = parsed[*change.Context.OriginalLine-5 : *change.Context.OriginalLine+8]
-
-            startLine = *change.Context.OriginalLine - 4
-            currentLine = startLine
-            endLine = *change.Context.OriginalLine + 8
-
-            for j := range clipped {
-                if j != 4 {
-                    clipped[j] = fmt.Sprintf("[grey]%s[-:-]", clipped[j])
+            if change.NewObject == nil {
+                switch change.Breaking {
+                case true:
+                    table.SetCell(0, 3, tview.NewTableCell("Breaking").SetTextColor(tcell.ColorRed))
                 }
             }
 
-            color := getColorForChange(originalView, changeNumber, startLine, currentLine)
-
-            if !change.Breaking {
-                clipped[4] = fmt.Sprintf("[%s]%s[-:-]", color, clipped[4])
-            } else {
-                clipped[4] = fmt.Sprintf("[%s]%s[-:-]", "red", clipped[4])
+            if change.Context.OriginalLine != nil && change.Context.OriginalColumn != nil {
+                table.SetCell(1, 0, tview.NewTableCell(change.Original))
+                table.SetCell(1, 1,
+                    tview.NewTableCell(fmt.Sprint(*change.Context.OriginalLine)).SetAlign(tview.AlignCenter))
+                table.SetCell(1, 2,
+                    tview.NewTableCell(fmt.Sprint(*change.Context.OriginalColumn)).SetAlign(tview.AlignCenter))
             }
 
-        } else {
-            startLine = *change.Context.OriginalLine
-            currentLine = startLine
-            endLine = *change.Context.OriginalLine + 13
-
-            for j := range clipped {
-                if j != *change.Context.OriginalLine {
-                    clipped[j] = fmt.Sprintf("[%s]%s[-:-]", "grey", clipped[j])
+            if change.NewObject == nil {
+                switch change.Breaking {
+                case true:
+                    table.SetCell(1, 3, tview.NewTableCell("YES!").
+                        SetTextColor(tcell.ColorRed).SetAlign(tview.AlignCenter))
                 }
+
             }
+            y := tview.NewFlex()
+            y.SetDirection(tview.FlexRow)
+            y.AddItem(table, 3, 1, false).
+                AddItem(left, 0, 1, false)
+            diffView.AddItem(y, 0, 1, false)
 
-            color := getColorForChange(originalView, changeNumber, startLine, currentLine)
+            left.SetWrap(false)
+            data := string(curr.OldData)
+            parsed := strings.Split(data, "\n")
 
-            clipped = parsed[0 : *change.Context.OriginalLine+13]
+            var clipped []string
 
-            if !change.Breaking {
-                clipped[*change.Context.OriginalLine] = fmt.Sprintf("[%s]%s[-:-]",
-                    color, clipped[*change.Context.OriginalLine])
-            } else {
-                clipped[*change.Context.OriginalLine] = fmt.Sprintf("[%s]%s[-:-]", "red",
-                    clipped[*change.Context.OriginalLine])
-            }
+            var startLine, currentLine, endLine int
 
-        }
+            if change.Context.OriginalLine != nil && *change.Context.OriginalLine > 5 {
+                clipped = parsed[*change.Context.OriginalLine-5 : *change.Context.OriginalLine+8]
 
-        for x := range clipped {
-            color := getColorForChange(originalView, lineNumber, currentLine, *change.Context.OriginalLine)
-            if !change.Breaking {
-                clipped[x] = fmt.Sprintf("%s[%s]%d|[-] %s",
-                    printSpacing(currentLine, endLine), color, currentLine, clipped[x])
-            } else {
-                if currentLine != *change.Context.OriginalLine {
-                    clipped[x] = fmt.Sprintf("%s[%s]%d|[-] %s",
-                        printSpacing(currentLine, endLine), color, currentLine, clipped[x])
+                startLine = *change.Context.OriginalLine - 4
+                currentLine = startLine
+                endLine = *change.Context.OriginalLine + 8
+
+                for j := range clipped {
+                    if j != 4 {
+                        clipped[j] = fmt.Sprintf("[grey]%s[-:-]", clipped[j])
+                    }
+                }
+
+                color := getColorForChange(originalView, changeNumber, startLine, currentLine)
+
+                if !change.Breaking {
+                    clipped[4] = fmt.Sprintf("[%s]%s[-:-]", color, clipped[4])
                 } else {
-                    clipped[x] = fmt.Sprintf("%s[%s]%d|[-] %s",
-                        printSpacing(currentLine, endLine), "red", currentLine, clipped[x])
+                    clipped[4] = fmt.Sprintf("[%s]%s[-:-]", "red", clipped[4])
+                }
+
+            } else {
+                if change.Context.OriginalLine != nil {
+                    startLine = *change.Context.OriginalLine
+                    currentLine = startLine
+                    endLine = *change.Context.OriginalLine + 13
+
+                    for j := range clipped {
+                        if j != *change.Context.OriginalLine {
+                            clipped[j] = fmt.Sprintf("[%s]%s[-:-]", "grey", clipped[j])
+                        }
+                    }
+
+                    color := getColorForChange(originalView, changeNumber, startLine, currentLine)
+
+                    clipped = parsed[0 : *change.Context.OriginalLine+13]
+
+                    if !change.Breaking {
+                        clipped[*change.Context.OriginalLine] = fmt.Sprintf("[%s]%s[-:-]",
+                            color, clipped[*change.Context.OriginalLine])
+                    } else {
+                        clipped[*change.Context.OriginalLine] = fmt.Sprintf("[%s]%s[-:-]", "red",
+                            clipped[*change.Context.OriginalLine])
+                    }
                 }
             }
-            currentLine++
+
+            if change.Context.OriginalLine != nil {
+
+                for x := range clipped {
+                    color := getColorForChange(originalView, lineNumber, currentLine, *change.Context.OriginalLine)
+                    if !change.Breaking {
+                        clipped[x] = fmt.Sprintf("%s[%s]%d|[-] %s",
+                            printSpacing(currentLine, endLine), color, currentLine, clipped[x])
+                    } else {
+                        if currentLine != *change.Context.OriginalLine {
+                            clipped[x] = fmt.Sprintf("%s[%s]%d|[-] %s",
+                                printSpacing(currentLine, endLine), color, currentLine, clipped[x])
+                        } else {
+                            clipped[x] = fmt.Sprintf("%s[%s]%d|[-] %s",
+                                printSpacing(currentLine, endLine), "red", currentLine, clipped[x])
+                        }
+                    }
+                    currentLine++
+                }
+            }
+
+            fmt.Fprintf(left, strings.Join(clipped, "\n"))
         }
-
-        fmt.Fprintf(left, strings.Join(clipped, "\n"))
-
     }
     if change.NewObject == nil {
         right.Clear()
