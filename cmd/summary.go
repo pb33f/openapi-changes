@@ -156,7 +156,7 @@ func GetSummaryCommand() *cobra.Command {
             return nil
         },
     }
-    cmd.Flags().BoolP("no-style", "n", false, "Disable color and style output (very useful for CI/CD)")
+    cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
     return cmd
 }
 
