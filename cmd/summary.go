@@ -33,6 +33,12 @@ func GetSummaryCommand() *cobra.Command {
             doneChan := make(chan bool)
             failed := false
             latestFlag, _ := cmd.Flags().GetBool("top")
+            noColorFlag, _ := cmd.Flags().GetBool("no-color")
+
+            if noColorFlag {
+                pterm.DisableStyling()
+                pterm.DisableColor()
+            }
 
             PrintBanner()
 
@@ -150,6 +156,7 @@ func GetSummaryCommand() *cobra.Command {
             return nil
         },
     }
+    cmd.Flags().BoolP("no-style", "n", false, "Disable color and style output (very useful for CI/CD)")
     return cmd
 }
 

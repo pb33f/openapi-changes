@@ -57,7 +57,6 @@ func init() {
     rootCmd.AddCommand(GetReportCommand())
     rootCmd.AddCommand(GetHTMLReportCommand())
     rootCmd.PersistentFlags().BoolP("top", "t", false, "Only show latest changes (last git revision against HEAD)")
-
 }
 
 func initConfig() {
