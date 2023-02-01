@@ -2,6 +2,7 @@ const prod = process.env.NODE_ENV === 'production';
 
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const path = require("path");
 
@@ -36,6 +37,10 @@ module.exports = {
     devServer: {
         compress: true,
         port: 3000
+    },
+    optimization: {
+        minimizer: [new CssMinimizerPlugin(), '...'],
+        minimize: true,
     },
     plugins: [
         new HtmlWebpackPlugin({
