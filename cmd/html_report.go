@@ -6,6 +6,12 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/pb33f/libopenapi/resolver"
 	"github.com/pb33f/openapi-changes/git"
 	html_report "github.com/pb33f/openapi-changes/html-report"
@@ -13,11 +19,6 @@ import (
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/twinj/uuid"
-	"net/url"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 func GetHTMLReportCommand() *cobra.Command {
@@ -94,7 +95,7 @@ func GetHTMLReportCommand() *cobra.Command {
 					if url.Host == "github.com" {
 						go listenForUpdates(updateChan, errorChan)
 
-						user, repo, filePath, err := extractGithubDetailsFromURL(url)
+						user, repo, filePath, err := ExtractGithubDetailsFromURL(url)
 						if err != nil {
 							errorChan <- model.ProgressError{
 								Job:     "github url",
@@ -103,7 +104,7 @@ func GetHTMLReportCommand() *cobra.Command {
 							<-doneChan
 							return err
 						}
-						report, er := runGithubHistoryHTMLReport(user, repo, filePath, latestFlag, cdnFlag, updateChan, errorChan)
+						report, er := RunGithubHistoryHTMLReport(user, repo, filePath, latestFlag, cdnFlag, updateChan, errorChan)
 
 						// wait for things to be completed.
 						<-doneChan
@@ -149,7 +150,7 @@ func GetHTMLReportCommand() *cobra.Command {
 					}
 					go listenForUpdates(updateChan, errorChan)
 
-					report, er := runGitHistoryHTMLReport(args[0], args[1], latestFlag, cdnFlag, updateChan, errorChan)
+					report, er := RunGitHistoryHTMLReport(args[0], args[1], latestFlag, cdnFlag, updateChan, errorChan)
 					<-doneChan
 					if er != nil {
 						for x := range er {
@@ -170,7 +171,7 @@ func GetHTMLReportCommand() *cobra.Command {
 
 				} else {
 
-					report, errs := runLeftRightHTMLReport(args[0], args[1], cdnFlag)
+					report, errs := RunLeftRightHTMLReport(args[0], args[1], cdnFlag)
 					if len(errs) > 0 {
 						for e := range errs {
 							pterm.Error.Println(errs[e].Error())
@@ -194,7 +195,7 @@ func GetHTMLReportCommand() *cobra.Command {
 	return cmd
 }
 
-func extractGithubDetailsFromURL(url *url.URL) (string, string, string, error) {
+func ExtractGithubDetailsFromURL(url *url.URL) (string, string, string, error) {
 	path := url.Path
 	dir, file := filepath.Split(path)
 	dirSegments := strings.Split(dir, "/")
@@ -208,7 +209,7 @@ func extractGithubDetailsFromURL(url *url.URL) (string, string, string, error) {
 	}
 }
 
-func runGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
+func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []error) {
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
@@ -249,7 +250,7 @@ func runGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
 	return generator.GenerateReport(false, useCDN), nil
 }
 
-func runGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN bool,
+func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN bool,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []error) {
 
 	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, true)
@@ -283,7 +284,7 @@ func runGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN 
 	return generator.GenerateReport(false, useCDN), nil
 }
 
-func runLeftRightHTMLReport(left, right string, useCDN bool) ([]byte, []error) {
+func RunLeftRightHTMLReport(left, right string, useCDN bool) ([]byte, []error) {
 
 	var leftBytes, rightBytes []byte
 	var errs []error
