@@ -28,12 +28,15 @@ var bundledCSS string
 
 type HTMLReportGenerator interface {
     GetHTMLReport() *model.HTMLReport
-    GenerateReport(testMode bool) []byte
+    GenerateReport(testMode, useCDN bool) []byte
 }
 
 type ReportData struct {
     BundledJS        string            `json:"bundledJS"`
     BundledCSS       string            `json:"bundledCSS"`
+    UseCDN           bool              `json:"useCDN"`
+    JsCDN            string            `json:"jsCDN"`
+    CssCDN           string            `json:"cssCDN"`
     TestMode         bool              `json:"test"`
     Report           string            `json:"data"`
     ReportData       *model.HTMLReport `json:"-"`
@@ -117,7 +120,7 @@ func (html *htmlReport) GetHTMLReport() *model.HTMLReport {
     return html.model
 }
 
-func (html *htmlReport) GenerateReport(test bool) []byte {
+func (html *htmlReport) GenerateReport(test, useCDN bool) []byte {
 
     templateFuncs := template.FuncMap{
         "renderJSON": func(data interface{}) string {
@@ -139,10 +142,13 @@ func (html *htmlReport) GenerateReport(test bool) []byte {
     reportData := &ReportData{
         BundledJS:  bundledJS,
         BundledCSS: bundledCSS,
+        JsCDN:      "https://raw.githubusercontent.com/pb33f/openapi-changes/main/html-report/ui/build/static/bundle.js",
+        CssCDN:     "https://raw.githubusercontent.com/pb33f/openapi-changes/main/html-report/ui/build/static/main.css",
         Report:     string(data),
         ReportData: html.model,
         Generated:  time.Now(),
         TestMode:   test,
+        UseCDN:     useCDN,
     }
     if html.disableTimestamp {
         reportData.DisableTimestamp = true

@@ -6,13 +6,13 @@ package git
 import (
     "bytes"
     "fmt"
+    "github.com/araddon/dateparse"
     "github.com/pb33f/libopenapi"
     "github.com/pb33f/libopenapi/resolver"
     "github.com/pb33f/openapi-changes/model"
     "os/exec"
     "path"
     "strings"
-    "time"
 )
 
 const (
@@ -70,7 +70,7 @@ func ExtractHistoryFromFile(repoDirectory, filePath string,
     for k := range lines {
         c := strings.Split(lines[k], "||")
         if len(c) == 5 {
-            date, _ := time.Parse("Mon, 2 Jan 2006 15:04:05 -0400", c[0])
+            date, _ := dateparse.ParseAny(c[0])
             commitHistory = append(commitHistory,
                 &model.Commit{
                     CommitDate:    date,

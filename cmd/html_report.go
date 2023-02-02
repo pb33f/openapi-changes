@@ -38,6 +38,8 @@ func GetHTMLReportCommand() *cobra.Command {
             failed := false
 
             noColorFlag, _ := cmd.Flags().GetBool("no-color")
+            cdnFlag, _ := cmd.Flags().GetBool("use-cdn")
+            latestFlag, _ := cmd.Flags().GetBool("top")
 
             if noColorFlag {
                 pterm.DisableStyling()
@@ -101,7 +103,7 @@ func GetHTMLReportCommand() *cobra.Command {
                             <-doneChan
                             return err
                         }
-                        report, er := runGithubHistoryHTMLReport(user, repo, filePath, false, updateChan, errorChan)
+                        report, er := runGithubHistoryHTMLReport(user, repo, filePath, latestFlag, cdnFlag, updateChan, errorChan)
 
                         // wait for things to be completed.
                         <-doneChan
@@ -129,8 +131,6 @@ func GetHTMLReportCommand() *cobra.Command {
             }
             if len(args) == 2 {
 
-                latestFlag, _ := cmd.Flags().GetBool("top")
-
                 // check if the first arg is a directory, if so - process as a git history operation.
                 p := args[0]
                 f, err := os.Stat(p)
@@ -149,7 +149,7 @@ func GetHTMLReportCommand() *cobra.Command {
                     }
                     go listenForUpdates(updateChan, errorChan)
 
-                    report, er := runGitHistoryHTMLReport(args[0], args[1], latestFlag, updateChan, errorChan)
+                    report, er := runGitHistoryHTMLReport(args[0], args[1], latestFlag, cdnFlag, updateChan, errorChan)
                     <-doneChan
                     if er != nil {
                         for x := range er {
@@ -170,7 +170,7 @@ func GetHTMLReportCommand() *cobra.Command {
 
                 } else {
 
-                    report, errs := runLeftRightHTMLReport(args[0], args[1])
+                    report, errs := runLeftRightHTMLReport(args[0], args[1], cdnFlag)
                     if len(errs) > 0 {
                         for e := range errs {
                             pterm.Error.Println(errs[e].Error())
@@ -190,6 +190,7 @@ func GetHTMLReportCommand() *cobra.Command {
         },
     }
     cmd.Flags().BoolP("no-style", "n", false, "Disable color and style output (very useful for CI/CD)")
+    cmd.Flags().BoolP("use-cdn", "c", false, "Use CDN for CSS and JS delivery instead of bundling inline")
     return cmd
 }
 
@@ -207,7 +208,7 @@ func extractGithubDetailsFromURL(url *url.URL) (string, string, string, error) {
     }
 }
 
-func runGitHistoryHTMLReport(gitPath, filePath string, latest bool,
+func runGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
     progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []error) {
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
@@ -245,10 +246,10 @@ func runGitHistoryHTMLReport(gitPath, filePath string, latest bool,
     close(progressChan)
 
     generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
-    return generator.GenerateReport(false), nil
+    return generator.GenerateReport(false, useCDN), nil
 }
 
-func runGithubHistoryHTMLReport(username, repo, filePath string, latest bool,
+func runGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN bool,
     progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []error) {
 
     commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, true)
@@ -279,10 +280,10 @@ func runGithubHistoryHTMLReport(username, repo, filePath string, latest bool,
     generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
 
     close(progressChan)
-    return generator.GenerateReport(false), nil
+    return generator.GenerateReport(false, useCDN), nil
 }
 
-func runLeftRightHTMLReport(left, right string) ([]byte, []error) {
+func runLeftRightHTMLReport(left, right string, useCDN bool) ([]byte, []error) {
 
     var leftBytes, rightBytes []byte
     var errs []error
@@ -317,5 +318,5 @@ func runLeftRightHTMLReport(left, right string) ([]byte, []error) {
         return nil, errs
     }
     generator := html_report.NewHTMLReport(false, time.Now(), commits)
-    return generator.GenerateReport(false), nil
+    return generator.GenerateReport(false, useCDN), nil
 }
