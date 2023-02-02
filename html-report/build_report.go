@@ -142,8 +142,8 @@ func (html *htmlReport) GenerateReport(test, useCDN bool) []byte {
     reportData := &ReportData{
         BundledJS:  bundledJS,
         BundledCSS: bundledCSS,
-        JsCDN:      "https://raw.githubusercontent.com/pb33f/openapi-changes/main/html-report/ui/build/static/bundle.js",
-        CssCDN:     "https://raw.githubusercontent.com/pb33f/openapi-changes/main/html-report/ui/build/static/main.css",
+        JsCDN:      "https://pb33f.github.io/openapi-changes/html-report/ui/build/static/bundle.js",
+        CssCDN:     "https://pb33f.github.io/openapi-changes/html-report/ui/build/static/main.css",
         Report:     string(data),
         ReportData: html.model,
         Generated:  time.Now(),
