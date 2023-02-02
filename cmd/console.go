@@ -6,15 +6,16 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"net/url"
+	"os"
+	"time"
+
 	"github.com/pb33f/openapi-changes/git"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/pb33f/openapi-changes/tui"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/twinj/uuid"
-	"net/url"
-	"os"
-	"time"
 )
 
 func GetConsoleCommand() *cobra.Command {
@@ -83,7 +84,7 @@ func GetConsoleCommand() *cobra.Command {
 					if url.Host == "github.com" {
 						go listenForUpdates(updateChan, errorChan)
 
-						user, repo, filePath, err := extractGithubDetailsFromURL(url)
+						user, repo, filePath, err := ExtractGithubDetailsFromURL(url)
 						if err != nil {
 							errorChan <- model.ProgressError{
 								Job:     "github url",
