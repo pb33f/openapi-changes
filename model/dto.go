@@ -19,6 +19,7 @@ type HTMLReportItem struct {
 type HTMLReport struct {
     DateGenerated string            `json:"dateGenerated"`
     ReportItems   []*HTMLReportItem `json:"reportItems"`
+    UseCDN        bool              `json:"useCDN"`
 }
 
 type TreeNode struct {

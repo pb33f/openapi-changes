@@ -4,7 +4,7 @@
     <body>
         <div id="root">
             <div class="preloader">
-                <div class="lds-ellipsis">
+                <div class="ellipsis">
                     <div></div><div></div><div></div><div></div></div><br/>
                 OpenAPI Changes report is loading...
             </div>
@@ -15,9 +15,11 @@
         window.data = JSON.parse(JSON.stringify(rawData));
 </script>
 {{- if not .TestMode -}}
+    {{- if not .UseCDN -}}
     <script>
         {{ .BundledJS }}
     </script>
+    {{- end -}}
 {{- else -}}
     <script src="http://localhost:3000/bundle.js"></script>
 {{- end -}}
