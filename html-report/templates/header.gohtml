@@ -89,7 +89,10 @@
         </style>
         {{- if .UseCDN }}
             <link rel="stylesheet" href="{{- .CssCDN -}}"/>
-            <script src="{{- .JsCDN -}}" async></script>
         {{- end }}
+        <script>
+            let rawData = {{ .Report }}
+                window.data = JSON.parse(JSON.stringify(rawData));
+        </script>
     </head>
 {{ end }}
