@@ -3,17 +3,24 @@
 
 package model
 
-import "github.com/pb33f/libopenapi/what-changed/reports"
+import (
+    "github.com/pb33f/libopenapi/what-changed/reports"
+    "time"
+)
 
 type Report struct {
-    Summary map[string]*reports.Changed `json:"reportSummary"`
-    Commit  *Commit                     `json:"commitDetails"`
+    ID        uint                        `gorm:"primaryKey" json:"-"`
+    Summary   map[string]*reports.Changed `gorm:"-" json:"reportSummary"`
+    CreatedAt time.Time
+    UpdatedAt time.Time
+    Commit    *Commit `gorm:"foreignKey:ID" json:"commitDetails"`
 }
 
 type HistoricalReport struct {
-    GitRepoPath   string    `json:"gitRepoPath"`
+    ID            uint      `gorm:"primaryKey" json:"-"`
+    GitRepoPath   string    `gorm:"index" json:"gitRepoPath"`
     GitFilePath   string    `json:"gitFilePath"`
     Filename      string    `json:"filename"`
     DateGenerated string    `json:"dateGenerated"`
-    Reports       []*Report `json:"reports"`
+    Reports       []*Report `gorm:"foreignKey:ID" json:"reports" `
 }
