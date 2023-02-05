@@ -104,7 +104,7 @@ func GetHTMLReportCommand() *cobra.Command {
 							<-doneChan
 							return err
 						}
-						report, er := RunGithubHistoryHTMLReport(user, repo, filePath, latestFlag, cdnFlag, updateChan, errorChan)
+						report, _, er := RunGithubHistoryHTMLReport(user, repo, filePath, latestFlag, cdnFlag, updateChan, errorChan)
 
 						// wait for things to be completed.
 						<-doneChan
@@ -150,7 +150,7 @@ func GetHTMLReportCommand() *cobra.Command {
 					}
 					go listenForUpdates(updateChan, errorChan)
 
-					report, er := RunGitHistoryHTMLReport(args[0], args[1], latestFlag, cdnFlag, updateChan, errorChan)
+					report, _, er := RunGitHistoryHTMLReport(args[0], args[1], latestFlag, cdnFlag, updateChan, errorChan)
 					<-doneChan
 					if er != nil {
 						for x := range er {
@@ -210,24 +210,24 @@ func ExtractGithubDetailsFromURL(url *url.URL) (string, string, string, error) {
 }
 
 func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []*model.Report, []error) {
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
 		model.SendProgressError("reading paths",
 			err.Error(), errorChan)
-		return nil, []error{err}
+		return nil, nil, []error{err}
 	}
 
 	// build commit history.
 	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, progressChan, errorChan)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// populate history with changes and data
-	commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, progressChan, errorChan)
+	commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, progressChan, errorChan)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if latest {
@@ -247,11 +247,11 @@ func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
 	close(progressChan)
 
 	generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
-	return generator.GenerateReport(false, useCDN), nil
+	return generator.GenerateReport(false, useCDN), reports, nil
 }
 
 func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN bool,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []*model.Report, []error) {
 
 	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, true)
 
@@ -259,7 +259,7 @@ func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN 
 		for x := range errs {
 			if _, ok := errs[x].(*resolver.ResolvingError); !ok {
 				model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(errs)), errorChan)
-				return nil, errs
+				return nil, nil, errs
 			}
 		}
 	}
@@ -281,7 +281,7 @@ func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN 
 	generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
 
 	close(progressChan)
-	return generator.GenerateReport(false, useCDN), nil
+	return generator.GenerateReport(false, useCDN), reports, nil
 }
 
 func RunLeftRightHTMLReport(left, right string, useCDN bool) ([]byte, []error) {
