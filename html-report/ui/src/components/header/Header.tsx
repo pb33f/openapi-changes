@@ -19,13 +19,12 @@ export const Header = () => {
     }
 
     const mobile = (window.innerWidth < 1000);
-    let fontSize = '16px';
     let style = {};
     if (!mobile) {
-        style = {
-            fontSize: '16px',
-            height: '40px',
-        }
+        // style = {
+        //     fontSize: '16px',
+        //     height: '40px',
+        // }
     }
     if (!report) {
         return (<header>no report</header>)
@@ -34,8 +33,8 @@ export const Header = () => {
     let button: JSX.Element;
     if (report.reportItems.length > 2) {
       button = <Button style={style}
-                       size={mobile? 'small' : 'large'}
-                       ghost={true}
+                       size={mobile? 'small' : 'middle'}
+                       ghost
                        type='primary'
                        icon={<FieldTimeOutlined style={{fontSize: '1em'}}/>}
                        onClick={navButtonClicked}>Timeline</Button>

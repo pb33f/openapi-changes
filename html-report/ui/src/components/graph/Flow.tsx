@@ -16,9 +16,6 @@ import './Flow.css';
 import {NodeIndexOutlined, ReloadOutlined, ZoomInOutlined, ZoomOutOutlined} from "@ant-design/icons";
 import {ChangeNode} from "@/components/graph/ChangeNode";
 import {getNextDirection} from "@/utils/utils";
-import {loader} from "@monaco-editor/react";
-import {ReportStoreContext} from "@/OpenAPIChanges";
-import {useStore} from "zustand";
 import {Report} from "@/model/report";
 
 const HorizontalFlow = () => {
@@ -163,7 +160,7 @@ const HorizontalFlow = () => {
             }>
             {({zoomIn, zoomOut, resetTransform, ...rest}) => (
                 <React.Fragment>
-                    <div style={{position: 'absolute', right: '0', zIndex: '10'}}>
+                    <div style={{backgroundColor: 'var(--background-color)', position: 'absolute', top: '10px', right: '0', zIndex: '10'}}>
                         <Space>
                             <Button type="primary"
                                     ghost={true}
@@ -190,7 +187,7 @@ const HorizontalFlow = () => {
                     <TransformComponent
                         wrapperStyle={{
                             width: "100%",
-                            height: "100%",
+                            height: "calc(100vh - 262px)",
                             overflow: "hidden",
                         }}
                     ><Canvas

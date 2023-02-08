@@ -1,20 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 {{- template "header" . -}}
-    <body>
-        <div id="root">
-            <div class="preloader">
-                <div class="ellipsis">
-                    <div></div><div></div><div></div><div></div></div><br/>
-                OpenAPI Changes report is loading...
-            </div>
-        </div>
-    </body>
+<body {{ if .EmbeddedMode }}data-embedded="true"{{ end }}>
+<div class="preloader" id="preloader">
+    <div class="ellipsis">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+    </div>
+    <br/>
+    OpenAPI Changes report is loading...
+</div>
+<div id="root">
+</div>
+</body>
+<script>
+    let rawData = {{ .Report }};
+    window.data = JSON.parse(JSON.stringify(rawData));
+</script>
 {{- if not .TestMode -}}
     {{- if not .UseCDN -}}
-        <script>
-            {{ .BundledJS }}
-        </script>
+    <script>
+        {{ .BundledJS }}
+    </script>
     {{- else -}}
         <script src="{{- .JsCDN -}}" async></script>
     {{- end -}}

@@ -51,7 +51,7 @@ type APIFile struct {
 
 func GetCommitsForGithubFile(user, repo, path string,
     progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError,
-    forceCutoff bool) ([]*APICommit, error) {
+    forceCutoff bool, limit int) ([]*APICommit, error) {
 
     // we can make a lot of http calls, very quickly - so ensure we give the client enough
     // breathing space to cope with lots of TLS handshakes.
@@ -196,12 +196,21 @@ func GetCommitsForGithubFile(user, repo, path string,
     errChan := make(chan error)
 
     totalCommits := len(commits)
+
+    if limit > 0 && totalCommits > limit {
+        totalCommits = limit + 1
+    }
     completedCommits := 0
 
+    b := 0
     for x := range commits {
         model.SendProgressUpdate(fmt.Sprintf("commit: %s", commits[x].Hash),
             fmt.Sprintf("commit %s being fetched", commits[x].Hash), false, progressChan)
         go extractFilesFromCommit(user, repo, path, commits[x], sigChan, errChan)
+        b++
+        if limit > 0 && b > limit {
+            break
+        }
     }
 
     for completedCommits < totalCommits {
@@ -259,7 +268,7 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
             model.SendProgressUpdate("converting commits",
                 fmt.Sprintf("%d commits normalized", len(normalized)), true, progressChan)
         } else {
-            model.SendProgressError("converting commits", "no commits were normalized! Check URL", progressErrorChan)
+            model.SendFatalError("converting commits", "no commits were normalized! Check URL", progressErrorChan)
         }
     }
     return normalized, errs
@@ -267,7 +276,7 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
 
 func ProcessGithubRepo(username string, repo string, filePath string,
     progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
-    forceCutoff bool) ([]*model.Commit, []error) {
+    forceCutoff bool, limit int) ([]*model.Commit, []error) {
 
     if username == "" || repo == "" || filePath == "" {
         err := errors.New("please supply valid github username/repo and filepath")
@@ -275,7 +284,7 @@ func ProcessGithubRepo(username string, repo string, filePath string,
         return nil, []error{err}
     }
 
-    githubCommits, err := GetCommitsForGithubFile(username, repo, filePath, progressChan, errorChan, forceCutoff)
+    githubCommits, err := GetCommitsForGithubFile(username, repo, filePath, progressChan, errorChan, forceCutoff, limit)
 
     if err != nil {
         return nil, []error{err}

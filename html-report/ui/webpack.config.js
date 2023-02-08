@@ -8,10 +8,12 @@ const path = require("path");
 
 module.exports = {
     mode: prod ? 'production' : 'development',
-    entry: './src/index.tsx',
+    entry: {
+        bundle: './src/index.tsx'
+    },
     output: {
         path: path.resolve('build', 'static'),
-        filename: 'bundle.js',
+        filename: '[name].js',
     },
     resolve: {
         plugins: [new TsconfigPathsPlugin()],

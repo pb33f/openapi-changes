@@ -10,9 +10,17 @@
     flex-direction: row;
 }
 
+body[data-embedded] .report-container {
+    margin-left: 10px;
+}
+
 
 .report-summary {
     width: calc(100vw - 665px);
+}
+
+body[data-embedded] .report-summary {
+    width: calc(100vw - 643px);
 }
 
 .report-summary-stats {
@@ -20,6 +28,7 @@
     flex-direction: row;
     height: 70px;
     justify-content: flex-end;
+    padding-top: 10px;
 }
 
 .commit {
@@ -28,7 +37,6 @@
     white-space: nowrap;
     font-size: 0.8rem;
     height: 60px;
-    width: calc(100vw - 698px);
     max-height: 50px;
     border: 1px dashed var(--secondary-color-very-lowalpha);
     background-color: var(--rule-item-background);
