@@ -24,11 +24,22 @@
 
 .tree-holder {
     width: 100%;
-    height: calc(100vh - 322px);
+    height: calc(100vh - 287px);
     position: relative;
     overflow: auto;
     flex-grow: 2;
 }
+
+body[data-embedded] .tree-holder {
+    height: calc(100vh - 260px);
+}
+
+
+body[data-embedded] .tree-scroller {
+    height: calc(100vh - 258px);
+}
+
+
 
 .tree-title-dull {
     color: var(--dark-font-color);
@@ -78,7 +89,7 @@
 }
 
 .tree-scroller {
-    height: calc(100vh - 319px);
+    height: calc(100vh - 287px);
     overflow-y: auto;
 }
 

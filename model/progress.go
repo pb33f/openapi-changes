@@ -15,6 +15,7 @@ type ProgressUpdate struct {
 type ProgressError struct {
     Job     string
     Message string
+    Fatal   bool
 }
 
 func (p ProgressError) Error() string {
@@ -43,5 +44,12 @@ func SendProgressError(job, message string, errorChan chan ProgressError) {
         Job:     job,
         Message: message,
     }
+}
 
+func SendFatalError(job, message string, errorChan chan ProgressError) {
+    errorChan <- ProgressError{
+        Job:     job,
+        Message: message,
+        Fatal:   true,
+    }
 }

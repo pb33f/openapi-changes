@@ -7,8 +7,14 @@
     font-size: 11px;
 }
 
+body[data-embedded] .editor-flip-controls {
+    right: 10px;
+}
+
+
 .editor-flip-controls button {
     margin-left: 10px;
+
 }
 
 section.editor {

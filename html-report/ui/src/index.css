@@ -5,7 +5,7 @@ body {
   background-color: var(--background-color);
   font-family: var(--font-stack);
   color: var(--font-color);
-  padding: 5px 20px 0 20px;
+  padding: 0;
 }
 
 a, a:visited, a:active {
@@ -38,6 +38,19 @@ body::-webkit-scrollbar-thumb {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+footer {
+  border-top: 1px dashed var(--secondary-color);
+  padding: 5px;
+  width: calc(100vw - 10px);
+  position: fixed;
+  bottom: 0;
+    left: 0;
+}
+
+.non-embedded-mode {
+  padding: 5px 20px 0 20px;
 }
 
 @media only screen and (max-width: 1000px) {

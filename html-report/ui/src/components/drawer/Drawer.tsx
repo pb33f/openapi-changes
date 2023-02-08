@@ -40,7 +40,7 @@ export const DrawerComponent = (props: DrawerProps) => {
             <Drawer
                 title={<ChangeTitleComponent/>}
                 placement="bottom"
-                height="400px"
+                height="385px"
                 closable={true}
                 onClose={toggleDrawer}
                 open={drawerOpen}
@@ -59,7 +59,6 @@ export const DrawerComponent = (props: DrawerProps) => {
     );
 }
 
-
 export interface OriginalModifiedColsProps {
     change: Change
     className?: string;
@@ -71,9 +70,8 @@ export const OriginalModifiedCols: React.FC<OriginalModifiedColsProps> = (props:
     if (props.change.context.originalLine) {
         origLine = (
             <span className="orig-col">
-                <strong>Original</strong> Specification
-                (line: <span
-                className='linenumber-highlight'>{props.change.context.originalLine}</span>, col: {props.change.context.originalColumn})
+                <strong>Original</strong> (l: <span
+                className='linenumber-highlight'>{props.change.context.originalLine}</span>, c: {props.change.context.originalColumn})
             </span>)
     } else {
         origLine = (<span className="orig-col">(Not available in original specification)</span>)
@@ -83,11 +81,11 @@ export const OriginalModifiedCols: React.FC<OriginalModifiedColsProps> = (props:
     if (props.change.context.newLine) {
         modLine = (
             <span className="mod-col">
-                <strong>Modified</strong> Specification (line: <span
-                className='linenumber-highlight'>{props.change.context.newLine}</span>, col: {props.change.context.newColumn}))
+                <strong>Modified</strong> (l: <span
+                className='linenumber-highlight'>{props.change.context.newLine}</span>, c: {props.change.context.newColumn}))
             </span>)
     } else {
-        modLine = (<span className="mod-col" >(Not available in modified specification)</span>)
+        modLine = (<span className="mod-col" >(Not available)</span>)
     }
 
     return (

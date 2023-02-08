@@ -23,12 +23,12 @@ var header string
 //go:embed ui/build/static/bundle.js
 var bundledJS string
 
-//go:embed ui/build/static/main.css
+//go:embed ui/build/static/bundle.css
 var bundledCSS string
 
 type HTMLReportGenerator interface {
     GetHTMLReport() *model.HTMLReport
-    GenerateReport(testMode, useCDN bool) []byte
+    GenerateReport(testMode, useCDN, embeddedMode bool) []byte
 }
 
 type ReportData struct {
@@ -42,6 +42,7 @@ type ReportData struct {
     ReportData       *model.HTMLReport `json:"-"`
     Generated        time.Time         `json:"generated"`
     DisableTimestamp bool              `json:"-"`
+    EmbeddedMode     bool              `json:"-"`
 }
 
 type htmlReport struct {
@@ -120,7 +121,7 @@ func (html *htmlReport) GetHTMLReport() *model.HTMLReport {
     return html.model
 }
 
-func (html *htmlReport) GenerateReport(test, useCDN bool) []byte {
+func (html *htmlReport) GenerateReport(test, useCDN, embedded bool) []byte {
 
     templateFuncs := template.FuncMap{
         "renderJSON": func(data interface{}) string {
@@ -140,15 +141,16 @@ func (html *htmlReport) GenerateReport(test, useCDN bool) []byte {
     data, _ := json.Marshal(html.model)
 
     reportData := &ReportData{
-        BundledJS:  bundledJS,
-        BundledCSS: bundledCSS,
-        JsCDN:      "https://pb33f.github.io/openapi-changes/html-report/ui/build/static/bundle.js",
-        CssCDN:     "https://pb33f.github.io/openapi-changes/html-report/ui/build/static/main.css",
-        Report:     string(data),
-        ReportData: html.model,
-        Generated:  time.Now(),
-        TestMode:   test,
-        UseCDN:     useCDN,
+        BundledJS:    bundledJS,
+        BundledCSS:   bundledCSS,
+        JsCDN:        "https://pb33f.github.io/openapi-changes/html-report/ui/build/static/bundle.js",
+        CssCDN:       "https://pb33f.github.io/openapi-changes/html-report/ui/build/static/main.css",
+        Report:       string(data),
+        ReportData:   html.model,
+        Generated:    time.Now(),
+        TestMode:     test,
+        UseCDN:       useCDN,
+        EmbeddedMode: embedded,
     }
     if html.disableTimestamp {
         reportData.DisableTimestamp = true

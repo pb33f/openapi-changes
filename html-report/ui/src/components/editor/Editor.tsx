@@ -150,7 +150,7 @@ export function EditorComponent(props: EditorComponentProps) {
         if(mobile) {
            height = "calc(100vh - 553px)"
         } else {
-            height = "calc(100vh - 380px)"
+            height = "calc(100vh - 316px)"
         }
     }
 

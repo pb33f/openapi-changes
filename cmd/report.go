@@ -227,7 +227,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 func runGithubHistoryReport(username, repo, filePath string, latest bool,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) (*model.HistoricalReport, []error) {
 
-	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false)
+	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false,3)
 	if errs != nil {
 		return nil, errs
 	}

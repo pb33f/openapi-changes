@@ -33,11 +33,7 @@ export const StyledForeignObject = styled.foreignObject<{
   border-radius: 2px;
   
   * {
-    font-family: "Roboto Mono", monospace;
-  }
-
-  *:hover {
-    border-color: orange;
+    font-family: var(--font-family);
   }
 
   .changed, .original {

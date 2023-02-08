@@ -204,7 +204,7 @@ func runLeftRightSummary(left, right string) []error {
 
 func runGithubHistorySummary(username, repo, filePath string, latest bool,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) error {
-	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false)
+	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false,3)
 	if errs != nil {
 		return errs[0]
 	}

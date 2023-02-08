@@ -75,12 +75,14 @@ func GetHTMLReportCommand() *cobra.Command {
                             return
                         }
                     case err := <-errorChan:
-                        failed = true
-                        spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
-                        pterm.Println()
-                        pterm.Println()
-                        doneChan <- true
-                        return
+                        //failed = true
+                        if err.Fatal {
+                            spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
+                            doneChan <- true
+                            return
+                        } else {
+                            pterm.Warning.Println(err.Message)
+                        }
                     }
                 }
             }
@@ -104,15 +106,15 @@ func GetHTMLReportCommand() *cobra.Command {
                             <-doneChan
                             return err
                         }
-                        report, _, er := RunGithubHistoryHTMLReport(user, repo, filePath, latestFlag, cdnFlag, updateChan, errorChan)
+                        report, _, er := RunGithubHistoryHTMLReport(user, repo, filePath, latestFlag, cdnFlag, updateChan, errorChan, 3)
 
                         // wait for things to be completed.
                         <-doneChan
 
-                        if err != nil {
+                        if len(report) <= 0 && er != nil {
                             return er[0]
                         }
-                        if !failed {
+                        if len(report) > 0 {
                             err = os.WriteFile("report.html", report, 0664)
                             if err != nil {
                                 pterm.Error.Println(err.Error())
@@ -247,19 +249,20 @@ func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
     close(progressChan)
 
     generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
-    return generator.GenerateReport(false, useCDN), reports, nil
+    return generator.GenerateReport(false, useCDN, false), reports, nil
 }
 
 func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN bool,
-    progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []*model.Report, []error) {
+    progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, limit int) ([]byte, []*model.Report, []error) {
 
-    commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, true)
+    commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, true, limit)
 
     if errs != nil {
         for x := range errs {
-            if _, ok := errs[x].(*resolver.ResolvingError); !ok {
-                model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(errs)), errorChan)
-                return nil, nil, errs
+            if e, ok := errs[x].(*resolver.ResolvingError); !ok {
+                model.SendProgressError("git", fmt.Sprintf("resolving error: %s", e.Error()), errorChan)
+            } else {
+                model.SendProgressError("git", fmt.Sprintf("parsing error: %s", e.Error()), errorChan)
             }
         }
     }
@@ -278,10 +281,20 @@ func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN 
     model.SendProgressUpdate("extraction",
         fmt.Sprintf("extracted %d reports from history", len(reports)), true, progressChan)
 
+    // if there are no reports and no commits, return no bytes.
+    if len(reports) == 0 && len(commitHistory) == 0 {
+
+        model.SendProgressError("extraction",
+            fmt.Sprintf("history extraction failed %d reports generated for '%s'", len(reports), filePath), errorChan)
+
+        close(progressChan)
+        return nil, nil, append(errs, fmt.Errorf("no repors extracted, no history found for file '%s'", filePath))
+    }
+
     generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
 
     close(progressChan)
-    return generator.GenerateReport(false, useCDN), reports, nil
+    return generator.GenerateReport(true, false, true), reports, errs
 }
 
 func RunLeftRightHTMLReport(left, right string, useCDN bool) ([]byte, []error) {
@@ -319,5 +332,5 @@ func RunLeftRightHTMLReport(left, right string, useCDN bool) ([]byte, []error) {
         return nil, errs
     }
     generator := html_report.NewHTMLReport(false, time.Now(), commits)
-    return generator.GenerateReport(false, useCDN), nil
+    return generator.GenerateReport(false, useCDN, false), nil
 }

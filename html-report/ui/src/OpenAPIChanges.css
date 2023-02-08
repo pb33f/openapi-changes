@@ -10,12 +10,21 @@
   width: calc(100vw - 50px);
 }
 
+body[data-embedded] #main_container {
+  width: 100vw;
+}
 
 
 hr {
   border: none;
   border-bottom: 1px dashed var(--secondary-color);
 }
+
+body[data-embedded] hr {
+  margin-block-end: 0;
+  margin-block-start: 0;
+}
+
 
 .height-100 {
   height: 100px;
@@ -90,6 +99,13 @@ hr {
   width: 100%
 }
 
+body[data-embedded] section.report-header > header {
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 10px;
+  height: 40px;
+}
+
 
 .breaking-change {
   color: var(--error-color)
@@ -124,6 +140,9 @@ hr {
   vertical-align: middle;
 }
 
+.ant-tabs >.ant-tabs-nav {
+  margin-bottom: 0!important;
+}
 
 .ant-tabs-tab {
   border-radius: 0px!important;
@@ -141,9 +160,12 @@ hr {
   border-bottom: 1px dashed var(--secondary-color)!important;
 }
 
-
 footer {
   font-size: 0.6em;
+}
+
+body[data-embedded] footer {
+  display: none;
 }
 
 
