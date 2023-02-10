@@ -1,9 +1,12 @@
-import React, {useContext} from "react";
-import PieChart from "../charts/Pie";
+// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
+// SPDX-License-Identifier: MIT
+
+import React from "react";
 import {ReportSummary} from "./ReportSummary";
 import {ChangeStatistics} from "@/model";
-import './ReportContainer.css'
 import {ReportState, useReportStore} from "@/model/store";
+import {PieChart} from "@/components/charts/Pie";
+import './ReportContainer.css'
 
 export const ReportContainer: React.FC = () => {
     const stats: ChangeStatistics | undefined =
@@ -59,7 +62,6 @@ export const ReportContainer: React.FC = () => {
                 borderColor: "rgb(30,30,30)",
                 borderWidth: 1
             },
-
         ]
     };
     const breakingData = {
@@ -70,7 +72,6 @@ export const ReportContainer: React.FC = () => {
                 borderColor: "rgb(30,30,30)",
                 borderWidth: 1
             },
-
         ]
     };
     const totalData = {

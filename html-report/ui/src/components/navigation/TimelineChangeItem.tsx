@@ -1,3 +1,6 @@
+// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
+// SPDX-License-Identifier: MIT
+
 import {ChangeState, ReportState, useChangeStore, useReportStore} from "@/model/store";
 import {Statistic} from "antd";
 import {EditOutlined, MinusSquareOutlined, PlusSquareOutlined, WarningOutlined} from "@ant-design/icons";
@@ -16,7 +19,6 @@ export interface TimelineChangeItemProps {
 }
 
 export function TimelineChangeItem(props: TimelineChangeItemProps) {
-
     const setSelectedReportIndex = useReportStore((report: ReportState) => report.setSelectedReportIndex);
     const setHighlightedReportIndex = useReportStore((report: ReportState) => report.setHighlightedReportIndex);
     const selectedReportIndex = useReportStore((report: ReportState) => report.selectedReportIndex);
@@ -24,7 +26,6 @@ export function TimelineChangeItem(props: TimelineChangeItemProps) {
     const setSelectedReport = useReportStore((report: ReportState) => report.setSelectedReport);
     const setCurrentChange = useChangeStore((state: ChangeState) => state.setCurrentChange)
     const report = useReportStore((report: ReportState) => report.report);
-
     let changeStats: JSX.Element
     const mobile = (window.innerWidth < 1000)
 

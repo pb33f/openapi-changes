@@ -1,7 +1,9 @@
+// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
+// SPDX-License-Identifier: MIT
+
 import {ReportState, useReportStore} from "@/model/store";
 import {ReportItem} from "@/model/report";
-import React, {useContext, useEffect, useRef} from "react";
-
+import React, {useEffect, useRef} from "react";
 import {Line} from "react-chartjs-2";
 import {
     Chart as ChartJS,
@@ -25,7 +27,6 @@ ChartJS.register(
 );
 
 import '../navigation/Navigation.css';
-
 
 export interface ChangeChartProps {
     selectedIndex: number;
@@ -98,9 +99,7 @@ export function ChangeChart(props: ChangeChartProps) {
                 }
             ]);
         }
-
     }, [props.selectedIndex]);
-
 
     return (
         <Line

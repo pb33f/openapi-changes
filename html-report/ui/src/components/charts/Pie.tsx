@@ -1,9 +1,12 @@
+// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
+// SPDX-License-Identifier: MIT
+
 import React from "react";
 import {Doughnut} from "react-chartjs-2";
 import {Chart, ArcElement,  Tooltip, Legend, Title, LinearScale, CategoryScale, PointElement, LineElement} from 'chart.js'
 import {color, getHoverColor} from 'chart.js/helpers'
-
 import {BinaryChartColors, ChartColors, CreateRadialGradient} from "./ChartColors";
+
 Chart.register(ArcElement,  Tooltip, Legend, Title, LinearScale, CategoryScale, PointElement, LineElement);
 
 export interface PieChartProps {
@@ -14,8 +17,7 @@ export interface PieChartProps {
 }
 
 
-function PieChart(props: PieChartProps) {
-
+export function PieChart(props: PieChartProps) {
     let colors = ChartColors;
     if (props.isBinary) {
         colors = BinaryChartColors
@@ -43,19 +45,15 @@ function PieChart(props: PieChartProps) {
                             align: 'center',
                             display: showLegend,
                             position: 'right',
-                            //maxWidth: 0,
                             maxHeight: 40,
-
                             labels: {
                                 usePointStyle: true,
-                                // This more specific font property overrides the global property
                                 font: {
                                     size: 8,
                                     family: "Menlo, Monaco, Roboto Mono, Lucida Console, Liberation Mono"
                                 }
                             }
                         },
-
                     },
                     elements: {
                         arc: {
@@ -80,4 +78,3 @@ function PieChart(props: PieChartProps) {
         </div>
     );
 }
-export default PieChart;

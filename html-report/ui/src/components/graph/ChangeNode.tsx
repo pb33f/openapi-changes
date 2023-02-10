@@ -1,3 +1,6 @@
+// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
+// SPDX-License-Identifier: MIT
+
 import {Node, NodeChildProps, NodeProps} from "reaflow";
 import React from "react";
 import {Change} from "@/model";
@@ -63,8 +66,7 @@ export const ChangeNode = (nodeProps: NodeProps) => {
                             ref={ref}
                             isObject
                             isBreaking={change.breaking}
-                            isClickable={true}
-                        >
+                            isClickable={true}>
                             <div className='node'>
                                 {changeIcon} {changeProperty}<br/>
                                 {originalVal}
@@ -85,15 +87,12 @@ export const ChangeNode = (nodeProps: NodeProps) => {
                         <Styled.StyledForeignObject
                             width={props.width}
                             height={props.height}
-                            ref={ref}
-                        >
+                            ref={ref}>
                             <div className='node'>{changeProperty}</div>
                         </Styled.StyledForeignObject>
-
                     )
                 }
             }}
-
         </Node>
     )
 }

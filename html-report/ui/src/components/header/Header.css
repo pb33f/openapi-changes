@@ -2,7 +2,7 @@ header {
     font-size: 1.5rem;
     font-family: var(--font-stack);
     height: 38px;
-    padding-top: 8px;
+    padding-top: 2px;
     position: relative;
 }
 
