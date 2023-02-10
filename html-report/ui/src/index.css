@@ -49,10 +49,6 @@ footer {
     left: 0;
 }
 
-.non-embedded-mode {
-  padding: 5px 20px 0 20px;
-}
-
 @media only screen and (max-width: 1000px) {
    body {
      padding: 5px 5px 0 5px;

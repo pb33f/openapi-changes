@@ -1,3 +1,6 @@
+// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
+// SPDX-License-Identifier: MIT
+
 import {NavState, ReportState, useNavStore, useReportStore} from "@/model/store";
 import {Drawer, Timeline} from "antd";
 import React, {useEffect} from "react";
@@ -8,7 +11,6 @@ import {TimelineChange} from "@/components/navigation/TimelineChange";
 import './Navigation.css';
 
 export function Navigation() {
-
     const selectedReportItem = useReportStore((report: ReportState) => report.selectedReportItem);
     const navOpen = useNavStore((state: NavState) => state.navOpen)
     const closeNav = useNavStore((state: NavState) => state.closeNav)
@@ -85,5 +87,5 @@ export function Navigation() {
                 </Timeline>
             </div>
         </Drawer>
-    )
+    );
 }

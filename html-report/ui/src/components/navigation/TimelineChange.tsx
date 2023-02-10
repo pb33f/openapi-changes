@@ -1,3 +1,6 @@
+// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
+// SPDX-License-Identifier: MIT
+
 import {ClockCircleOutlined, WarningFilled} from "@ant-design/icons";
 import {Timeline} from "antd";
 import React from "react";

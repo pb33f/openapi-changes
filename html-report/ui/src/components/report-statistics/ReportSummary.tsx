@@ -1,3 +1,6 @@
+// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
+// SPDX-License-Identifier: MIT
+
 import React from 'react';
 import {Statistic} from 'antd';
 import {EditOutlined, MinusSquareOutlined, PlusSquareOutlined} from "@ant-design/icons";
@@ -41,10 +44,8 @@ export function ReportSummary(props: ReportSummaryProps) {
                     <a href={`mailto:${props.changeStats.commit.authorEmail}`}>{props.changeStats.commit.author}</a>
                </span>
             </span>
-
                 {props.changeStats.commit.message}
-
             </section>
         </section>
     )
-};
+}

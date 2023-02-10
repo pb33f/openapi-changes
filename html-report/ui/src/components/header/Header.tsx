@@ -1,12 +1,12 @@
-import React, {useContext} from "react";
+// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
+// SPDX-License-Identifier: MIT
+
+import React from "react";
 import './Header.css'
 import {Button} from "antd";
 import {DrawerState, NavState, ReportState, useDrawerStore, useNavStore, useReportStore} from "@/model/store";
 import {FieldTimeOutlined} from "@ant-design/icons";
 import {Navigation} from "@/components/navigation/Navigation";
-import {ReportStoreContext} from "@/OpenAPIChanges";
-import {useStore} from "zustand";
-
 
 export const Header = () => {
     const toggleNav = useNavStore((state: NavState) => state.openNav)

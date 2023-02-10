@@ -7,7 +7,6 @@ import (
     "encoding/json"
     "errors"
     "fmt"
-    "github.com/pb33f/libopenapi/resolver"
     "github.com/pb33f/openapi-changes/model"
     "io/ioutil"
     "net"
@@ -141,8 +140,11 @@ func GetCommitsForGithubFile(user, repo, path string,
         }
         commit.Files = f.Files
 
-        for x := range commit.Files {
+        model.SendProgressUpdate(commit.Hash,
+            fmt.Sprintf("Commit %s contains %d files, scanning for matching path",
+                commit.Hash, len(commit.Files)), false, progressChan)
 
+        for x := range commit.Files {
             // make sure we extract the one we want.
             rawURL, _ := url.Parse(commit.Files[x].RawURL)
             dir, file := filepath.Split(rawURL.Path)
@@ -183,12 +185,12 @@ func GetCommitsForGithubFile(user, repo, path string,
                     return
                 }
                 model.SendProgressUpdate(commit.Hash,
-                    fmt.Sprintf("%d bytes read for file %s", len(b), file), false, progressChan)
+                    fmt.Sprintf("%dkb read for file %s", len(b)/1024, commit.Files[x].RawURL), false, progressChan)
                 commit.Files[x].Bytes = b
             }
         }
         model.SendProgressUpdate(commit.Hash,
-            fmt.Sprintf("commit %s parsed", commit.Hash), true, progressChan)
+            fmt.Sprintf("commit %s processed", commit.Hash), true, progressChan)
         d <- true
     }
 
@@ -205,7 +207,7 @@ func GetCommitsForGithubFile(user, repo, path string,
     b := 0
     for x := range commits {
         model.SendProgressUpdate(fmt.Sprintf("commit: %s", commits[x].Hash),
-            fmt.Sprintf("commit %s being fetched", commits[x].Hash), false, progressChan)
+            fmt.Sprintf("commit %s being fetched from %s", commits[x].Hash[0:6], u), false, progressChan)
         go extractFilesFromCommit(user, repo, path, commits[x], sigChan, errChan)
         b++
         if limit > 0 && b > limit {
@@ -234,8 +236,10 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
     progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError) ([]*model.Commit, []error) {
     var normalized []*model.Commit
 
-    model.SendProgressUpdate("converting commits", "converting github commits into a model", false, progressChan)
-
+    if len(ghCommits) > 0 {
+        model.SendProgressUpdate("converting commits",
+            fmt.Sprintf("Converting %d github commits into data model", len(ghCommits)), false, progressChan)
+    }
     for x := range ghCommits {
         for y := range ghCommits[x].Files {
             if len(ghCommits[x].Files[y].Bytes) > 0 {
@@ -249,15 +253,17 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
                     Data:        ghCommits[x].Files[y].Bytes,
                 }
                 model.SendProgressUpdate("converting commits",
-                    fmt.Sprintf("converted commit %s", nc.Hash), false, progressChan)
+                    fmt.Sprintf("Converted commit %s into data model", nc.Hash), false, progressChan)
                 normalized = append(normalized, nc)
             }
         }
     }
     var errs []error
-    model.SendProgressUpdate("converting commits", "building models", false, progressChan)
-    //TODO: feed in the channels to the changelog.
-    normalized, errs = BuildCommitChangelog(normalized)
+    if len(normalized) > 0 {
+        model.SendProgressUpdate("converting commits", "Building data models...", false, progressChan)
+    }
+
+    normalized, errs = BuildCommitChangelog(normalized, progressChan, progressErrorChan)
 
     if len(errs) > 0 {
         model.SendProgressError("converting commits",
@@ -266,9 +272,9 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
 
         if len(normalized) > 0 {
             model.SendProgressUpdate("converting commits",
-                fmt.Sprintf("%d commits normalized", len(normalized)), true, progressChan)
+                fmt.Sprintf("Success: %d commits normalized", len(normalized)), true, progressChan)
         } else {
-            model.SendFatalError("converting commits", "no commits were normalized! Check URL", progressErrorChan)
+            model.SendFatalError("converting commits", "No commits were normalized! Please check the URL/Path", progressErrorChan)
         }
     }
     return normalized, errs
@@ -293,9 +299,7 @@ func ProcessGithubRepo(username string, repo string, filePath string,
     commitHistory, errs := ConvertGithubCommitsIntoModel(githubCommits, progressChan, errorChan)
     if errs != nil {
         for x := range errs {
-            if _, ok := errs[x].(*resolver.ResolvingError); !ok {
-                model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(errs)), errorChan)
-            }
+            model.SendProgressError("git", errs[x].Error(), errorChan)
         }
         return commitHistory, errs
     }

@@ -1,16 +1,11 @@
 .editor-flip-controls {
     display: block;
     position: absolute;
-    right: 0;
+    right: 10px;
     top: -20px;
     width: 152px;
     font-size: 11px;
 }
-
-body[data-embedded] .editor-flip-controls {
-    right: 10px;
-}
-
 
 .editor-flip-controls button {
     margin-left: 10px;

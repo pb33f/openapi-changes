@@ -8,18 +8,10 @@
     margin-bottom: 10px;
     display: flex;
     flex-direction: row;
-}
-
-body[data-embedded] .report-container {
     margin-left: 10px;
 }
 
-
 .report-summary {
-    width: calc(100vw - 665px);
-}
-
-body[data-embedded] .report-summary {
     width: calc(100vw - 643px);
 }
 

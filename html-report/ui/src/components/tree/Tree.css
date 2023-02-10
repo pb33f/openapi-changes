@@ -34,11 +34,9 @@ body[data-embedded] .tree-holder {
     height: calc(100vh - 260px);
 }
 
-
 body[data-embedded] .tree-scroller {
-    height: calc(100vh - 258px);
+    height: calc(100vh - 260px);
 }
-
 
 
 .tree-title-dull {

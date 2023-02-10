@@ -1,18 +1,21 @@
+// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
+// SPDX-License-Identifier: MIT
+
 import Tree from "antd/es/tree";
-import * as React from "react";
-import {ReactNode, useCallback, useContext, useEffect, useRef, useState} from "react";
-import {Badge} from "antd";
+import React from "react";
+import {useCallback, useRef, useState} from "react";
 import {DownOutlined, EditOutlined, MinusSquareOutlined, PlusSquareOutlined} from "@ant-design/icons";
 import {EditorComponent} from "@/components/editor/Editor";
 import {Allotment} from "allotment";
 import {BeefyTreeNode} from "@/model/beefy-tree-node";
 import {ChangeState, EditorState, ReportState, useChangeStore, useEditorStore, useReportStore} from "@/model/store";
-import {ChangeTitleComponent, OriginalModifiedCols} from "@/components/drawer/Drawer";
 import {GoDiff} from "react-icons/go";
 import {CheckPropIsVerb, Verb} from "@/components/verb/Verb";
-import {Change} from "@/model";
-import {ReportStoreContext} from "@/OpenAPIChanges";
-import {useStore} from "zustand";
+import {TreeTitleNode} from "@/components/tree/TreeTitle";
+import {OriginalModifiedCols} from "@/components/drawer/OriginalModifiedCols";
+import {ChangeTitleComponent} from "@/components/drawer/ChangeTitle";
+
+const {DirectoryTree} = Tree;
 
 const visitNode = (node: BeefyTreeNode) => {
     node.title = <TreeTitleNode
@@ -60,33 +63,6 @@ const visitNode = (node: BeefyTreeNode) => {
     }
 }
 
-export interface TreeTitleNodeProps {
-    totalChanges: number | undefined;
-    breakingChanges: number | undefined;
-    title: string | undefined;
-    breaking: boolean | undefined;
-
-    change?: Change
-}
-
-const TreeTitleNode = (props: TreeTitleNodeProps) => {
-
-    let title: JSX.Element | undefined;
-    if (props.change) {
-        title = <span className={props.breaking ? 'breaking-change tree-title' : 'tree-title'}>{props.title}</span>
-    } else {
-        title = <span className='tree-title-dull'>{props.title}</span>
-    }
-
-    return (
-        <Badge count={props.totalChanges} size="small" offset={[10, 0]}
-               style={{borderColor: 'transparent', background: 'none', color: 'var(--secondary-color)'}}>
-            {title}
-        </Badge>
-    )
-}
-
-const {DirectoryTree} = Tree;
 
 export function TreeViewComponent() {
     const selectedReport = useReportStore((report: ReportState) => report.selectedReportItem);
@@ -98,7 +74,7 @@ export function TreeViewComponent() {
     const setCurrentChange = useChangeStore((state: ChangeState) => state.setCurrentChange);
     const selectedKeysInState = useChangeStore((state: ChangeState) => state.selectedChangeKeys);
     const setSelectedKeysInState = useChangeStore((state: ChangeState) => state.setSelectedChangeKeys);
-   const setExpandedKeys = useChangeStore((state: ChangeState) => state.setExpandedChangeKeys);
+    const setExpandedKeys = useChangeStore((state: ChangeState) => state.setExpandedChangeKeys);
     const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
     const lookupMap = useChangeStore((state: ChangeState) => state.treeMapLookup)
     const [height, setHeight] = useState(0);
@@ -119,13 +95,10 @@ export function TreeViewComponent() {
         }
     };
 
-
-    //let listener: boolean
     const treeContainer = useCallback((node: any) => {
         if (window.innerWidth < 1000 && sbs) {
             setSbs(false)
         }
-
         let lookupKey: String | undefined;
         if (selectedKeys.toString() !== selectedKeysInState.toString()) {
             if (typeof selectedKeysInState[0] === 'string') {
@@ -146,7 +119,6 @@ export function TreeViewComponent() {
         }
     }, []);
 
-
     let change: JSX.Element | undefined;
     if (currentChange) {
         change = <OriginalModifiedCols className='treeview-origmod-cols' change={currentChange}/>
@@ -164,7 +136,6 @@ export function TreeViewComponent() {
                 <ChangeTitleComponent/>
             </div>
             {change}
-
             <div className='diff-view'>
                 <EditorComponent sideBySideEditor={sbs} currentChange={currentChange}/>
             </div>
@@ -191,12 +162,10 @@ export function TreeViewComponent() {
                                 ref={treeRef}
                                 rootClassName="tree"
                                 showLine
-                                //height={height}
                                 icon={null}
                                 virtual={false}
                                 switcherIcon={<DownOutlined/>}
                                 defaultExpandAll
-                                //expandedKeys={expandedKeys}
                                 onExpand={onExpand}
                                 onSelect={onSelect}
                                 selectedKeys={selectedKeys}
@@ -220,7 +189,6 @@ export function TreeViewComponent() {
                             ref={treeRef}
                             rootClassName="tree"
                             showLine
-                            //height={height}
                             switcherIcon={<DownOutlined/>}
                             defaultExpandAll
                             onExpand={onExpand}

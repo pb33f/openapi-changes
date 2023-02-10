@@ -1,3 +1,6 @@
+// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
+// SPDX-License-Identifier: MIT
+
 export const ChartColors: string[] = [
     "#f83aff",
     "rgba(98, 196, 255, 1)",
@@ -12,7 +15,6 @@ export const BinaryChartColors: string[] = [
     "#ff246b",
 ]
 
-
 const cache = new Map();
 let width: any = null;
 let height: any = null;
@@ -20,7 +22,6 @@ let height: any = null;
 export function CreateRadialGradient(context: any, c1: any, c2: any, c3: any, c4: any) {
     const chartArea = context.chart.chartArea;
     if (!chartArea) {
-        // This case happens on initial chart load
         return;
     }
 
@@ -49,6 +50,5 @@ export function CreateRadialGradient(context: any, c1: any, c2: any, c3: any, c4
         gradient.addColorStop(1, c4);
         cache.set(c1 + c2 + c3 + c4, gradient);
     }
-
     return gradient;
 }

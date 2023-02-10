@@ -1,3 +1,6 @@
+// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
+// SPDX-License-Identifier: MIT
+
 import React, {useContext, useEffect, useRef, useState} from 'react';
 import {Canvas, CanvasPosition, CanvasRef, Edge, EdgeData, ElkRoot, MarkerArrow, NodeData} from 'reaflow';
 import {ReactZoomPanPinchRef, TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
@@ -18,7 +21,7 @@ import {ChangeNode} from "@/components/graph/ChangeNode";
 import {getNextDirection} from "@/utils/utils";
 import {Report} from "@/model/report";
 
-const HorizontalFlow = () => {
+export const HorizontalFlow = () => {
     const drawerOpen = useDrawerStore((state: DrawerState) => state.drawerOpen)
     const setCurrentChange = useChangeStore((state: ChangeState) => state.setCurrentChange)
     const setSelectedKeysInState = useChangeStore((state: ChangeState) => state.setSelectedChangeKeys)
@@ -160,7 +163,7 @@ const HorizontalFlow = () => {
             }>
             {({zoomIn, zoomOut, resetTransform, ...rest}) => (
                 <React.Fragment>
-                    <div style={{backgroundColor: 'var(--background-color)', position: 'absolute', top: '10px', right: '0', zIndex: '10'}}>
+                    <div style={{backgroundColor: 'var(--background-color)', position: 'absolute', top: '10px', right: '10px', zIndex: '10'}}>
                         <Space>
                             <Button type="primary"
                                     ghost={true}

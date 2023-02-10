@@ -12,7 +12,6 @@ import (
     "strings"
     "time"
 
-    "github.com/pb33f/libopenapi/resolver"
     "github.com/pb33f/openapi-changes/git"
     html_report "github.com/pb33f/openapi-changes/html-report"
     "github.com/pb33f/openapi-changes/model"
@@ -41,6 +40,7 @@ func GetHTMLReportCommand() *cobra.Command {
             noColorFlag, _ := cmd.Flags().GetBool("no-color")
             cdnFlag, _ := cmd.Flags().GetBool("use-cdn")
             latestFlag, _ := cmd.Flags().GetBool("top")
+            limitFlag, _ := cmd.Flags().GetInt("limit")
 
             if noColorFlag {
                 pterm.DisableStyling()
@@ -106,7 +106,7 @@ func GetHTMLReportCommand() *cobra.Command {
                             <-doneChan
                             return err
                         }
-                        report, _, er := RunGithubHistoryHTMLReport(user, repo, filePath, latestFlag, cdnFlag, updateChan, errorChan, 3)
+                        report, _, er := RunGithubHistoryHTMLReport(user, repo, filePath, latestFlag, cdnFlag, false, updateChan, errorChan, limitFlag)
 
                         // wait for things to be completed.
                         <-doneChan
@@ -173,7 +173,7 @@ func GetHTMLReportCommand() *cobra.Command {
 
                 } else {
 
-                    report, errs := RunLeftRightHTMLReport(args[0], args[1], cdnFlag)
+                    report, errs := RunLeftRightHTMLReport(args[0], args[1], cdnFlag, updateChan, errorChan)
                     if len(errs) > 0 {
                         for e := range errs {
                             pterm.Error.Println(errs[e].Error())
@@ -194,6 +194,7 @@ func GetHTMLReportCommand() *cobra.Command {
     }
     cmd.Flags().BoolP("no-style", "n", false, "Disable color and style output (very useful for CI/CD)")
     cmd.Flags().BoolP("use-cdn", "c", false, "Use CDN for CSS and JS delivery instead of bundling inline")
+
     return cmd
 }
 
@@ -201,7 +202,7 @@ func ExtractGithubDetailsFromURL(url *url.URL) (string, string, string, error) {
     path := url.Path
     dir, file := filepath.Split(path)
     dirSegments := strings.Split(dir, "/")
-    if len(dirSegments) > 6 {
+    if len(dirSegments) >= 6 {
         user := dirSegments[1]
         repo := dirSegments[2]
         filePath := fmt.Sprintf("%s%s", strings.Join(dirSegments[5:], "/"), file)
@@ -243,8 +244,10 @@ func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
         }
     }
 
-    model.SendProgressUpdate("extraction",
-        fmt.Sprintf("extracted %d reports from history", len(reports)), true, progressChan)
+    if len(reports) > 0 {
+        model.SendProgressUpdate("extraction",
+            fmt.Sprintf("Extracted '%d' reports from file history", len(reports)), true, progressChan)
+    }
 
     close(progressChan)
 
@@ -252,22 +255,12 @@ func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
     return generator.GenerateReport(false, useCDN, false), reports, nil
 }
 
-func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN bool,
+func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN, embeddedMode bool,
     progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, limit int) ([]byte, []*model.Report, []error) {
 
     commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, true, limit)
 
-    if errs != nil {
-        for x := range errs {
-            if e, ok := errs[x].(*resolver.ResolvingError); !ok {
-                model.SendProgressError("git", fmt.Sprintf("resolving error: %s", e.Error()), errorChan)
-            } else {
-                model.SendProgressError("git", fmt.Sprintf("parsing error: %s", e.Error()), errorChan)
-            }
-        }
-    }
-
-    if latest {
+    if latest && len(commitHistory) > 1 {
         commitHistory = commitHistory[:1]
     }
 
@@ -278,11 +271,13 @@ func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN 
         }
     }
 
-    model.SendProgressUpdate("extraction",
-        fmt.Sprintf("extracted %d reports from history", len(reports)), true, progressChan)
+    if len(reports) > 0 {
+        model.SendProgressUpdate("extraction",
+            fmt.Sprintf("Extracted '%d' reports from file history", len(reports)), true, progressChan)
+    }
 
     // if there are no reports and no commits, return no bytes.
-    if len(reports) == 0 && len(commitHistory) == 0 {
+    if len(reports) == 0 {
 
         model.SendProgressError("extraction",
             fmt.Sprintf("history extraction failed %d reports generated for '%s'", len(reports), filePath), errorChan)
@@ -294,10 +289,11 @@ func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN 
     generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
 
     close(progressChan)
-    return generator.GenerateReport(true, false, true), reports, errs
+    return generator.GenerateReport(false, useCDN, embeddedMode), reports, errs
 }
 
-func RunLeftRightHTMLReport(left, right string, useCDN bool) ([]byte, []error) {
+func RunLeftRightHTMLReport(left, right string, useCDN bool,
+    progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, ) ([]byte, []error) {
 
     var leftBytes, rightBytes []byte
     var errs []error
@@ -327,7 +323,7 @@ func RunLeftRightHTMLReport(left, right string, useCDN bool) ([]byte, []error) {
         },
     }
 
-    commits, errs = git.BuildCommitChangelog(commits)
+    commits, errs = git.BuildCommitChangelog(commits, progressChan, errorChan)
     if len(errs) > 0 {
         return nil, errs
     }
