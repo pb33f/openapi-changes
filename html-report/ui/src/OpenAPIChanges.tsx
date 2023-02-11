@@ -17,6 +17,7 @@ import {TreeGraphMap} from "@/model/graph";
 import {lookAtGraph, lookAtTree} from "@/utils/utils";
 import {Report, ReportItem} from "@/model/report";
 import {StoreApi, useStore, createStore} from "zustand";
+import {IdenticalSpecs} from "@/components/identical/IdenticalSpecs";
 
 export interface OpenAPIChangesProps {
     report: Report;
@@ -55,9 +56,16 @@ export function OpenAPIChanges(props: OpenAPIChangesProps) {
             if (window.document.getElementById("preloader")) {
                 //@ts-ignore
                 window.document.getElementById("preloader").remove();
+                window.parent.postMessage("loaded","*")
             }
         }
     });
+
+   if (!treeData && !graphData) {
+       return <div id="main_container">
+           <IdenticalSpecs/>
+       </div>
+   }
 
     return (
             <ConfigProvider

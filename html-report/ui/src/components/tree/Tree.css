@@ -189,6 +189,15 @@ section.tree-selected-change {
 
 @media only screen and (max-width: 1000px) {
 
+    body[data-embedded] .tree-holder {
+        height: calc(100vh - 560px);
+    }
+
+    body[data-embedded] .tree-scroller {
+        height: calc(100vh - 560px);
+    }
+
+
     .mobile-tree {
         height: 66vh;
     }

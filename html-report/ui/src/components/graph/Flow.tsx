@@ -190,7 +190,7 @@ export const HorizontalFlow = () => {
                     <TransformComponent
                         wrapperStyle={{
                             width: "100%",
-                            height: "calc(100vh - 262px)",
+                            height: "calc(100vh - 195px)",
                             overflow: "hidden",
                         }}
                     ><Canvas
