@@ -289,11 +289,11 @@ func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN,
     generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
 
     close(progressChan)
-    return generator.GenerateReport(false, useCDN, embeddedMode), reports, errs
+    return generator.GenerateReport(true, useCDN, embeddedMode), reports, errs
 }
 
 func RunLeftRightHTMLReport(left, right string, useCDN bool,
-    progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, ) ([]byte, []error) {
+    progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []error) {
 
     var leftBytes, rightBytes []byte
     var errs []error
@@ -325,8 +325,42 @@ func RunLeftRightHTMLReport(left, right string, useCDN bool,
 
     commits, errs = git.BuildCommitChangelog(commits, progressChan, errorChan)
     if len(errs) > 0 {
+        close(progressChan)
         return nil, errs
     }
     generator := html_report.NewHTMLReport(false, time.Now(), commits)
+
+    close(progressChan)
     return generator.GenerateReport(false, useCDN, false), nil
+}
+
+func RunLeftRightHTMLReportViaString(left, right string, useCDN, embedded bool,
+    progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []error) {
+
+    var errs []error
+
+    commits := []*model.Commit{
+        {
+            Hash:       uuid.NewV4().String()[:6],
+            Message:    fmt.Sprintf("Uploaded original (%d bytes)", len(left)),
+            CommitDate: time.Now(),
+            Data:       []byte(left),
+        },
+        {
+            Hash:       uuid.NewV4().String()[:6],
+            Message:    fmt.Sprintf("Uploaded modification (%d bytes)", len(right)),
+            CommitDate: time.Now(),
+            Data:       []byte(right),
+        },
+    }
+
+    commits, errs = git.BuildCommitChangelog(commits, progressChan, errorChan)
+    if len(errs) > 0 {
+        close(progressChan)
+        return nil, errs
+    }
+    generator := html_report.NewHTMLReport(false, time.Now(), commits)
+
+    close(progressChan)
+    return generator.GenerateReport(true, false, embedded), nil
 }
