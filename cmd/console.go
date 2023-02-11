@@ -8,6 +8,7 @@ import (
     "fmt"
     "net/url"
     "os"
+    "path/filepath"
     "time"
 
     "github.com/pb33f/openapi-changes/git"
@@ -35,6 +36,7 @@ func GetConsoleCommand() *cobra.Command {
             doneChan := make(chan bool)
             failed := false
             latestFlag, _ := cmd.Flags().GetBool("top")
+            limitFlag, _ := cmd.Flags().GetInt("limit")
 
             PrintBanner()
 
@@ -93,7 +95,7 @@ func GetConsoleCommand() *cobra.Command {
                             <-doneChan
                             return err
                         }
-                        commits, er := runGithubHistoryConsole(user, repo, filePath, latestFlag, updateChan, errorChan)
+                        commits, er := runGithubHistoryConsole(user, repo, filePath, latestFlag, limitFlag, updateChan, errorChan)
 
                         // wait for things to be completed.
                         <-doneChan
@@ -130,9 +132,9 @@ func GetConsoleCommand() *cobra.Command {
                 }
 
                 if f.IsDir() {
-
+                    repo := p
                     p = args[1]
-                    f, err = os.Stat(p)
+                    f, err = os.Stat(filepath.Join(repo, p))
                     if err != nil {
                         pterm.Error.Printf("Cannot open file/repository: '%s'", args[1])
                         return err
@@ -140,7 +142,7 @@ func GetConsoleCommand() *cobra.Command {
 
                     go listenForUpdates(updateChan, errorChan)
 
-                    commits, errs := runGitHistoryConsole(args[0], args[1], latestFlag, updateChan, errorChan)
+                    commits, errs := runGitHistoryConsole(args[0], args[1], latestFlag, limitFlag, updateChan, errorChan)
 
                     // wait.
                     <-doneChan
@@ -160,7 +162,10 @@ func GetConsoleCommand() *cobra.Command {
                     }
 
                 } else {
+                    go listenForUpdates(updateChan, errorChan)
                     errs := runLeftRightCompare(args[0], args[1], updateChan, errorChan)
+                    // wait.
+                    <-doneChan
                     if len(errs) > 0 {
                         for e := range errs {
                             pterm.Error.Println(errs[e].Error())
@@ -178,10 +183,10 @@ func GetConsoleCommand() *cobra.Command {
     return cmd
 }
 
-func runGithubHistoryConsole(username, repo, filePath string, latest bool,
+func runGithubHistoryConsole(username, repo, filePath string, latest bool, limit int,
     progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]*model.Commit, []error) {
 
-    commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false, 3)
+    commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false, limit)
 
     if errs != nil {
         return nil, errs
@@ -198,7 +203,7 @@ func runGithubHistoryConsole(username, repo, filePath string, latest bool,
     return commitHistory, nil
 }
 
-func runGitHistoryConsole(gitPath, filePath string, latest bool,
+func runGitHistoryConsole(gitPath, filePath string, latest bool, limit int,
     updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]*model.Commit, []error) {
 
     if gitPath == "" || filePath == "" {
@@ -214,12 +219,13 @@ func runGitHistoryConsole(gitPath, filePath string, latest bool,
     // build commit history.
     commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan)
     if err != nil {
+        close(updateChan)
         model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(err)), errorChan)
         return nil, err
     }
 
     // populate history with changes and data
-    git.PopulateHistoryWithChanges(commitHistory, 0, updateChan, errorChan)
+    git.PopulateHistoryWithChanges(commitHistory, limit, updateChan, errorChan)
 
     if latest {
         commitHistory = commitHistory[:1]
@@ -267,6 +273,8 @@ func runLeftRightCompare(left, right string, updateChan chan *model.ProgressUpda
     if len(errs) > 0 {
         return errs
     }
+    close(updateChan)
+    close(errorChan)
     app := tui.BuildApplication(commits, Version)
     if err := app.Run(); err != nil {
         return []error{err}

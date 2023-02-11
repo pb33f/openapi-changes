@@ -8,6 +8,7 @@ import (
     "fmt"
     "net/url"
     "os"
+    "path/filepath"
     "time"
 
     "github.com/pb33f/libopenapi/what-changed/reports"
@@ -35,6 +36,7 @@ func GetSummaryCommand() *cobra.Command {
             failed := false
             latestFlag, _ := cmd.Flags().GetBool("top")
             noColorFlag, _ := cmd.Flags().GetBool("no-color")
+            limitFlag, _ := cmd.Flags().GetInt("limit")
 
             if noColorFlag {
                 pterm.DisableStyling()
@@ -98,7 +100,7 @@ func GetSummaryCommand() *cobra.Command {
                             <-doneChan
                             return err
                         }
-                        err = runGithubHistorySummary(user, repo, filePath, latestFlag, updateChan, errorChan)
+                        err = runGithubHistorySummary(user, repo, filePath, latestFlag, limitFlag, updateChan, errorChan)
                         // wait for things to be completed.
                         <-doneChan
                         if err != nil {
@@ -124,8 +126,9 @@ func GetSummaryCommand() *cobra.Command {
 
                 if f.IsDir() {
 
+                    repo := p
                     p = args[1]
-                    f, err = os.Stat(p)
+                    f, err = os.Stat(filepath.Join(repo, p))
                     if err != nil {
                         pterm.Error.Printf("Cannot open file/repository: '%s'", args[1])
                         return err
@@ -142,8 +145,9 @@ func GetSummaryCommand() *cobra.Command {
                         return err
                     }
                 } else {
-
+                    go listenForUpdates(updateChan, errorChan)
                     errs := runLeftRightSummary(args[0], args[1], updateChan, errorChan)
+                    <-doneChan
                     if len(errs) > 0 {
                         for e := range errs {
                             pterm.Error.Println(errs[e].Error())
@@ -195,6 +199,8 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
     if len(errs) > 0 {
         return errs
     }
+    close(updateChan)
+    close(errorChan)
     e := printSummaryDetails(commits)
     if e != nil {
         return []error{e}
@@ -202,9 +208,9 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
     return nil
 }
 
-func runGithubHistorySummary(username, repo, filePath string, latest bool,
+func runGithubHistorySummary(username, repo, filePath string, latest bool, limit int,
     progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) error {
-    commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false, 3)
+    commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false, limit)
     if errs != nil {
         return errs[0]
     }
