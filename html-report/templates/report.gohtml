@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 {{- template "header" . -}}
-<body {{ if .EmbeddedMode }}data-embedded="true"{{ end }}>
+<body {{ if .EmbeddedMode }}data-embedded="true"{{ end }} style="background-color: var(--background-color)">
 <div class="preloader" id="preloader">
     <div class="ellipsis">
         <div></div>
