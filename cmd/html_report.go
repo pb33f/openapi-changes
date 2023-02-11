@@ -289,7 +289,7 @@ func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN,
     generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
 
     close(progressChan)
-    return generator.GenerateReport(true, useCDN, embeddedMode), reports, errs
+    return generator.GenerateReport(false, useCDN, embeddedMode), reports, errs
 }
 
 func RunLeftRightHTMLReport(left, right string, useCDN bool,
@@ -362,5 +362,5 @@ func RunLeftRightHTMLReportViaString(left, right string, useCDN, embedded bool,
     generator := html_report.NewHTMLReport(false, time.Now(), commits)
 
     close(progressChan)
-    return generator.GenerateReport(true, false, embedded), nil
+    return generator.GenerateReport(false, useCDN, embedded), nil
 }

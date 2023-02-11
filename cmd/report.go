@@ -10,6 +10,7 @@ import (
     "net/url"
     "os"
     "path"
+    "path/filepath"
     "time"
 
     "github.com/pb33f/libopenapi/what-changed/reports"
@@ -36,6 +37,7 @@ func GetReportCommand() *cobra.Command {
             doneChan := make(chan bool)
             failed := false
             latestFlag, _ := cmd.Flags().GetBool("top")
+            limitFlag, _ := cmd.Flags().GetInt("limit")
 
             // if there are no args, print out how to use the console.
             if len(args) == 0 {
@@ -79,7 +81,7 @@ func GetReportCommand() *cobra.Command {
                             <-doneChan
                             return err
                         }
-                        report, er := runGithubHistoryReport(user, repo, filePath, latestFlag, updateChan, errorChan)
+                        report, er := runGithubHistoryReport(user, repo, filePath, latestFlag, limitFlag, updateChan, errorChan)
 
                         // wait for things to be completed.
                         <-doneChan
@@ -120,8 +122,9 @@ func GetReportCommand() *cobra.Command {
 
                 if f.IsDir() {
 
+                    repo := p
                     p = args[1]
-                    f, err = os.Stat(p)
+                    f, err = os.Stat(filepath.Join(repo, p))
                     if err != nil {
                         pterm.Error.Printf("Cannot open file/repository: '%s'", args[1])
                         return err
@@ -224,10 +227,10 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 
 }
 
-func runGithubHistoryReport(username, repo, filePath string, latest bool,
+func runGithubHistoryReport(username, repo, filePath string, latest bool, limit int,
     progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) (*model.HistoricalReport, []error) {
 
-    commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false, 3)
+    commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false, limit)
     if errs != nil {
         return nil, errs
     }
