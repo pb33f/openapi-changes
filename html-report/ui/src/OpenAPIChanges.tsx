@@ -56,7 +56,6 @@ export function OpenAPIChanges(props: OpenAPIChangesProps) {
             if (window.document.getElementById("preloader")) {
                 //@ts-ignore
                 window.document.getElementById("preloader").remove();
-                window.parent.postMessage("loaded","*")
             }
         }
     });
