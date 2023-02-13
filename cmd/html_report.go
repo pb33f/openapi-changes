@@ -6,18 +6,17 @@ package cmd
 import (
     "errors"
     "fmt"
+    "github.com/pb33f/openapi-changes/git"
+    htmlReport "github.com/pb33f/openapi-changes/html-report"
+    "github.com/pb33f/openapi-changes/model"
+    "github.com/pterm/pterm"
+    "github.com/spf13/cobra"
+    "github.com/twinj/uuid"
     "net/url"
     "os"
     "path/filepath"
     "strings"
     "time"
-
-    "github.com/pb33f/openapi-changes/git"
-    html_report "github.com/pb33f/openapi-changes/html-report"
-    "github.com/pb33f/openapi-changes/model"
-    "github.com/pterm/pterm"
-    "github.com/spf13/cobra"
-    "github.com/twinj/uuid"
 )
 
 func GetHTMLReportCommand() *cobra.Command {
@@ -251,7 +250,7 @@ func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
 
     close(progressChan)
 
-    generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
+    generator := htmlReport.NewHTMLReport(false, time.Now(), commitHistory)
     return generator.GenerateReport(false, useCDN, false), reports, nil
 }
 
@@ -286,7 +285,7 @@ func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN,
         return nil, nil, append(errs, fmt.Errorf("no repors extracted, no history found for file '%s'", filePath))
     }
 
-    generator := html_report.NewHTMLReport(false, time.Now(), commitHistory)
+    generator := htmlReport.NewHTMLReport(false, time.Now(), commitHistory)
 
     close(progressChan)
     return generator.GenerateReport(false, useCDN, embeddedMode), reports, errs
@@ -328,7 +327,7 @@ func RunLeftRightHTMLReport(left, right string, useCDN bool,
         close(progressChan)
         return nil, errs
     }
-    generator := html_report.NewHTMLReport(false, time.Now(), commits)
+    generator := htmlReport.NewHTMLReport(false, time.Now(), commits)
 
     close(progressChan)
     return generator.GenerateReport(false, useCDN, false), nil
@@ -359,7 +358,7 @@ func RunLeftRightHTMLReportViaString(left, right string, useCDN, embedded bool,
         close(progressChan)
         return nil, errs
     }
-    generator := html_report.NewHTMLReport(false, time.Now(), commits)
+    generator := htmlReport.NewHTMLReport(false, time.Now(), commits)
 
     close(progressChan)
     return generator.GenerateReport(false, useCDN, embedded), nil
