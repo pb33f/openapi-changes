@@ -1,4 +1,7 @@
-# OpenAPI - What Changed?
+
+![logo](openapi-changes-logo.webp)
+
+# OpenAPI Changes
 
 ## The world's **_sexiest_** OpenAPI diff tool.
 
