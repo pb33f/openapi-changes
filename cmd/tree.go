@@ -174,18 +174,18 @@ func buildConsoleTreeNode(list *[]pterm.LeveledListItem, object any, level int) 
 func generateTreeState(change *wcModel.Change) string {
     breaking := ""
     if change.Breaking {
-        breaking = "❌"
+        breaking = "❌ "
     }
     switch change.ChangeType {
     case wcModel.Modified:
-        return fmt.Sprintf(" ✏️%s %s (%d:%d)", breaking, change.Property, *change.Context.NewLine, *change.Context.NewColumn)
+        return fmt.Sprintf("[M] %s (%d:%d)%s", change.Property, *change.Context.NewLine, *change.Context.NewColumn, breaking)
     case wcModel.ObjectAdded, wcModel.PropertyAdded:
-        return fmt.Sprintf(" 🟩%s %s (%d:%d)", breaking, change.Property, *change.Context.NewLine, *change.Context.NewColumn)
+        return fmt.Sprintf("[+] %s (%d:%d)%s", change.Property, *change.Context.NewLine, *change.Context.NewColumn, breaking)
     case wcModel.ObjectRemoved, wcModel.PropertyRemoved:
-        return fmt.Sprintf(" 🟥%s %s (%d:%d)", breaking, change.Property, *change.Context.OriginalLine, *change.Context.OriginalColumn)
+        return fmt.Sprintf("[-] %s (%d:%d)%s", change.Property, *change.Context.OriginalLine, *change.Context.OriginalColumn, breaking)
 
     }
-    return "NO!"
+    return ""
 }
 
 func buildConsoleTree(doc *wcModel.DocumentChanges) {
