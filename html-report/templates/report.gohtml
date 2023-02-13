@@ -16,6 +16,9 @@
 </div>
 </body>
 <script>
+    if (window.parent) {
+        window.parent.postMessage("started", "*");
+    }
     let rawData = {{ .Report }};
     window.data = JSON.parse(JSON.stringify(rawData));
 </script>

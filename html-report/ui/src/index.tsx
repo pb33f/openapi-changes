@@ -7,9 +7,6 @@ const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 
-// as we're created, ping up to the sky, let them know we're online and working.
-window.parent.postMessage("loaded","*")
-
 //import data from '../data.json'
 let data: any
 root.render(
