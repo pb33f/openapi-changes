@@ -155,8 +155,9 @@ func GetReportCommand() *cobra.Command {
                     return nil
 
                 } else {
-
+                    go listenForUpdates(updateChan, errorChan)
                     report, errs := runLeftRightReport(args[0], args[1], updateChan, errorChan)
+                    <-doneChan
                     if len(errs) > 0 {
                         for e := range errs {
                             pterm.Error.Println(errs[e].Error())
@@ -292,6 +293,8 @@ func runLeftRightReport(left, right string,
     }
 
     commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan)
+    close(updateChan)
+
     if len(errs) > 0 {
         return nil, errs
     }
