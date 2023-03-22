@@ -171,8 +171,9 @@ func GetHTMLReportCommand() *cobra.Command {
                     return nil
 
                 } else {
-
+                    go listenForUpdates(updateChan, errorChan)
                     report, errs := RunLeftRightHTMLReport(args[0], args[1], cdnFlag, updateChan, errorChan)
+                    <-doneChan
                     if len(errs) > 0 {
                         for e := range errs {
                             pterm.Error.Println(errs[e].Error())
