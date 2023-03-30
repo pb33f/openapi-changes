@@ -45,8 +45,8 @@ See all the documentation at https://pb33f.io/openapi-changes/
 - [About openapi-changes](https://pb33f.io/openapi-changes/about/)
 
 ---
-
-Ready to try it out?
+ 
+Are you ready to try it out?
 
 ## Install using homebrew tap
 
