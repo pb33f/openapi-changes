@@ -87,6 +87,8 @@ func GetHTMLReportCommand() *cobra.Command {
 						if err.Fatal {
 							if !noColorFlag {
 								spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
+							} else {
+								pterm.Error.Println(err)
 							}
 							doneChan <- true
 							return
