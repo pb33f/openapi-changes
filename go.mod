@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
-	github.com/pb33f/libopenapi v0.5.2
+	github.com/pb33f/libopenapi v0.8.0
 	github.com/pterm/pterm v0.12.51
 	github.com/rivo/tview v0.0.0-20221117065207-09f052e6ca98
 	github.com/spf13/cobra v1.6.1
@@ -34,6 +34,7 @@ require (
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	golang.org/x/net v0.2.0 // indirect
+	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/term v0.2.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
