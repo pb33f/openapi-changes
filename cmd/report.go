@@ -38,6 +38,12 @@ func GetReportCommand() *cobra.Command {
             failed := false
             latestFlag, _ := cmd.Flags().GetBool("top")
             limitFlag, _ := cmd.Flags().GetInt("limit")
+            noColorFlag, _ := cmd.Flags().GetBool("no-color")
+
+            if noColorFlag {
+                pterm.DisableStyling()
+                pterm.DisableColor()
+            }
 
             // if there are no args, print out how to use the console.
             if len(args) == 0 {
@@ -174,6 +180,7 @@ func GetReportCommand() *cobra.Command {
             return nil
         },
     }
+    cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
     return cmd
 }
 
