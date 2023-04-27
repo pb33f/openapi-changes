@@ -46,7 +46,10 @@ func GetHTMLReportCommand() *cobra.Command {
                 pterm.DisableColor()
             }
 
-            PrintBanner()
+            noBanner, _ := cmd.Flags().GetBool("no-logo")
+            if !noBanner {
+                PrintBanner()
+            }
 
             // if there are no args, print out how to use the console.
             if len(args) == 0 {
