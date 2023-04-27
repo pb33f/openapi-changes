@@ -47,7 +47,10 @@ func GetReportCommand() *cobra.Command {
 
             // if there are no args, print out how to use the console.
             if len(args) == 0 {
-                PrintBanner()
+                noBanner, _ := cmd.Flags().GetBool("no-logo")
+                if !noBanner {
+                    PrintBanner()
+                }
                 PrintHowToUse("report")
                 return nil
             }

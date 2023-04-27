@@ -38,7 +38,10 @@ func GetConsoleCommand() *cobra.Command {
             latestFlag, _ := cmd.Flags().GetBool("top")
             limitFlag, _ := cmd.Flags().GetInt("limit")
 
-            PrintBanner()
+            noBanner, _ := cmd.Flags().GetBool("no-logo")
+            if !noBanner {
+                PrintBanner()
+            }
 
             // if there are no args, print out how to use the console.
             if len(args) == 0 {
