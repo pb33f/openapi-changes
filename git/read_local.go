@@ -5,6 +5,7 @@ package git
 
 import (
     "bytes"
+    "errors"
     "fmt"
     "github.com/araddon/dateparse"
     "github.com/pb33f/libopenapi"
@@ -128,7 +129,7 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int,
 func BuildCommitChangelog(commitHistory []*model.Commit,
     progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]*model.Commit, []error) {
 
-    var errors []error
+    var changeErrors []error
     var cleaned []*model.Commit
 
     for c := len(commitHistory) - 1; c > -1; c-- {
@@ -151,22 +152,21 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 
             if err != nil {
                 model.SendProgressError("building models", fmt.Sprintf("unable to parse original document: %s", err.Error()), errorChan)
-                errors = append(errors, err)
+                changeErrors = append(changeErrors, err)
             }
             newDoc, err = libopenapi.NewDocument(newBits)
             if err != nil {
                 model.SendProgressError("building models", fmt.Sprintf("unable to parse modified document: %s", err.Error()), errorChan)
-                errors = append(errors, err)
+                changeErrors = append(changeErrors, err)
             }
 
             if oldDoc != nil && newDoc != nil {
                 changes, errs := libopenapi.CompareDocuments(oldDoc, newDoc)
 
                 if errs != nil {
-                    for a := range errs {
-                        model.SendProgressError("building models", fmt.Sprintf("Error thrown when comparing: %s", errs[a].Error()), errorChan)
-                    }
-                    errors = append(errors, errs...)
+
+                    model.SendProgressError("building models", fmt.Sprintf("Error thrown when comparing: %s", errors.Join(errs...)), errorChan)
+                    changeErrors = append(changeErrors, errs...)
                 }
                 commitHistory[c].Changes = changes
             } else {
@@ -192,7 +192,7 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
     for i, j := 0, len(cleaned)-1; i < j; i, j = i+1, j-1 {
         cleaned[i], cleaned[j] = cleaned[j], cleaned[i]
     }
-    return cleaned, errors
+    return cleaned, changeErrors
 }
 
 func ExtractPathAndFile(location string) (string, string) {
