@@ -181,9 +181,6 @@ func generateTreeState(change *wcModel.Change) string {
 	}
 	switch change.ChangeType {
 	case wcModel.Modified:
-		if change.Context == nil {
-			panic("NO")
-		}
 		return fmt.Sprintf("[M] %s (%d:%d)%s", change.Property, *change.Context.NewLine, *change.Context.NewColumn, breaking)
 	case wcModel.ObjectAdded, wcModel.PropertyAdded:
 		return fmt.Sprintf("[+] %s (%d:%d)%s", change.Property, *change.Context.NewLine, *change.Context.NewColumn, breaking)
