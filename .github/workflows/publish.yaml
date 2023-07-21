@@ -104,4 +104,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: pb33f/openapi-changes:${{ github.event.client_payload.new-tag }}
+          tags: pb33f/openapi-changes:${{ github.event.client_payload.new-tag }}, pb33f/openapi-changes:latest
