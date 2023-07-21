@@ -1,4 +1,4 @@
-FROM golang:1.20 as builder
+FROM golang:1.18 as builder
 
 RUN mkdir -p /opt/openapi-changes
 
