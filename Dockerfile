@@ -1,4 +1,4 @@
-FROM golang:1.18 as builder
+FROM golang:1.20-bookworm as builder
 
 RUN mkdir -p /opt/openapi-changes
 
@@ -9,7 +9,7 @@ COPY . ./
 RUN go mod download && go mod verify
 RUN go build -ldflags="-w -s" -v -o /openapi-changes openapi-changes.go
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 RUN apt-get update
 RUN apt-get --yes install git
 WORKDIR /work
