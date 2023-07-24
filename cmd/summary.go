@@ -7,9 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/pb33f/openapi-changes/builder"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pb33f/libopenapi/what-changed/reports"
@@ -133,11 +136,21 @@ func GetSummaryCommand() *cobra.Command {
 			}
 			if len(args) == 2 {
 
+				var left, right string
+				var urlErr error
+
+				// check if first arg is a URL
+				left, urlErr = checkURL(args[0], errorChan, doneChan)
+				if urlErr != nil {
+					pterm.Error.Println(urlErr.Error())
+					return urlErr
+				}
+
 				// check if the first arg is a directory, if so - process as a git history operation.
-				p := args[0]
+				p := left
 				f, err := os.Stat(p)
 				if err != nil {
-					pterm.Error.Printf("Cannot open file/repository: '%s'", args[0])
+					pterm.Error.Printf("Cannot open file/repository: '%s'", left)
 					return err
 				}
 
@@ -163,7 +176,22 @@ func GetSummaryCommand() *cobra.Command {
 					}
 				} else {
 					go listenForUpdates(updateChan, errorChan)
-					errs := runLeftRightSummary(args[0], args[1], updateChan, errorChan)
+
+					// check if the first arg is a URL, if so download it, if not - assume it's a file.
+					left, urlErr = checkURL(args[0], errorChan, doneChan)
+					if urlErr != nil {
+						pterm.Error.Println(urlErr.Error())
+						return urlErr
+					}
+
+					// check if the second arg is a URL, if so download it, if not - assume it's a file.
+					right, urlErr = checkURL(args[1], errorChan, doneChan)
+					if urlErr != nil {
+						pterm.Error.Println(urlErr.Error())
+						return urlErr
+					}
+
+					errs := runLeftRightSummary(left, right, updateChan, errorChan)
 					<-doneChan
 					if len(errs) > 0 {
 						for e := range errs {
@@ -180,6 +208,41 @@ func GetSummaryCommand() *cobra.Command {
 	}
 	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
 	return cmd
+}
+
+func checkURL(urlString string, errorChan chan model.ProgressError, doneChan chan bool) (string, error) {
+	u, urlErr := url.Parse(urlString)
+	if urlErr == nil && strings.HasPrefix(u.Scheme, "http") {
+		// download the file
+		resp, httpErr := http.Get(urlString)
+		if httpErr != nil {
+			errorChan <- model.ProgressError{
+				Job:     "download",
+				Message: fmt.Sprintf("error downloading file '%s': %s", urlString, httpErr.Error()),
+			}
+			return urlString, httpErr
+		}
+		bits, _ := io.ReadAll(resp.Body)
+
+		if len(bits) <= 0 {
+			errorChan <- model.ProgressError{
+				Job:     "download",
+				Message: fmt.Sprintf("downloaded file '%s' is empty", urlString),
+			}
+			return urlString, fmt.Errorf("downloaded file '%s' is empty", urlString)
+		}
+		tmpFile, _ := os.CreateTemp("", "left.yaml")
+		_, wErr := tmpFile.Write(bits)
+		if wErr != nil {
+			errorChan <- model.ProgressError{
+				Job:     "download",
+				Message: fmt.Sprintf("downloaded file '%s' cannot be written: %s", urlString, wErr.Error()),
+			}
+			return urlString, fmt.Errorf("downloaded file '%s' is empty", urlString)
+		}
+		return tmpFile.Name(), nil
+	}
+	return urlString, nil
 }
 
 func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) []error {
