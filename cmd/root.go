@@ -35,6 +35,10 @@ it can compare between two files, or a single file, over time.`,
                 {Level: 0, Text: "report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
                 {Level: 0, Text: "html-report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
             }).Render()
+
+            pterm.Printf("For more help, use the %s flag with any command.", pterm.LightMagenta("--help"))
+            fmt.Println()
+            fmt.Println()
             return nil
         },
     }
