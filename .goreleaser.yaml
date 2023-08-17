@@ -70,4 +70,3 @@ chocolateys:
     source_repo: "https://push.chocolatey.org/"
     skip_publish: false
     goamd64: v1
-    
