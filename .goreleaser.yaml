@@ -60,11 +60,12 @@ chocolateys:
     project_source_url: https://github.com/pb33f/openapi-changes
     docs_url: https://pb33f.io/openapi-changes/
     bug_tracker_url: https://github.com/pb33f/openapi-changes/issues
-    tags: "openapi,openapi3,openapi2,swagger,swagger2,swagger3,openapi-diff,openapi-changes,openapi-diffing,openapi-diff-tool,openapi-diff-engine,openapi-diffing-engine,openapi-diffing-tool,openapi-diffing-library"
+    tags: openapi openapi3 openapi2 swagger openapi-diff openapi-changes openapi-diffing openapi-diff-tool openapi-diff-engine breaking changes
     summary: openapi-changes is the world's sexiest OpenAPI diffing and breaking change detector tool.
     description: |
       openapi-changes will detect all changes (including breaking changes) between two OpenAPI specifications, or 
-      travel back in time through the history of your OpenAPI specification to how it has changed over time.
+      travel back in time through the history of your OpenAPI specification to how it has changed over time. It has
+      the world's sexiest UI for exploring diffs and changes between OpenAPI specifications.
     release_notes: "https://github.com/pb33f/openapi-changes/releases/tag/v{{ .Version }}"
     api_key: '{{ .Env.CHOCOLATEY_API_KEY }}'
     source_repo: "https://push.chocolatey.org/"
