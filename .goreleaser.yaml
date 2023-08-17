@@ -54,7 +54,7 @@ chocolateys:
     project_url: https://pb33f.io/openapi-changes/
     url_template: "https://github.com/pb33f/openapi-changes/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
     icon_url: 'https://pb33f.io/images/openapi-changes-logo.webp'
-    copyright: 2022 Drummer Roll Inc
+    copyright: Princess Beef Heavy Industries, LLC
     license_url: https://github.com/pb33f/openapi-changes/blob/main/LICENSE
     require_license_acceptance: false
     project_source_url: https://github.com/pb33f/openapi-changes
