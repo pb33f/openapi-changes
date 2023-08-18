@@ -18,6 +18,7 @@ archives:
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
+    format: zip
 checksum:
   name_template: 'checksums.txt'
 
@@ -48,16 +49,16 @@ snapshot:
 
 chocolateys:
   - name: openapi-changes
-    owners: Princess Beef Heavy Industries, LLC
-    title: openapi-changes
-    authors: Princess Beef Heavy Industries, LLC
+    owners: Princess Beef Heavy Industries LLC
+    title: openapi-changes - The world's sexiest OpenAPI diffing and breaking change detector tool.
+    authors: Princess Beef Heavy Industries LLC
     project_url: https://pb33f.io/openapi-changes/
     url_template: "https://github.com/pb33f/openapi-changes/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
-    icon_url: 'https://pb33f.io/images/openapi-changes-logo.webp'
-    copyright: Princess Beef Heavy Industries, LLC
+    icon_url: 'https://pb33f.io/openapi-changes/openapi-changes-logo.png'
+    copyright: 2023 Princess Beef Heavy Industries LLC
     license_url: https://github.com/pb33f/openapi-changes/blob/main/LICENSE
     require_license_acceptance: false
-    project_source_url: https://github.com/pb33f/openapi-changes
+    project_source_url: https://github.com/pb33f/openapi-changes/
     docs_url: https://pb33f.io/openapi-changes/
     bug_tracker_url: https://github.com/pb33f/openapi-changes/issues
     tags: openapi openapi3 openapi2 swagger openapi-diff openapi-changes openapi-diffing openapi-diff-tool openapi-diff-engine breaking changes
