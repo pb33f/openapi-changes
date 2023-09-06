@@ -51,10 +51,10 @@ jobs:
       - name: Check version
         run: echo "Version ${{ github.event.client_payload.new-tag }}"
 
-      - name: Use Node.js 16
+      - name: Use Node.js 20
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 20
           registry-url: https://registry.npmjs.org/
 
       - name: Setup Git user

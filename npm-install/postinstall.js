@@ -1,8 +1,11 @@
 import { createWriteStream } from "fs";
-import * as fs from "fs/promises";
+import * as fs from "fs";
+
+
 import fetch from "node-fetch";
 import { pipeline } from "stream/promises";
 import tar from "tar";
+import AdmZip from 'adm-zip'
 import { execSync } from "child_process";
 
 import { ARCH_MAPPING, CONFIG, PLATFORM_MAPPING } from "./config.js";
@@ -16,7 +19,7 @@ async function install() {
         console.log("openapi-changes installation successful!");
         return;
     }
-    const packageJson = await fs.readFile("package.json").then(JSON.parse);
+    const packageJson = await fs.promises.readFile("package.json").then(JSON.parse);
     let version = packageJson.version;
 
     if (typeof version !== "string") {
@@ -39,12 +42,17 @@ async function install() {
         throw new Error("Failed fetching the binary: " + response.statusText);
     }
 
-    const tarFile = "downloaded.tar.gz";
+    const zipFile = "downloaded.zip";
+    await fs.promises.mkdir(binPath, { recursive: true });
+    await pipeline(response.body, createWriteStream(zipFile));
 
-    await fs.mkdir(binPath, { recursive: true });
-    await pipeline(response.body, createWriteStream(tarFile));
-    await tar.x({ file: tarFile, cwd: binPath });
-    await fs.rm(tarFile);
+    // unzip binary
+    const zip = new AdmZip(zipFile);
+    zip.extractAllTo(binPath, true);
+
+    // make the binary executable.
+    await fs.chmodSync(`${binPath}/openapi-changes`, 0o755);
+    await fs.promises.rm(zipFile);
     console.log("openapi-changes installation successful!");
 }
 
