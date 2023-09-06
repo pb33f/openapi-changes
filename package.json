@@ -23,6 +23,7 @@
     "npm-install"
   ],
   "dependencies": {
+    "adm-zip": "^0.5.10",
     "node-fetch": "^3.2.10",
     "tar": "^6.1.11"
   },
