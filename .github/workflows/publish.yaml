@@ -36,6 +36,7 @@ jobs:
           CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
 
   publish_npm:
+    if: success() || failure()
     name: Publish to NPM
     needs: release_and_brew
     runs-on: ubuntu-latest
@@ -75,6 +76,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   push_to_registries:
+    if: success() || failure()
     name: Push Docker image to multiple registries
     runs-on: ubuntu-latest
     permissions:
