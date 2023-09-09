@@ -186,7 +186,7 @@ func GetHTMLReportCommand() *cobra.Command {
 						return er[0]
 					}
 
-					err = os.WriteFile("report.html", report, 0664)
+					err = os.WriteFile("report.html", report, 0744)
 					if err != nil {
 						pterm.Error.Println(err.Error())
 						return err
@@ -222,7 +222,7 @@ func GetHTMLReportCommand() *cobra.Command {
 						return errors.New("unable to process specifications")
 					}
 
-					err = os.WriteFile("report.html", report, 644)
+					err = os.WriteFile("report.html", report, 0744)
 					pterm.Success.Printf("report written to file 'report.html' (%dkb)", len(report)/1024)
 					pterm.Println()
 					pterm.Println()
