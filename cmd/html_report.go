@@ -35,7 +35,7 @@ func GetHTMLReportCommand() *cobra.Command {
 			errorChan := make(chan model.ProgressError)
 			doneChan := make(chan bool)
 			failed := false
-
+			baseFlag, _ := cmd.Flags().GetString("base")
 			noColorFlag, _ := cmd.Flags().GetBool("no-color")
 			cdnFlag, _ := cmd.Flags().GetBool("use-cdn")
 			latestFlag, _ := cmd.Flags().GetBool("top")
@@ -106,13 +106,13 @@ func GetHTMLReportCommand() *cobra.Command {
 			if len(args) < 2 {
 
 				// check if arg is an url (like a github url)
-				url, err := url.Parse(args[0])
+				specUrl, err := url.Parse(args[0])
 				if err == nil {
 
-					if url.Host == "github.com" {
+					if specUrl.Host == "github.com" {
 						go listenForUpdates(updateChan, errorChan)
 
-						user, repo, filePath, err := ExtractGithubDetailsFromURL(url)
+						user, repo, filePath, err := ExtractGithubDetailsFromURL(specUrl)
 						if err != nil {
 							errorChan <- model.ProgressError{
 								Job:     "github url",
@@ -135,7 +135,7 @@ func GetHTMLReportCommand() *cobra.Command {
 								pterm.Error.Println(err.Error())
 								return err
 							}
-							pterm.Success.Printf("%s report written to file 'report.html' (%dkb)", url.String(), len(report)/1024)
+							pterm.Success.Printf("%s report written to file 'report.html' (%dkb)", specUrl.String(), len(report)/1024)
 							pterm.Println()
 							pterm.Println()
 						}
@@ -153,7 +153,7 @@ func GetHTMLReportCommand() *cobra.Command {
 				var urlErr error
 
 				// check if first arg is a URL
-				left, urlErr = checkURL(args[0], errorChan, doneChan)
+				left, urlErr = checkURL(args[0], errorChan)
 				if urlErr != nil {
 					pterm.Error.Println(urlErr.Error())
 					return urlErr
@@ -177,7 +177,7 @@ func GetHTMLReportCommand() *cobra.Command {
 					}
 					go listenForUpdates(updateChan, errorChan)
 
-					report, _, er := RunGitHistoryHTMLReport(args[0], args[1], latestFlag, cdnFlag, updateChan, errorChan)
+					report, _, er := RunGitHistoryHTMLReport(args[0], args[1], latestFlag, cdnFlag, updateChan, errorChan, baseFlag)
 					<-doneChan
 					if er != nil {
 						for x := range er {
@@ -200,20 +200,20 @@ func GetHTMLReportCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					// check if the first arg is a URL, if so download it, if not - assume it's a file.
-					left, urlErr = checkURL(args[0], errorChan, doneChan)
+					left, urlErr = checkURL(args[0], errorChan)
 					if urlErr != nil {
 						pterm.Error.Println(urlErr.Error())
 						return urlErr
 					}
 
 					// check if the second arg is a URL, if so download it, if not - assume it's a file.
-					right, urlErr = checkURL(args[1], errorChan, doneChan)
+					right, urlErr = checkURL(args[1], errorChan)
 					if urlErr != nil {
 						pterm.Error.Println(urlErr.Error())
 						return urlErr
 					}
 
-					report, errs := RunLeftRightHTMLReport(left, right, cdnFlag, updateChan, errorChan)
+					report, errs := RunLeftRightHTMLReport(left, right, cdnFlag, updateChan, errorChan, baseFlag)
 					<-doneChan
 					if len(errs) > 0 {
 						for e := range errs {
@@ -254,7 +254,7 @@ func ExtractGithubDetailsFromURL(url *url.URL) (string, string, string, error) {
 }
 
 func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []*model.Report, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) ([]byte, []*model.Report, []error) {
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
 		model.SendProgressError("reading paths",
@@ -269,7 +269,7 @@ func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
 	}
 
 	// populate history with changes and data
-	commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, progressChan, errorChan)
+	commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, progressChan, errorChan, base)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -334,7 +334,7 @@ func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN,
 }
 
 func RunLeftRightHTMLReport(left, right string, useCDN bool,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) ([]byte, []error) {
 
 	var leftBytes, rightBytes []byte
 	var errs []error
@@ -364,7 +364,7 @@ func RunLeftRightHTMLReport(left, right string, useCDN bool,
 		},
 	}
 
-	commits, errs = git.BuildCommitChangelog(commits, progressChan, errorChan)
+	commits, errs = git.BuildCommitChangelog(commits, progressChan, errorChan, base)
 	if len(errs) > 0 {
 		close(progressChan)
 		return nil, errs
@@ -376,7 +376,7 @@ func RunLeftRightHTMLReport(left, right string, useCDN bool,
 }
 
 func RunLeftRightHTMLReportViaString(left, right string, useCDN, embedded bool,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]byte, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) ([]byte, []error) {
 
 	var errs []error
 
@@ -395,7 +395,7 @@ func RunLeftRightHTMLReportViaString(left, right string, useCDN, embedded bool,
 		},
 	}
 
-	commits, errs = git.BuildCommitChangelog(commits, progressChan, errorChan)
+	commits, errs = git.BuildCommitChangelog(commits, progressChan, errorChan, base)
 	if len(errs) > 0 {
 		close(progressChan)
 		return nil, errs

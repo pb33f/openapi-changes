@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"github.com/araddon/dateparse"
 	"github.com/pb33f/libopenapi"
+	"github.com/pb33f/libopenapi/datamodel"
 	"github.com/pb33f/openapi-changes/model"
+	"net/url"
 	"os/exec"
 	"path"
 	"strings"
@@ -90,7 +92,7 @@ func ExtractHistoryFromFile(repoDirectory, filePath string,
 }
 
 func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) ([]*model.Commit, []error) {
 
 	for c := range commitHistory {
 		cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", commitHistory[c].Hash, commitHistory[c].FilePath))
@@ -113,7 +115,7 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int,
 		commitHistory = commitHistory[0 : limit+1]
 	}
 
-	cleaned, errors := BuildCommitChangelog(commitHistory, progressChan, errorChan)
+	cleaned, errors := BuildCommitChangelog(commitHistory, progressChan, errorChan, base)
 	if len(errors) > 0 {
 		model.SendProgressError("git",
 			fmt.Sprintf("%d error(s) found building commit change log", len(errors)), errorChan)
@@ -126,10 +128,27 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int,
 }
 
 func BuildCommitChangelog(commitHistory []*model.Commit,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) ([]*model.Commit, []error) {
 
 	var changeErrors []error
 	var cleaned []*model.Commit
+
+	// create a new document config and set to default closed state,
+	// enable it if the user has specified a base url or a path.
+	docConfig := datamodel.NewClosedDocumentConfiguration()
+	docConfig.AllowFileReferences = true
+
+	if base != "" {
+		// check if this is a URL or not
+		u, e := url.Parse(base)
+		if e == nil && u.Scheme != "" && u.Host != "" {
+			docConfig.BaseURL = u
+			docConfig.BasePath = ""
+		} else {
+			docConfig.BasePath = base
+		}
+		docConfig.AllowRemoteReferences = true
+	}
 
 	for c := len(commitHistory) - 1; c > -1; c-- {
 		var oldBits, newBits []byte
@@ -145,7 +164,7 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 
 		var err error
 		if len(oldBits) > 0 && len(newBits) > 0 {
-			oldDoc, err = libopenapi.NewDocument(oldBits)
+			oldDoc, err = libopenapi.NewDocumentWithConfiguration(oldBits, docConfig)
 			model.SendProgressUpdate("building models",
 				fmt.Sprintf("Building original model for commit %s", commitHistory[c].Hash[0:6]), false, progressChan)
 
@@ -153,7 +172,7 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 				model.SendProgressError("building models", fmt.Sprintf("unable to parse original document: %s", err.Error()), errorChan)
 				changeErrors = append(changeErrors, err)
 			}
-			newDoc, err = libopenapi.NewDocument(newBits)
+			newDoc, err = libopenapi.NewDocumentWithConfiguration(newBits, docConfig)
 			if err != nil {
 				model.SendProgressError("building models", fmt.Sprintf("unable to parse modified document: %s", err.Error()), errorChan)
 				changeErrors = append(changeErrors, err)
