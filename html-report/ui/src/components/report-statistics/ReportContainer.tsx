@@ -46,8 +46,8 @@ export const ReportContainer: React.FC = () => {
     ];
     const totalChanges = [
         {
-            type: "Total",
-            value: stats.total
+            type: "Non-breaking",
+            value: stats.total - stats.totalBreaking
         },
         {
             type: "Breaking",
