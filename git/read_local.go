@@ -191,7 +191,7 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 			}
 		}
 		if len(oldBits) == 0 && len(newBits) > 0 {
-			newDoc, err = libopenapi.NewDocument(newBits)
+			newDoc, err = libopenapi.NewDocumentWithConfiguration(newBits, docConfig)
 			if err != nil {
 				model.SendProgressError("building models", fmt.Sprintf("unable to create OpenAPI modified document: %s", err.Error()), errorChan)
 			}

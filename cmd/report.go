@@ -91,7 +91,8 @@ func GetReportCommand() *cobra.Command {
 							<-doneChan
 							return err
 						}
-						report, er := runGithubHistoryReport(user, repo, filePath, latestFlag, limitFlag, updateChan, errorChan)
+						report, er := runGithubHistoryReport(user, repo, filePath, latestFlag, limitFlag, updateChan,
+							errorChan, baseFlag)
 
 						// wait for things to be completed.
 						<-doneChan
@@ -205,7 +206,7 @@ func GetReportCommand() *cobra.Command {
 					return nil
 				}
 			}
-			pterm.Error.Println("too many arguments, expecting two (2)")
+			pterm.Error.Println("wrong number of arguments, expecting two (2)")
 			return nil
 		},
 	}
@@ -265,9 +266,9 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 }
 
 func runGithubHistoryReport(username, repo, filePath string, latest bool, limit int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) (*model.HistoricalReport, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) (*model.HistoricalReport, []error) {
 
-	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false, limit)
+	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false, limit, base)
 	if errs != nil {
 		return nil, errs
 	}

@@ -121,7 +121,8 @@ func GetHTMLReportCommand() *cobra.Command {
 							<-doneChan
 							return err
 						}
-						report, _, er := RunGithubHistoryHTMLReport(user, repo, filePath, latestFlag, cdnFlag, false, updateChan, errorChan, limitFlag)
+						report, _, er := RunGithubHistoryHTMLReport(user, repo, filePath, latestFlag, cdnFlag,
+							false, updateChan, errorChan, limitFlag, baseFlag)
 
 						// wait for things to be completed.
 						<-doneChan
@@ -229,7 +230,7 @@ func GetHTMLReportCommand() *cobra.Command {
 					return nil
 				}
 			}
-			pterm.Error.Println("too many arguments, expecting two (2)")
+			pterm.Error.Println("wrong number of arguments, expecting two (2)")
 			return nil
 		},
 	}
@@ -297,9 +298,9 @@ func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
 }
 
 func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN, embeddedMode bool,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, limit int) ([]byte, []*model.Report, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, limit int, base string) ([]byte, []*model.Report, []error) {
 
-	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, true, limit)
+	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, true, limit, base)
 
 	if latest && len(commitHistory) > 1 {
 		commitHistory = commitHistory[:1]
