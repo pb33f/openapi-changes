@@ -11,13 +11,13 @@ type ViewType int
 type RGB []int32
 
 func (r RGB) R() int32 {
-    return r[0]
+	return r[0]
 }
 func (r RGB) G() int32 {
-    return r[1]
+	return r[1]
 }
 func (r RGB) B() int32 {
-    return r[2]
+	return r[2]
 }
 
 var CYAN_RGB = RGB{103, 234, 249}
