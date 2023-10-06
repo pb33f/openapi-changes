@@ -99,7 +99,8 @@ func GetConsoleCommand() *cobra.Command {
 							<-doneChan
 							return err
 						}
-						commits, er := runGithubHistoryConsole(user, repo, filePath, latestFlag, limitFlag, updateChan, errorChan)
+						commits, er := runGithubHistoryConsole(user, repo, filePath, latestFlag, limitFlag, updateChan,
+							errorChan, baseFlag)
 
 						// wait for things to be completed.
 						<-doneChan
@@ -213,9 +214,9 @@ func GetConsoleCommand() *cobra.Command {
 }
 
 func runGithubHistoryConsole(username, repo, filePath string, latest bool, limit int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) ([]*model.Commit, []error) {
 
-	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false, limit)
+	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false, limit, base)
 
 	if errs != nil {
 		return nil, errs

@@ -121,7 +121,7 @@ func GetSummaryCommand() *cobra.Command {
 							<-doneChan
 							return err
 						}
-						err = runGithubHistorySummary(user, repo, filePath, latestFlag, limitFlag, updateChan, errorChan)
+						err = runGithubHistorySummary(user, repo, filePath, latestFlag, limitFlag, updateChan, errorChan, baseFlag)
 						// wait for things to be completed.
 						<-doneChan
 						if err != nil {
@@ -203,7 +203,7 @@ func GetSummaryCommand() *cobra.Command {
 					return nil
 				}
 			}
-			pterm.Error.Println("too many arguments, expecting two (2)")
+			pterm.Error.Println("wrong number of arguments, expecting two (2)")
 			return nil
 		},
 	}
@@ -291,8 +291,8 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 }
 
 func runGithubHistorySummary(username, repo, filePath string, latest bool, limit int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) error {
-	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false, limit)
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) error {
+	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false, limit, base)
 	if errs != nil {
 		return errs[0]
 	}
