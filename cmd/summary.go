@@ -38,6 +38,7 @@ func GetSummaryCommand() *cobra.Command {
 			errorChan := make(chan model.ProgressError)
 			doneChan := make(chan bool)
 			failed := false
+			baseFlag, _ := cmd.Flags().GetString("base")
 			latestFlag, _ := cmd.Flags().GetBool("top")
 			noColorFlag, _ := cmd.Flags().GetBool("no-color")
 			limitFlag, _ := cmd.Flags().GetInt("limit")
@@ -105,13 +106,13 @@ func GetSummaryCommand() *cobra.Command {
 			if len(args) < 2 {
 
 				// check if arg is an url (like a github url)
-				url, err := url.Parse(args[0])
+				specUrl, err := url.Parse(args[0])
 				if err == nil {
 
-					if url.Host == "github.com" {
+					if specUrl.Host == "github.com" {
 						go listenForUpdates(updateChan, errorChan)
 
-						user, repo, filePath, err := ExtractGithubDetailsFromURL(url)
+						user, repo, filePath, err := ExtractGithubDetailsFromURL(specUrl)
 						if err != nil {
 							errorChan <- model.ProgressError{
 								Job:     "github url",
@@ -140,7 +141,7 @@ func GetSummaryCommand() *cobra.Command {
 				var urlErr error
 
 				// check if first arg is a URL
-				left, urlErr = checkURL(args[0], errorChan, doneChan)
+				left, urlErr = checkURL(args[0], errorChan)
 				if urlErr != nil {
 					pterm.Error.Println(urlErr.Error())
 					return urlErr
@@ -166,7 +167,7 @@ func GetSummaryCommand() *cobra.Command {
 
 					go listenForUpdates(updateChan, errorChan)
 
-					err = runGitHistorySummary(args[0], args[1], latestFlag, updateChan, errorChan)
+					err = runGitHistorySummary(args[0], args[1], latestFlag, updateChan, errorChan, baseFlag)
 
 					<-doneChan
 
@@ -178,20 +179,20 @@ func GetSummaryCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					// check if the first arg is a URL, if so download it, if not - assume it's a file.
-					left, urlErr = checkURL(args[0], errorChan, doneChan)
+					left, urlErr = checkURL(args[0], errorChan)
 					if urlErr != nil {
 						pterm.Error.Println(urlErr.Error())
 						return urlErr
 					}
 
 					// check if the second arg is a URL, if so download it, if not - assume it's a file.
-					right, urlErr = checkURL(args[1], errorChan, doneChan)
+					right, urlErr = checkURL(args[1], errorChan)
 					if urlErr != nil {
 						pterm.Error.Println(urlErr.Error())
 						return urlErr
 					}
 
-					errs := runLeftRightSummary(left, right, updateChan, errorChan)
+					errs := runLeftRightSummary(left, right, updateChan, errorChan, baseFlag)
 					<-doneChan
 					if len(errs) > 0 {
 						for e := range errs {
@@ -210,7 +211,7 @@ func GetSummaryCommand() *cobra.Command {
 	return cmd
 }
 
-func checkURL(urlString string, errorChan chan model.ProgressError, doneChan chan bool) (string, error) {
+func checkURL(urlString string, errorChan chan model.ProgressError) (string, error) {
 	u, urlErr := url.Parse(urlString)
 	if urlErr == nil && strings.HasPrefix(u.Scheme, "http") {
 		// download the file
@@ -245,7 +246,8 @@ func checkURL(urlString string, errorChan chan model.ProgressError, doneChan cha
 	return urlString, nil
 }
 
-func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) []error {
+func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpdate,
+	errorChan chan model.ProgressError, base string) []error {
 
 	var leftBytes, rightBytes []byte
 	var errs []error
@@ -275,7 +277,7 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 		},
 	}
 
-	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan)
+	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan, base)
 	if len(errs) > 0 {
 		return errs
 	}
@@ -307,7 +309,7 @@ func runGithubHistorySummary(username, repo, filePath string, latest bool, limit
 }
 
 func runGitHistorySummary(gitPath, filePath string, latest bool,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) error {
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) error {
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
 		model.SendProgressError("git", err.Error(), errorChan)
@@ -326,7 +328,7 @@ func runGitHistorySummary(gitPath, filePath string, latest bool,
 	}
 
 	// populate history with changes and data
-	git.PopulateHistoryWithChanges(commitHistory, 0, updateChan, errorChan)
+	git.PopulateHistoryWithChanges(commitHistory, 0, updateChan, errorChan, base)
 
 	if latest {
 		commitHistory = commitHistory[:1]

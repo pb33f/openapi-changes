@@ -37,6 +37,7 @@ func GetConsoleCommand() *cobra.Command {
 			failed := false
 			latestFlag, _ := cmd.Flags().GetBool("top")
 			limitFlag, _ := cmd.Flags().GetInt("limit")
+			baseFlag, _ := cmd.Flags().GetString("base")
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {
@@ -83,13 +84,13 @@ func GetConsoleCommand() *cobra.Command {
 			if len(args) < 2 {
 
 				// check if arg is an url (like a github url)
-				url, err := url.Parse(args[0])
+				specUrl, err := url.Parse(args[0])
 				if err == nil {
 
-					if url.Host == "github.com" {
+					if specUrl.Host == "github.com" {
 						go listenForUpdates(updateChan, errorChan)
 
-						user, repo, filePath, err := ExtractGithubDetailsFromURL(url)
+						user, repo, filePath, err := ExtractGithubDetailsFromURL(specUrl)
 						if err != nil {
 							errorChan <- model.ProgressError{
 								Job:     "github url",
@@ -130,7 +131,7 @@ func GetConsoleCommand() *cobra.Command {
 				var urlErr error
 
 				// check if first arg is a URL
-				left, urlErr = checkURL(args[0], errorChan, doneChan)
+				left, urlErr = checkURL(args[0], errorChan)
 				if urlErr != nil {
 					pterm.Error.Println(urlErr.Error())
 					return urlErr
@@ -155,7 +156,7 @@ func GetConsoleCommand() *cobra.Command {
 
 					go listenForUpdates(updateChan, errorChan)
 
-					commits, errs := runGitHistoryConsole(args[0], args[1], latestFlag, limitFlag, updateChan, errorChan)
+					commits, errs := runGitHistoryConsole(args[0], args[1], latestFlag, limitFlag, updateChan, errorChan, baseFlag)
 
 					// wait.
 					<-doneChan
@@ -178,20 +179,20 @@ func GetConsoleCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					// check if the first arg is a URL, if so download it, if not - assume it's a file.
-					left, urlErr = checkURL(args[0], errorChan, doneChan)
+					left, urlErr = checkURL(args[0], errorChan)
 					if urlErr != nil {
 						pterm.Error.Println(urlErr.Error())
 						return urlErr
 					}
 
 					// check if the second arg is a URL, if so download it, if not - assume it's a file.
-					right, urlErr = checkURL(args[1], errorChan, doneChan)
+					right, urlErr = checkURL(args[1], errorChan)
 					if urlErr != nil {
 						pterm.Error.Println(urlErr.Error())
 						return urlErr
 					}
 
-					errs := runLeftRightCompare(left, right, updateChan, errorChan)
+					errs := runLeftRightCompare(left, right, updateChan, errorChan, baseFlag)
 					// wait.
 					<-doneChan
 					if len(errs) > 0 {
@@ -232,7 +233,7 @@ func runGithubHistoryConsole(username, repo, filePath string, latest bool, limit
 }
 
 func runGitHistoryConsole(gitPath, filePath string, latest bool, limit int,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]*model.Commit, []error) {
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) ([]*model.Commit, []error) {
 
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
@@ -253,7 +254,7 @@ func runGitHistoryConsole(gitPath, filePath string, latest bool, limit int,
 	}
 
 	// populate history with changes and data
-	git.PopulateHistoryWithChanges(commitHistory, limit, updateChan, errorChan)
+	git.PopulateHistoryWithChanges(commitHistory, limit, updateChan, errorChan, base)
 
 	if latest {
 		commitHistory = commitHistory[:1]
@@ -267,7 +268,8 @@ func runGitHistoryConsole(gitPath, filePath string, latest bool, limit int,
 	return commitHistory, nil
 }
 
-func runLeftRightCompare(left, right string, updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) []error {
+func runLeftRightCompare(left, right string, updateChan chan *model.ProgressUpdate,
+	errorChan chan model.ProgressError, base string) []error {
 
 	var leftBytes, rightBytes []byte
 	var errs []error
@@ -297,7 +299,7 @@ func runLeftRightCompare(left, right string, updateChan chan *model.ProgressUpda
 		},
 	}
 
-	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan)
+	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan, base)
 	if len(errs) > 0 {
 		return errs
 	}

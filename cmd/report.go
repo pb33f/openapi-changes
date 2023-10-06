@@ -38,6 +38,7 @@ func GetReportCommand() *cobra.Command {
 			failed := false
 			latestFlag, _ := cmd.Flags().GetBool("top")
 			limitFlag, _ := cmd.Flags().GetInt("limit")
+			baseFlag, _ := cmd.Flags().GetString("base")
 			noColorFlag, _ := cmd.Flags().GetBool("no-color")
 
 			if noColorFlag {
@@ -75,13 +76,13 @@ func GetReportCommand() *cobra.Command {
 			if len(args) < 2 {
 
 				// check if arg is an url (like a github url)
-				url, err := url.Parse(args[0])
+				specUrl, err := url.Parse(args[0])
 				if err == nil {
 
-					if url.Host == "github.com" {
+					if specUrl.Host == "github.com" {
 						go listenForUpdates(updateChan, errorChan)
 
-						user, repo, filePath, err := ExtractGithubDetailsFromURL(url)
+						user, repo, filePath, err := ExtractGithubDetailsFromURL(specUrl)
 						if err != nil {
 							errorChan <- model.ProgressError{
 								Job:     "github url",
@@ -125,7 +126,7 @@ func GetReportCommand() *cobra.Command {
 				var urlErr error
 
 				// check if first arg is a URL
-				left, urlErr = checkURL(args[0], errorChan, doneChan)
+				left, urlErr = checkURL(args[0], errorChan)
 				if urlErr != nil {
 					pterm.Error.Println(urlErr.Error())
 					return urlErr
@@ -151,7 +152,7 @@ func GetReportCommand() *cobra.Command {
 
 					go listenForUpdates(updateChan, errorChan)
 
-					report, er := runGitHistoryReport(args[0], args[1], latestFlag, updateChan, errorChan)
+					report, er := runGitHistoryReport(args[0], args[1], latestFlag, updateChan, errorChan, baseFlag)
 
 					<-doneChan
 
@@ -177,20 +178,20 @@ func GetReportCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					// check if the first arg is a URL, if so download it, if not - assume it's a file.
-					left, urlErr = checkURL(args[0], errorChan, doneChan)
+					left, urlErr = checkURL(args[0], errorChan)
 					if urlErr != nil {
 						pterm.Error.Println(urlErr.Error())
 						return urlErr
 					}
 
 					// check if the second arg is a URL, if so download it, if not - assume it's a file.
-					right, urlErr = checkURL(args[1], errorChan, doneChan)
+					right, urlErr = checkURL(args[1], errorChan)
 					if urlErr != nil {
 						pterm.Error.Println(urlErr.Error())
 						return urlErr
 					}
 
-					report, errs := runLeftRightReport(left, right, updateChan, errorChan)
+					report, errs := runLeftRightReport(left, right, updateChan, errorChan, baseFlag)
 					<-doneChan
 					if len(errs) > 0 {
 						for e := range errs {
@@ -213,7 +214,7 @@ func GetReportCommand() *cobra.Command {
 }
 
 func runGitHistoryReport(gitPath, filePath string, latest bool,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) (*model.HistoricalReport, []error) {
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) (*model.HistoricalReport, []error) {
 
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
@@ -232,7 +233,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 	}
 
 	// populate history with changes and data
-	commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, updateChan, errorChan)
+	commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, updateChan, errorChan, base)
 	if err != nil {
 		model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(err)), errorChan)
 		return nil, err
@@ -242,14 +243,14 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 		commitHistory = commitHistory[:1]
 	}
 
-	var reports []*model.Report
+	var changeReports []*model.Report
 	for r := range commitHistory {
 		if commitHistory[r].Changes != nil {
-			reports = append(reports, createReport(commitHistory[r]))
+			changeReports = append(changeReports, createReport(commitHistory[r]))
 		}
 	}
 	model.SendProgressUpdate("extraction",
-		fmt.Sprintf("extracted %d reports from history", len(reports)), true, updateChan)
+		fmt.Sprintf("extracted %d reports from history", len(changeReports)), true, updateChan)
 
 	close(updateChan)
 
@@ -258,7 +259,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 		GitFilePath:   filePath,
 		Filename:      path.Base(filePath),
 		DateGenerated: time.Now().String(),
-		Reports:       reports,
+		Reports:       changeReports,
 	}, nil
 
 }
@@ -297,7 +298,7 @@ func runGithubHistoryReport(username, repo, filePath string, latest bool, limit 
 }
 
 func runLeftRightReport(left, right string,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) (*model.Report, []error) {
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) (*model.Report, []error) {
 
 	var leftBytes, rightBytes []byte
 	var errs []error
@@ -327,7 +328,7 @@ func runLeftRightReport(left, right string,
 		},
 	}
 
-	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan)
+	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan, base)
 	close(updateChan)
 
 	if len(errs) > 0 {
