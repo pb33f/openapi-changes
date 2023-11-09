@@ -38,6 +38,7 @@ func GetConsoleCommand() *cobra.Command {
 			latestFlag, _ := cmd.Flags().GetBool("top")
 			limitFlag, _ := cmd.Flags().GetInt("limit")
 			baseFlag, _ := cmd.Flags().GetString("base")
+			remoteFlag, _ := cmd.Flags().GetBool("remote")
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {
@@ -100,7 +101,7 @@ func GetConsoleCommand() *cobra.Command {
 							return err
 						}
 						commits, er := runGithubHistoryConsole(user, repo, filePath, latestFlag, limitFlag, updateChan,
-							errorChan, baseFlag)
+							errorChan, baseFlag, remoteFlag)
 
 						// wait for things to be completed.
 						<-doneChan
@@ -157,7 +158,8 @@ func GetConsoleCommand() *cobra.Command {
 
 					go listenForUpdates(updateChan, errorChan)
 
-					commits, errs := runGitHistoryConsole(args[0], args[1], latestFlag, limitFlag, updateChan, errorChan, baseFlag)
+					commits, errs := runGitHistoryConsole(args[0], args[1], latestFlag, limitFlag,
+						updateChan, errorChan, baseFlag, remoteFlag)
 
 					// wait.
 					<-doneChan
@@ -193,7 +195,7 @@ func GetConsoleCommand() *cobra.Command {
 						return urlErr
 					}
 
-					errs := runLeftRightCompare(left, right, updateChan, errorChan, baseFlag)
+					errs := runLeftRightCompare(left, right, updateChan, errorChan, baseFlag, remoteFlag)
 					// wait.
 					<-doneChan
 					if len(errs) > 0 {
@@ -214,9 +216,10 @@ func GetConsoleCommand() *cobra.Command {
 }
 
 func runGithubHistoryConsole(username, repo, filePath string, latest bool, limit int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) ([]*model.Commit, []error) {
 
-	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, false, limit, base)
+	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan,
+		false, limit, base, remote)
 
 	if errs != nil {
 		return nil, errs
@@ -234,7 +237,7 @@ func runGithubHistoryConsole(username, repo, filePath string, latest bool, limit
 }
 
 func runGitHistoryConsole(gitPath, filePath string, latest bool, limit int,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) ([]*model.Commit, []error) {
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) ([]*model.Commit, []error) {
 
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
@@ -255,7 +258,7 @@ func runGitHistoryConsole(gitPath, filePath string, latest bool, limit int,
 	}
 
 	// populate history with changes and data
-	git.PopulateHistoryWithChanges(commitHistory, limit, updateChan, errorChan, base)
+	git.PopulateHistoryWithChanges(commitHistory, limit, updateChan, errorChan, base, remote)
 
 	if latest {
 		commitHistory = commitHistory[:1]
@@ -270,7 +273,7 @@ func runGitHistoryConsole(gitPath, filePath string, latest bool, limit int,
 }
 
 func runLeftRightCompare(left, right string, updateChan chan *model.ProgressUpdate,
-	errorChan chan model.ProgressError, base string) []error {
+	errorChan chan model.ProgressError, base string, remote bool) []error {
 
 	var leftBytes, rightBytes []byte
 	var errs []error
@@ -300,7 +303,7 @@ func runLeftRightCompare(left, right string, updateChan chan *model.ProgressUpda
 		},
 	}
 
-	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan, base)
+	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan, base, remote)
 	if len(errs) > 0 {
 		return errs
 	}

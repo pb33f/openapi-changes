@@ -92,7 +92,7 @@ func ExtractHistoryFromFile(repoDirectory, filePath string,
 }
 
 func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) ([]*model.Commit, []error) {
 
 	for c := range commitHistory {
 		cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", commitHistory[c].Hash, commitHistory[c].FilePath))
@@ -115,7 +115,7 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int,
 		commitHistory = commitHistory[0 : limit+1]
 	}
 
-	cleaned, errors := BuildCommitChangelog(commitHistory, progressChan, errorChan, base)
+	cleaned, errors := BuildCommitChangelog(commitHistory, progressChan, errorChan, base, remote)
 	if len(errors) > 0 {
 		model.SendProgressError("git",
 			fmt.Sprintf("%d error(s) found building commit change log", len(errors)), errorChan)
@@ -128,14 +128,14 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int,
 }
 
 func BuildCommitChangelog(commitHistory []*model.Commit,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) ([]*model.Commit, []error) {
 
 	var changeErrors []error
 	var cleaned []*model.Commit
 
 	// create a new document config and set to default closed state,
 	// enable it if the user has specified a base url or a path.
-	docConfig := datamodel.NewClosedDocumentConfiguration()
+	docConfig := datamodel.NewDocumentConfiguration()
 	docConfig.AllowFileReferences = true
 
 	if base != "" {
@@ -144,10 +144,18 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 		if e == nil && u.Scheme != "" && u.Host != "" {
 			docConfig.BaseURL = u
 			docConfig.BasePath = ""
+			docConfig.AllowRemoteReferences = true
 		} else {
+			docConfig.AllowFileReferences = true
 			docConfig.BasePath = base
 		}
+	}
+
+	// if this is set to true, we'll allow remote references
+	// there will be a new rolodex created with both filesystems.
+	if remote {
 		docConfig.AllowRemoteReferences = true
+		docConfig.AllowFileReferences = true
 	}
 
 	for c := len(commitHistory) - 1; c > -1; c-- {

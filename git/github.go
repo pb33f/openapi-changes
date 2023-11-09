@@ -233,7 +233,7 @@ func GetCommitsForGithubFile(user, repo, path string,
 }
 
 func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
-	progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError, base string) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError, base string, remote bool) ([]*model.Commit, []error) {
 	var normalized []*model.Commit
 
 	if len(ghCommits) > 0 {
@@ -263,7 +263,7 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
 		model.SendProgressUpdate("converting commits", "Building data models...", false, progressChan)
 	}
 
-	normalized, errs = BuildCommitChangelog(normalized, progressChan, progressErrorChan, base)
+	normalized, errs = BuildCommitChangelog(normalized, progressChan, progressErrorChan, base, remote)
 
 	if len(errs) > 0 {
 		model.SendProgressError("converting commits",
@@ -282,7 +282,7 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
 
 func ProcessGithubRepo(username string, repo string, filePath string,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
-	forceCutoff bool, limit int, base string) ([]*model.Commit, []error) {
+	forceCutoff bool, limit int, base string, remote bool) ([]*model.Commit, []error) {
 
 	if username == "" || repo == "" || filePath == "" {
 		err := errors.New("please supply valid github username/repo and filepath")
@@ -296,7 +296,7 @@ func ProcessGithubRepo(username string, repo string, filePath string,
 		return nil, []error{err}
 	}
 
-	commitHistory, errs := ConvertGithubCommitsIntoModel(githubCommits, progressChan, errorChan, base)
+	commitHistory, errs := ConvertGithubCommitsIntoModel(githubCommits, progressChan, errorChan, base, remote)
 	if errs != nil {
 		for x := range errs {
 			model.SendProgressError("git", errs[x].Error(), errorChan)
