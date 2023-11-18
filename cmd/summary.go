@@ -77,7 +77,7 @@ func GetSummaryCommand() *cobra.Command {
 						} else {
 							if !failed {
 								if !noColorFlag {
-									spinner.Info("printing summary")
+									//spinner.Info("printing summary")
 								}
 							} else {
 								if !noColorFlag {
@@ -199,7 +199,7 @@ func GetSummaryCommand() *cobra.Command {
 						for e := range errs {
 							pterm.Error.Println(errs[e].Error())
 						}
-						return errors.New("unable to process specifications")
+						return errors.Join(errs...)
 					}
 					return nil
 				}
@@ -348,6 +348,7 @@ func printSummaryDetails(commitHistory []*model.Commit) error {
 	tb := 0
 	pterm.Println()
 	errorStyle := pterm.NewStyle(pterm.FgLightRed, pterm.Italic)
+
 	for c := range commitHistory {
 		tableData := [][]string{{"Document Element", "Total Changes", "Breaking Changes"}}
 
@@ -401,6 +402,11 @@ func printSummaryDetails(commitHistory []*model.Commit) error {
 			}
 
 			if c < len(commitHistory) {
+				pterm.Println()
+			}
+		} else {
+			if tt <= 0 && tb <= 0 {
+				pterm.Success.Println("No changes detected")
 				pterm.Println()
 			}
 		}
