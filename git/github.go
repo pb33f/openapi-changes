@@ -184,8 +184,9 @@ func GetCommitsForGithubFile(user, repo, path string,
 					e <- er
 					return
 				}
+				p, _ := url.PathUnescape(commit.Files[x].RawURL)
 				model.SendProgressUpdate(commit.Hash,
-					fmt.Sprintf("%dkb read for file %s", len(b)/1024, commit.Files[x].RawURL), false, progressChan)
+					fmt.Sprintf("%dkb read for file %s", len(b)/1024, p), false, progressChan)
 				commit.Files[x].Bytes = b
 			}
 		}
