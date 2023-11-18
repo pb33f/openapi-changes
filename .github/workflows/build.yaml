@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v3
         with:
-          go-version: ^1.19
+          go-version: ^1.21
         id: go
 
       - name: Checkout code
@@ -29,6 +29,8 @@ jobs:
               curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
               dep ensure
           fi
+      - name: Test
+        run: go test ./...
       - name: Build
         run: make build
       - name: Clean modcache
@@ -38,7 +40,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        node-version: [ 16.x ]
+        node-version: [ 18.x ]
     steps:
       - uses: actions/checkout@v3
         name: Checkout repository
