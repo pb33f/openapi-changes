@@ -22,10 +22,9 @@ import (
 func GetConsoleCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
-		SilenceUsage:  true,
-		SilenceErrors: false,
-		Use:           "console",
-		Short:         "Interact with OpenAPI changes in an interactive terminal UI",
+		SilenceUsage: true,
+		Use:          "console",
+		Short:        "Interact with OpenAPI changes in an interactive terminal UI",
 		Long: "Navigate though a single change or many changes visually. Explore" +
 			" Each change, and see a side by side rendering of each change.",
 		Example: "openapi-changes console /path/to/git/repo path/to/file/in/repo/openapi.yaml",
