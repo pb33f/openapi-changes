@@ -138,7 +138,7 @@ func GetReportCommand() *cobra.Command {
 				p := left
 				f, err := os.Stat(p)
 				if err != nil {
-					pterm.Error.Printf("Cannot open file/repository: '%s': %s", args[0])
+					pterm.Error.Printf("Cannot open file/repository: '%s': %s", args[0], err.Error())
 					return err
 				}
 

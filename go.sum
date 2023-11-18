@@ -99,8 +99,8 @@ github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1y
 github.com/onsi/gomega v1.17.0/go.mod h1:HnhC7FXeEQY45zxNK3PPoIUhzk/80Xly9PcubAlGdZY=
 github.com/onsi/gomega v1.19.0 h1:4ieX6qQjPP/BfC3mpsAtIGGlxTWPeA3Inl/7DtXw1tw=
 github.com/onsi/gomega v1.19.0/go.mod h1:LY+I3pBVzYsTBU1AnDwOSxaYi9WoWiqgwooUqq9yPro=
-github.com/pb33f/libopenapi v0.13.10 h1:Njh5yeDKJ38BNAzj56BFiJUA5wR2twhOJRE3g//RJfU=
-github.com/pb33f/libopenapi v0.13.10/go.mod h1:Lv2eEtsAtbRFlF8hjH82L8SIGoUNgemMVoKoB6A9THk=
+github.com/pb33f/libopenapi v0.13.11 h1:CHRT15/iakHcwRvr9y7bf63UPekXa8FB1Sc4D4BZ7NU=
+github.com/pb33f/libopenapi v0.13.11/go.mod h1:Lv2eEtsAtbRFlF8hjH82L8SIGoUNgemMVoKoB6A9THk=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pterm/pterm v0.12.27/go.mod h1:PhQ89w4i95rhgE+xedAoqous6K9X+r6aSOI2eFF7DZI=
@@ -112,8 +112,8 @@ github.com/pterm/pterm v0.12.36/go.mod h1:NjiL09hFhT/vWjQHSj1athJpx6H8cjpHXNAK5b
 github.com/pterm/pterm v0.12.40/go.mod h1:ffwPLwlbXxP+rxT0GsgDTzS3y3rmpAO1NMjUkGTYf8s=
 github.com/pterm/pterm v0.12.70 h1:8W0oBICz0xXvUeB8v9Pcfr2wNtsm7zfSb+FJzIbFB5w=
 github.com/pterm/pterm v0.12.70/go.mod h1:SUAcoZjRt+yjPWlWba+/Fd8zJJ2lSXBQWf0Z0HbFiIQ=
-github.com/rivo/tview v0.0.0-20231102183219-1b91b8131c43 h1:2b19kXs3HdZLq3yRRFnEGIbLrbh5FdewdpcJJFHebg4=
-github.com/rivo/tview v0.0.0-20231102183219-1b91b8131c43/go.mod h1:nVwGv4MP47T0jvlk7KuTTjjuSmrGO4JF0iaiNt4bufE=
+github.com/rivo/tview v0.0.0-20231115183240-7c9e464bac02 h1:UkSrnoeeuKdeNFe4ghSjZmp7tA5B1CQKnvV1By9FSYw=
+github.com/rivo/tview v0.0.0-20231115183240-7c9e464bac02/go.mod h1:nVwGv4MP47T0jvlk7KuTTjjuSmrGO4JF0iaiNt4bufE=
 github.com/rivo/uniseg v0.1.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.3/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
