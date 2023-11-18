@@ -16,10 +16,9 @@ var (
 	Date    string
 
 	rootCmd = &cobra.Command{
-		SilenceUsage:  true,
-		SilenceErrors: true,
-		Use:           "openapi-changes",
-		Short:         "openapi-changes will tell you what has changed between one or more OpenAPI / Swagger specifications.",
+		SilenceUsage: true,
+		Use:          "openapi-changes",
+		Short:        "openapi-changes will tell you what has changed between one or more OpenAPI / Swagger specifications.",
 		Long: `openapi-changes can detect every change found in an OpenAPI specification.
 it can compare between two files, or a single file, over time.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -64,7 +63,7 @@ func init() {
 	rootCmd.PersistentFlags().IntP("limit", "l", 5, "Limit history to number of revisions (default is 5)")
 	rootCmd.PersistentFlags().BoolP("no-logo", "b", false, "Don't print the big purple pb33f banner")
 	rootCmd.PersistentFlags().StringP("base", "p", "", "Base URL or path to use for resolving relative or remote references")
-	rootCmd.PersistentFlags().BoolP("remote", "r", false, "Allow remote reference (URLs and files) to be resolved, without a base URL or path")
+	rootCmd.PersistentFlags().BoolP("remote", "r", true, "Allow remote reference (URLs and files) to be auto resolved, without a base URL or path (default is on)")
 }
 
 func initConfig() {

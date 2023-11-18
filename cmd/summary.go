@@ -26,12 +26,11 @@ import (
 func GetSummaryCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
-		SilenceUsage:  true,
-		SilenceErrors: false,
-		Use:           "summary",
-		Short:         "See a summary of changes",
-		Long:          "print a summary of what changed, view a simple tree of changes and summary",
-		Example:       "openapi-changes summary /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		SilenceUsage: true,
+		Use:          "summary",
+		Short:        "See a summary of changes",
+		Long:         "print a summary of what changed, view a simple tree of changes and summary",
+		Example:      "openapi-changes summary /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			updateChan := make(chan *model.ProgressUpdate)

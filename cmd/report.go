@@ -24,12 +24,11 @@ import (
 func GetReportCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
-		SilenceUsage:  true,
-		SilenceErrors: false,
-		Use:           "report",
-		Short:         "Generate a machine readable report for what has changed",
-		Long:          "Generate a report for what has changed between two OpenAPI specs, or a single spec, over time.",
-		Example:       "openapi-changes report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		SilenceUsage: true,
+		Use:          "report",
+		Short:        "Generate a machine readable report for what has changed",
+		Long:         "Generate a report for what has changed between two OpenAPI specs, or a single spec, over time.",
+		Example:      "openapi-changes report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			updateChan := make(chan *model.ProgressUpdate)

@@ -22,10 +22,9 @@ import (
 func GetHTMLReportCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
-		SilenceUsage:  false,
-		SilenceErrors: false,
-		Use:           "html-report",
-		Short:         "Generate the sexiest, most interactive diffing experience you have ever seen.",
+		SilenceUsage: false,
+		Use:          "html-report",
+		Short:        "Generate the sexiest, most interactive diffing experience you have ever seen.",
 		Long: "Generate a ready to go, super sexy, and highly interactive HTML report that " +
 			"you can explore and review in your browser",
 		Example: "openapi-changes html-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
