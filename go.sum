@@ -99,8 +99,8 @@ github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1y
 github.com/onsi/gomega v1.17.0/go.mod h1:HnhC7FXeEQY45zxNK3PPoIUhzk/80Xly9PcubAlGdZY=
 github.com/onsi/gomega v1.19.0 h1:4ieX6qQjPP/BfC3mpsAtIGGlxTWPeA3Inl/7DtXw1tw=
 github.com/onsi/gomega v1.19.0/go.mod h1:LY+I3pBVzYsTBU1AnDwOSxaYi9WoWiqgwooUqq9yPro=
-github.com/pb33f/libopenapi v0.13.11 h1:CHRT15/iakHcwRvr9y7bf63UPekXa8FB1Sc4D4BZ7NU=
-github.com/pb33f/libopenapi v0.13.11/go.mod h1:Lv2eEtsAtbRFlF8hjH82L8SIGoUNgemMVoKoB6A9THk=
+github.com/pb33f/libopenapi v0.13.14 h1:BI21pE/aAehoF+FHizJxyK5FUIUmq2i7/cJ/TkvsRWE=
+github.com/pb33f/libopenapi v0.13.14/go.mod h1:Lv2eEtsAtbRFlF8hjH82L8SIGoUNgemMVoKoB6A9THk=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pterm/pterm v0.12.27/go.mod h1:PhQ89w4i95rhgE+xedAoqous6K9X+r6aSOI2eFF7DZI=
