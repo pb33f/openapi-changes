@@ -369,6 +369,7 @@ func runGitHistorySummary(gitPath, filePath string, latest bool,
     commitHistory, errs := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan)
     if errs != nil {
         model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(errs)), errorChan)
+        close(updateChan)
         return errs[0]
     }
 

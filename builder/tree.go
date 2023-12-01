@@ -4,7 +4,6 @@
 package builder
 
 import (
-    "fmt"
     v3 "github.com/pb33f/libopenapi/datamodel/low/v3"
     wcModel "github.com/pb33f/libopenapi/what-changed/model"
     "github.com/pb33f/libopenapi/what-changed/reports"
@@ -287,9 +286,6 @@ func extractChangeCount(change reports.HasChanges) (int, int) {
 
 func DigIntoTreeNode[T any](parent *model.TreeNode, field reflect.Value, label string, tc, br int) {
     if !field.IsZero() {
-        if label == "path" {
-            fmt.Println("hello")
-        }
         e := &model.TreeNode{
             TitleString:     label,
             Key:             uuid.NewV4().String(),
