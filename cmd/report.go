@@ -57,6 +57,7 @@ func GetReportCommand() *cobra.Command {
             }
 
             listenForUpdates := func(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) {
+
                 for {
                     select {
                     case _, ok := <-updateChan:
@@ -65,9 +66,7 @@ func GetReportCommand() *cobra.Command {
                             return
                         }
                     case <-errorChan:
-                        failed = true
-                        doneChan <- true
-                        return
+                        // do nothing.
                     }
                 }
             }
@@ -93,7 +92,7 @@ func GetReportCommand() *cobra.Command {
                         }
                         report, er := runGithubHistoryReport(user, repo, filePath, latestFlag, limitFlag, updateChan,
                             errorChan, baseFlag, remoteFlag)
-
+                        
                         // wait for things to be completed.
                         <-doneChan
 
@@ -220,6 +219,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
     if gitPath == "" || filePath == "" {
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
         model.SendProgressError("git", err.Error(), errorChan)
+        close(updateChan)
         return nil, []error{err}
     }
 
@@ -230,6 +230,8 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
     // build commit history.
     commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan)
     if err != nil {
+        model.SendProgressError("git", fmt.Sprintf("%d errors found building history", len(err)), errorChan)
+        close(updateChan)
         return nil, err
     }
 
@@ -237,6 +239,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
     commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, updateChan, errorChan, base, remote)
     if err != nil {
         model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(err)), errorChan)
+        close(updateChan)
         return nil, err
     }
 
@@ -271,6 +274,8 @@ func runGithubHistoryReport(username, repo, filePath string, latest bool, limit 
     commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan,
         false, limit, base, remote)
     if errs != nil {
+        model.SendProgressError("git", errors.Join(errs...).Error(), errorChan)
+        close(progressChan)
         return nil, errs
     }
 

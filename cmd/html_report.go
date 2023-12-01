@@ -307,18 +307,25 @@ func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
         err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
         model.SendProgressError("reading paths",
             err.Error(), errorChan)
+        close(progressChan)
         return nil, nil, []error{err}
     }
 
     // build commit history.
     commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, progressChan, errorChan)
     if err != nil {
+        model.SendFatalError("extraction",
+            fmt.Sprintf("cannot extract history %s", errors.Join(err...)), errorChan)
+        close(progressChan)
         return nil, nil, err
     }
 
     // populate history with changes and data
     commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, progressChan, errorChan, base, remote)
     if err != nil {
+        model.SendFatalError("extraction",
+            fmt.Sprintf("cannot extract history %s", errors.Join(err...)), errorChan)
+        close(progressChan)
         return nil, nil, err
     }
 
