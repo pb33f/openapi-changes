@@ -74,6 +74,7 @@ export function EditorComponent(props: EditorComponentProps) {
     function handleEditorDidMount(editor: any, monaco: Monaco) {
         editorRef.current = editor;
         monacoRef.current = monaco;
+
         const options = {
             base: 'vs-dark',
             renderSideBySide: false,
@@ -101,6 +102,7 @@ export function EditorComponent(props: EditorComponentProps) {
                 'diffEditor.insertedTextBackground': '#62C4FF1A',
             }
         };
+        // @ts-ignore
         monaco.editor.defineTheme("pb33f", options);
         monaco.editor.setTheme('pb33f');
 

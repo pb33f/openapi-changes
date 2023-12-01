@@ -18,9 +18,18 @@ import {ChangeTitleComponent} from "@/components/drawer/ChangeTitle";
 const {DirectoryTree} = Tree;
 
 const visitNode = (node: BeefyTreeNode) => {
+
+    let title = node.titleString;
+    if (node.change) {
+        title = title + ": " + node?.change?.new;
+        if (title?.length > 40) {
+            title = node.titleString;
+        }
+    }
+
     node.title = <TreeTitleNode
         breaking={node.change?.breaking}
-        title={node.titleString}
+        title={title}
         totalChanges={node.totalChanges}
         breakingChanges={node.breakingChanges}
         change={node.change}
