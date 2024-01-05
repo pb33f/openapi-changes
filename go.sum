@@ -105,8 +105,8 @@ github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1y
 github.com/onsi/gomega v1.17.0/go.mod h1:HnhC7FXeEQY45zxNK3PPoIUhzk/80Xly9PcubAlGdZY=
 github.com/onsi/gomega v1.19.0 h1:4ieX6qQjPP/BfC3mpsAtIGGlxTWPeA3Inl/7DtXw1tw=
 github.com/onsi/gomega v1.19.0/go.mod h1:LY+I3pBVzYsTBU1AnDwOSxaYi9WoWiqgwooUqq9yPro=
-github.com/pb33f/libopenapi v0.14.4 h1:NbcYaBbG/6pnJM8lw4F6b5e54HandyKF452HUl4+9j4=
-github.com/pb33f/libopenapi v0.14.4/go.mod h1:m+4Pwri31UvcnZjuP8M7TlbR906DXJmMvYsbis234xg=
+github.com/pb33f/libopenapi v0.14.5 h1:BOwqHe99CWQWDAkbJEY2joWiJ8+jqKBC065wqYrFXBs=
+github.com/pb33f/libopenapi v0.14.5/go.mod h1:m+4Pwri31UvcnZjuP8M7TlbR906DXJmMvYsbis234xg=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pterm/pterm v0.12.27/go.mod h1:PhQ89w4i95rhgE+xedAoqous6K9X+r6aSOI2eFF7DZI=
@@ -116,10 +116,10 @@ github.com/pterm/pterm v0.12.31/go.mod h1:32ZAWZVXD7ZfG0s8qqHXePte42kdz8ECtRyEej
 github.com/pterm/pterm v0.12.33/go.mod h1:x+h2uL+n7CP/rel9+bImHD5lF3nM9vJj80k9ybiiTTE=
 github.com/pterm/pterm v0.12.36/go.mod h1:NjiL09hFhT/vWjQHSj1athJpx6H8cjpHXNAK5bUw8T8=
 github.com/pterm/pterm v0.12.40/go.mod h1:ffwPLwlbXxP+rxT0GsgDTzS3y3rmpAO1NMjUkGTYf8s=
-github.com/pterm/pterm v0.12.72 h1:1W7Oqi5yjEvrI0QroBqUefqXKJW4aD8/wAuqqd5qj0Q=
-github.com/pterm/pterm v0.12.72/go.mod h1:+M33aZWQVpmLmLbvjykyGZ4gAfeebznRo8JMbabaxQU=
-github.com/rivo/tview v0.0.0-20231206124440-5f078138442e h1:mPy47VW9tkqImnSPgcjnEHJuG3XHDBtXj2hDb1qBrRs=
-github.com/rivo/tview v0.0.0-20231206124440-5f078138442e/go.mod h1:c0SPlNPXkM+/Zgjn/0vD3W0Ds1yxstN7lpquqLDpWCg=
+github.com/pterm/pterm v0.12.74 h1:fPsds9KisCyJh4NyY6bv8QJt3FLHceb5DxI6W0An9cc=
+github.com/pterm/pterm v0.12.74/go.mod h1:+M33aZWQVpmLmLbvjykyGZ4gAfeebznRo8JMbabaxQU=
+github.com/rivo/tview v0.0.0-20240101144852-b3bd1aa5e9f2 h1:Q41smlaCKxGtMlRwvZchzy7iDXAk89Wj5wMhlZXkpMI=
+github.com/rivo/tview v0.0.0-20240101144852-b3bd1aa5e9f2/go.mod h1:c0SPlNPXkM+/Zgjn/0vD3W0Ds1yxstN7lpquqLDpWCg=
 github.com/rivo/uniseg v0.1.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.3/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
