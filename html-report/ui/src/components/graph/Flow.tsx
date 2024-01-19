@@ -43,13 +43,13 @@ export const HorizontalFlow = () => {
     const [nodes, setNodes] = useState<NodeData[]>(nodeData)
     const [edges, setEdges] = useState<EdgeData[]>(edgeData)
     const [selections, setSelections] = useState<string[]>([]);
+    const maxWidth = 2000;
+    const maxHeight = 1000;
 
     let timer: any
     const changeSize = () => {
         clearTimeout(timer);
         timer = setTimeout(() => {
-            const maxWidth = window.innerWidth - 50;
-            const maxHeight = window.innerHeight - 328;
             setSize({
                 width: maxWidth,
                 height: maxHeight,
@@ -82,8 +82,8 @@ export const HorizontalFlow = () => {
     );
 
 
-    const maxWidth = window.innerWidth - 50;
-    const maxHeight = window.innerHeight - 328;
+    // const maxWidth = window.innerWidth - 50;
+    // const maxHeight = window.innerHeight - 328;
 
     const rotateGraphDirection = () => {
         setDirection(getNextDirection(direction))

@@ -20,8 +20,13 @@ const {DirectoryTree} = Tree;
 const visitNode = (node: BeefyTreeNode) => {
 
     let title = node.titleString;
+    if (title == undefined) {
+        title = ''
+    }
     if (node.change) {
-        title = title + ": " + node?.change?.new;
+        if (node?.change?.new != undefined) {
+            title = title + ": " + node?.change?.new;
+        }
         if (title?.length > 40) {
             title = node.titleString;
         }
