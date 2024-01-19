@@ -44,7 +44,8 @@ module.exports = {
     //devtool: prod ? undefined : 'source-map',
     devServer: {
         compress: true,
-        port: 3000
+        port: 3000,
+        allowedHosts: 'all',
     },
     optimization: {
         minimizer: [new CssMinimizerPlugin(), '...'],

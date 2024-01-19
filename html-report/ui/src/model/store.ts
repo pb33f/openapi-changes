@@ -1,7 +1,7 @@
 // Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
 // SPDX-License-Identifier: MIT
 
-import create from "zustand";
+import { create}  from "zustand";
 import {Change} from "./change";
 import React from "react";
 import {CanvasDirection} from "reaflow/dist/layout/elkLayout";

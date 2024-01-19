@@ -431,7 +431,8 @@ func RunLeftRightHTMLReport(left, right string, useCDN bool,
 	generator := htmlReport.NewHTMLReport(false, time.Now(), commits)
 
 	close(progressChan)
-	return generator.GenerateReport(false, useCDN, false), nil
+	//return generator.GenerateReport(false, useCDN, false), nil
+	return generator.GenerateReport(true, false, false), nil
 }
 
 func RunLeftRightHTMLReportViaString(left, right string, useCDN, embedded bool,

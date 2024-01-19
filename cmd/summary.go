@@ -322,7 +322,6 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 		fmt.Sprintf("extracted %d commits from history", len(commits)), true, updateChan)
 
 	close(updateChan)
-	//	close(errorChan)
 	e := printSummaryDetails(commits)
 	if e != nil {
 		return []error{e}
@@ -338,12 +337,6 @@ func runGithubHistorySummary(username, repo, filePath string, latest bool, limit
 	if latest {
 		commitHistory = commitHistory[:1]
 	}
-
-	//if err != nil {
-	//model.SendProgressError("github", errors.Join(err...).Error(), errorChan)
-	// close(progressChan)
-	//return errors.Join(err...)
-	//}
 
 	model.SendProgressUpdate("extraction",
 		fmt.Sprintf("extracted %d commits from history", len(commitHistory)), true, progressChan)

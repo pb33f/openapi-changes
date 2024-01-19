@@ -5,9 +5,9 @@ go 1.21
 require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/gdamore/tcell/v2 v2.7.0
-	github.com/pb33f/libopenapi v0.14.5
-	github.com/pterm/pterm v0.12.74
-	github.com/rivo/tview v0.0.0-20240101144852-b3bd1aa5e9f2
+	github.com/pb33f/libopenapi v0.15.0
+	github.com/pterm/pterm v0.12.75
+	github.com/rivo/tview v0.0.0-20240118093911-742cf086196e
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
 	github.com/twinj/uuid v1.0.0
@@ -40,8 +40,8 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
-	golang.org/x/term v0.15.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/term v0.16.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/stretchr/testify.v1 v1.2.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
