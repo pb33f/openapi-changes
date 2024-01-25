@@ -59,7 +59,7 @@ brew install pb33f/taps/openapi-changes
 ## Install using npm or yarn
 
 ```bash
-npm -i -g @pb33f/openapi-changes
+npm i -g @pb33f/openapi-changes
 ```
 
 If you prefer yarn _(recommended)_
