@@ -120,7 +120,7 @@ func GetSummaryCommand() *cobra.Command {
 
 							doneChan <- true
 
-							return
+							return err
 						}
 					case err := <-errorChan:
 						if err.Fatal {
