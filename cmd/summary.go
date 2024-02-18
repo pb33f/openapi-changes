@@ -60,6 +60,7 @@ func GetSummaryCommand() *cobra.Command {
 				// check if arg is an url (like a github url)
 				specUrl, err := url.Parse(args[0])
 				if err == nil {
+					supportedHosts := []string{"github.com"}
 
 					if specUrl.Host == "github.com" {
 						go listenForUpdates(updateChan, errorChan, doneChan, failed)
@@ -82,11 +83,12 @@ func GetSummaryCommand() *cobra.Command {
 							return er
 						}
 						return nil
+					} else {
+						return errors.New(fmt.Sprintf("Host %q is not supported.\nSupported hosts are: %v", specUrl.Host, supportedHosts))
 					}
 
 				} else {
-					pterm.Error.Println("Two arguments are required to compare left and right OpenAPI Specifications.")
-					return nil
+					return errors.New(fmt.Sprintf("Error parsing url: %v", err))
 				}
 			} else if len(args) == 2 {
 
