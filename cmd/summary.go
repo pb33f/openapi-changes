@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/pb33f/openapi-changes/builder"
 	"io"
 	"net/http"
 	"net/url"
@@ -16,6 +15,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/pb33f/openapi-changes/builder"
 
 	"github.com/pb33f/libopenapi/what-changed/reports"
 	"github.com/pb33f/openapi-changes/git"
