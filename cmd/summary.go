@@ -62,78 +62,6 @@ func GetSummaryCommand() *cobra.Command {
 				return nil
 			}
 
-			listenForUpdates := func(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) {
-				spinner, _ := pterm.DefaultSpinner.Start("starting work.")
-
-				spinner.InfoPrinter = &pterm.PrefixPrinter{
-					MessageStyle: &pterm.Style{pterm.FgLightCyan},
-					Prefix: pterm.Prefix{
-						Style: &pterm.Style{pterm.FgBlack, pterm.BgLightMagenta},
-						Text:  " SPEC ",
-					},
-				}
-				spinner.SuccessPrinter = &pterm.PrefixPrinter{
-					MessageStyle: &pterm.Style{pterm.FgLightCyan},
-					Prefix: pterm.Prefix{
-						Style: &pterm.Style{pterm.FgBlack, pterm.BgLightCyan},
-						Text:  " DONE ",
-					},
-				}
-
-				var warnings []string
-
-				for {
-					select {
-					case update, ok := <-updateChan:
-						if ok {
-							if !update.Completed {
-								spinner.UpdateText(update.Message)
-							} else {
-								spinner.Info(update.Message)
-							}
-							if update.Warning {
-								warnings = append(warnings, update.Message)
-							}
-						} else {
-							if !failed {
-								spinner.Success("completed")
-								spinner.Stop()
-								pterm.Println()
-								pterm.Println()
-							} else {
-								spinner.Fail("failed to complete. sorry!")
-							}
-							if len(warnings) > 0 {
-								pterm.Warning.Print("warnings reported during processing")
-								pterm.Println()
-								dupes := make(map[string]bool)
-								for w := range warnings {
-									sum := md5.Sum([]byte(warnings[w]))
-									md5 := hex.EncodeToString(sum[:])
-									if !dupes[md5] {
-										dupes[md5] = true
-									} else {
-										continue
-									}
-									pterm.Println(fmt.Sprintf("⚠️  %s", pterm.FgYellow.Sprint(warnings[w])))
-								}
-							}
-
-							doneChan <- true
-
-							return
-						}
-					case err := <-errorChan:
-						if err.Fatal {
-							spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
-							spinner.Stop()
-						} else {
-							warnings = append(warnings, err.Message)
-						}
-					}
-				}
-			}
-
 			// check for two args (left and right)
 			if len(args) < 2 {
 
@@ -142,7 +70,7 @@ func GetSummaryCommand() *cobra.Command {
 				if err == nil {
 
 					if specUrl.Host == "github.com" {
-						go listenForUpdates(updateChan, errorChan)
+						go listenForUpdates(updateChan, errorChan, doneChan, failed)
 
 						user, repo, filePath, e := ExtractGithubDetailsFromURL(specUrl)
 						if e != nil {
@@ -199,7 +127,7 @@ func GetSummaryCommand() *cobra.Command {
 						return err
 					}
 
-					go listenForUpdates(updateChan, errorChan)
+					go listenForUpdates(updateChan, errorChan, doneChan, failed)
 
 					err = runGitHistorySummary(args[0], args[1], latestFlag, updateChan, errorChan, baseFlag, remoteFlag)
 
@@ -210,7 +138,7 @@ func GetSummaryCommand() *cobra.Command {
 						return err
 					}
 				} else {
-					go listenForUpdates(updateChan, errorChan)
+					go listenForUpdates(updateChan, errorChan, doneChan, failed)
 
 					// check if the first arg is a URL, if so download it, if not - assume it's a file.
 					left, urlErr = checkURL(args[0], errorChan)
@@ -243,6 +171,78 @@ func GetSummaryCommand() *cobra.Command {
 	}
 	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
 	return cmd
+}
+
+func listenForUpdates(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, doneChan chan bool, failed bool) {
+	spinner, _ := pterm.DefaultSpinner.Start("starting work.")
+
+	spinner.InfoPrinter = &pterm.PrefixPrinter{
+		MessageStyle: &pterm.Style{pterm.FgLightCyan},
+		Prefix: pterm.Prefix{
+			Style: &pterm.Style{pterm.FgBlack, pterm.BgLightMagenta},
+			Text:  " SPEC ",
+		},
+	}
+	spinner.SuccessPrinter = &pterm.PrefixPrinter{
+		MessageStyle: &pterm.Style{pterm.FgLightCyan},
+		Prefix: pterm.Prefix{
+			Style: &pterm.Style{pterm.FgBlack, pterm.BgLightCyan},
+			Text:  " DONE ",
+		},
+	}
+
+	var warnings []string
+
+	for {
+		select {
+		case update, ok := <-updateChan:
+			if ok {
+				if !update.Completed {
+					spinner.UpdateText(update.Message)
+				} else {
+					spinner.Info(update.Message)
+				}
+				if update.Warning {
+					warnings = append(warnings, update.Message)
+				}
+			} else {
+				if !failed {
+					spinner.Success("completed")
+					spinner.Stop()
+					pterm.Println()
+					pterm.Println()
+				} else {
+					spinner.Fail("failed to complete. sorry!")
+				}
+				if len(warnings) > 0 {
+					pterm.Warning.Print("warnings reported during processing")
+					pterm.Println()
+					dupes := make(map[string]bool)
+					for w := range warnings {
+						sum := md5.Sum([]byte(warnings[w]))
+						md5 := hex.EncodeToString(sum[:])
+						if !dupes[md5] {
+							dupes[md5] = true
+						} else {
+							continue
+						}
+						pterm.Println(fmt.Sprintf("⚠️  %s", pterm.FgYellow.Sprint(warnings[w])))
+					}
+				}
+
+				doneChan <- true
+
+				return
+			}
+		case err := <-errorChan:
+			if err.Fatal {
+				spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
+				spinner.Stop()
+			} else {
+				warnings = append(warnings, err.Message)
+			}
+		}
+	}
 }
 
 func checkURL(urlString string, errorChan chan model.ProgressError) (string, error) {
