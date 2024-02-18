@@ -159,7 +159,6 @@ func GetSummaryCommand() *cobra.Command {
 			} else {
 				// if an invalid number of arguments are provided, print usage
 				PrintHowToUse("summary")
-				pterm.Error.Println("invalid number of arguments provided")
 				return errors.New("invalid number of arguments provided")
 			}
 			return nil
