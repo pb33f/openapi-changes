@@ -155,7 +155,6 @@ func GetSummaryCommand() *cobra.Command {
 						}
 						return errors.Join(errs...)
 					}
-					return nil
 				}
 			} else {
 				// if an invalid number of arguments are provided, print usage
