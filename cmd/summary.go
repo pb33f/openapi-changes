@@ -56,15 +56,7 @@ func GetSummaryCommand() *cobra.Command {
 				PrintBanner()
 			}
 
-			// if there are no args, print out how to use the console.
-			if len(args) == 0 {
-				PrintHowToUse("summary")
-				return nil
-			}
-
-			// check for two args (left and right)
-			if len(args) < 2 {
-
+			if len(args) == 1 {
 				// check if arg is an url (like a github url)
 				specUrl, err := url.Parse(args[0])
 				if err == nil {
@@ -96,8 +88,7 @@ func GetSummaryCommand() *cobra.Command {
 					pterm.Error.Println("Two arguments are required to compare left and right OpenAPI Specifications.")
 					return nil
 				}
-			}
-			if len(args) == 2 {
+			} else if len(args) == 2 {
 
 				var left, right string
 				var urlErr error
@@ -164,8 +155,11 @@ func GetSummaryCommand() *cobra.Command {
 					}
 					return nil
 				}
+			} else {
+				// if an invalid number of arguments are provided, print usage
+				PrintHowToUse("summary")
+				return nil
 			}
-			pterm.Error.Println("wrong number of arguments, expecting two (2)")
 			return nil
 		},
 	}
