@@ -8,6 +8,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	whatChanged "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
+	"github.com/pterm/pterm"
 	"github.com/rivo/tview"
 )
 
@@ -21,6 +22,10 @@ func BuildApplication(commitHistory []*model.Commit, version string) *tview.Appl
 
 	// tree view
 	tree := BuildTreeView(commit)
+	if tree == nil {
+		pterm.Error.Println("Cannot render console, no results were extracted.")
+		return nil
+	}
 
 	// build table filled with commit / history
 	table := BuildCommitTable(commitHistory)
