@@ -96,9 +96,7 @@ func GetSummaryCommand() *cobra.Command {
 						} else {
 							if !failed {
 								spinner.Success("completed")
-								spinner.Stop()
-								pterm.Println()
-								pterm.Println()
+								fmt.Println()
 							} else {
 								spinner.Fail("failed to complete. sorry!")
 							}
@@ -200,7 +198,7 @@ func GetSummaryCommand() *cobra.Command {
 
 					go listenForUpdates(updateChan, errorChan)
 
-					err = runGitHistorySummary(args[0], args[1], latestFlag, updateChan, errorChan, baseFlag, remoteFlag)
+					err = runGitHistorySummary(args[0], args[1], latestFlag, updateChan, errorChan, baseFlag, remoteFlag, limitFlag)
 
 					<-doneChan
 
@@ -208,6 +206,8 @@ func GetSummaryCommand() *cobra.Command {
 						pterm.Error.Println(err.Error())
 						return err
 					}
+
+					return nil
 				} else {
 					go listenForUpdates(updateChan, errorChan)
 
@@ -321,11 +321,11 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 	model.SendProgressUpdate("extraction",
 		fmt.Sprintf("extracted %d commits from history", len(commits)), true, updateChan)
 
-	close(updateChan)
 	e := printSummaryDetails(commits)
 	if e != nil {
 		return []error{e}
 	}
+	close(updateChan)
 	return nil
 }
 
@@ -347,7 +347,7 @@ func runGithubHistorySummary(username, repo, filePath string, latest bool, limit
 }
 
 func runGitHistorySummary(gitPath, filePath string, latest bool,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) error {
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool, limit int) error {
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
 		model.SendProgressError("git", err.Error(), errorChan)
@@ -359,7 +359,7 @@ func runGitHistorySummary(gitPath, filePath string, latest bool,
 			filePath, gitPath), false, updateChan)
 
 	// build commit history.
-	commitHistory, errs := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan)
+	commitHistory, errs := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan, limit)
 	if errs != nil {
 		model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(errs)), errorChan)
 		close(updateChan)
@@ -372,12 +372,13 @@ func runGitHistorySummary(gitPath, filePath string, latest bool,
 	if latest {
 		commitHistory = commitHistory[:1]
 	}
+
+	err := printSummaryDetails(commitHistory)
+
 	model.SendProgressUpdate("extraction",
-		fmt.Sprintf("extracted %d commits from history", len(commitHistory)), true, updateChan)
-
+		fmt.Sprintf("extracted %d commits from history\n", len(commitHistory)), true, updateChan)
 	close(updateChan)
-
-	return printSummaryDetails(commitHistory)
+	return err
 }
 
 func printSummaryDetails(commitHistory []*model.Commit) error {
@@ -439,12 +440,14 @@ func printSummaryDetails(commitHistory []*model.Commit) error {
 			}
 
 			if c < len(commitHistory) {
-				pterm.Println()
+				//pterm.Println()
 			}
 		} else {
 			if tt <= 0 && tb <= 0 {
-				pterm.Success.Println("No changes detected")
-				pterm.Println()
+				if c+1 < len(commitHistory) {
+					pterm.Print(pterm.Green(fmt.Sprintf("No changes detected between %s and %s\n",
+						commitHistory[c].Hash, commitHistory[c+1].Hash)))
+				}
 			}
 		}
 	}

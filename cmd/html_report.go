@@ -225,7 +225,7 @@ func GetHTMLReportCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					report, _, er := RunGitHistoryHTMLReport(args[0], args[1], latestFlag, cdnFlag,
-						updateChan, errorChan, baseFlag, remoteFlag)
+						updateChan, errorChan, baseFlag, remoteFlag, limitFlag)
 					<-doneChan
 					if er != nil {
 						for x := range er {
@@ -302,7 +302,7 @@ func ExtractGithubDetailsFromURL(url *url.URL) (string, string, string, error) {
 }
 
 func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) ([]byte, []*model.Report, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool, limit int) ([]byte, []*model.Report, []error) {
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
 		model.SendProgressError("reading paths",
@@ -312,7 +312,7 @@ func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
 	}
 
 	// build commit history.
-	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, progressChan, errorChan)
+	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, progressChan, errorChan, limit)
 	if err != nil {
 		model.SendFatalError("extraction",
 			fmt.Sprintf("cannot extract history %s", errors.Join(err...)), errorChan)
