@@ -5,12 +5,16 @@ package git
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/araddon/dateparse"
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel"
 	"github.com/pb33f/openapi-changes/model"
+	"github.com/pterm/pterm"
+	"log/slog"
 	"net/url"
+	"os"
 	"os/exec"
 	"path"
 	"strings"
@@ -52,7 +56,7 @@ func GetTopLevel(dir string) (string, error) {
 }
 
 func ExtractHistoryFromFile(repoDirectory, filePath string,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, limit int) ([]*model.Commit, []error) {
 
 	cmd := exec.Command(GIT, NOPAGER, LOG, LOGFORMAT, DIV, filePath)
 	var stdout, stderr bytes.Buffer
@@ -62,13 +66,17 @@ func ExtractHistoryFromFile(repoDirectory, filePath string,
 	err := cmd.Run()
 	var commitHistory []*model.Commit
 	if err != nil {
-		model.SendProgressError("git", err.Error(), errorChan)
-		return nil, []error{err}
+		errString := fmt.Sprintf("unable to read git repository '%s' (are you sure it's a git repo?): %s", repoDirectory, err.Error())
+		model.SendProgressError("git", errString, errorChan)
+		return nil, []error{errors.New(errString)}
 	}
 
 	outStr, _ := string(stdout.Bytes()), string(stderr.Bytes())
 	lines := strings.Split(outStr, "\n")
 	for k := range lines {
+		if k == limit {
+			break
+		}
 		c := strings.Split(lines[k], "||")
 		if len(c) == 5 {
 			date, _ := dateparse.ParseAny(c[0])
@@ -159,6 +167,25 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 		docConfig.AllowRemoteReferences = true
 		docConfig.AllowFileReferences = true
 	}
+
+	ptermLog := &pterm.Logger{
+		Formatter:  pterm.LogFormatterColorful,
+		Writer:     os.Stdout,
+		Level:      pterm.LogLevelError,
+		ShowTime:   true,
+		TimeFormat: "2006-01-02 15:04:05",
+		MaxWidth:   180,
+		KeyStyles: map[string]pterm.Style{
+			"error":  *pterm.NewStyle(pterm.FgRed, pterm.Bold),
+			"err":    *pterm.NewStyle(pterm.FgRed, pterm.Bold),
+			"caller": *pterm.NewStyle(pterm.FgGray, pterm.Bold),
+		},
+	}
+
+	handler := pterm.NewSlogHandler(ptermLog)
+	logger := slog.New(handler)
+
+	docConfig.Logger = logger
 
 	for c := len(commitHistory) - 1; c > -1; c-- {
 		var oldBits, newBits []byte
