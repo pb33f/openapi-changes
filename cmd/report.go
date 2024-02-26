@@ -270,7 +270,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 		GitRepoPath:   gitPath,
 		GitFilePath:   filePath,
 		Filename:      path.Base(filePath),
-		DateGenerated: time.Now().String(),
+		DateGenerated: time.Now().Format(time.RFC3339),
 		Reports:       changeReports,
 	}, nil
 
@@ -306,7 +306,7 @@ func runGithubHistoryReport(username, repo, filePath string, latest bool, limit 
 		GitRepoPath:   fmt.Sprintf("%s/%s", username, repo),
 		GitFilePath:   filePath,
 		Filename:      path.Base(filePath),
-		DateGenerated: time.Now().String(),
+		DateGenerated: time.Now().Format(time.RFC3339),
 		Reports:       ghReports,
 	}, nil
 
