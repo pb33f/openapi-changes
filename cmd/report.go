@@ -109,8 +109,8 @@ func GetReportCommand() *cobra.Command {
 							}
 							return er[0]
 						}
-
-						jsonBytes, _ := json.MarshalIndent(report, "", "  ")
+						flat := FlattenHistoricalReport(report)
+						jsonBytes, _ := json.MarshalIndent(flat, "", "  ")
 						fmt.Println(string(jsonBytes))
 						return nil
 					}
@@ -152,7 +152,8 @@ func GetReportCommand() *cobra.Command {
 
 					go listenForUpdates(updateChan, errorChan)
 
-					report, er := runGitHistoryReport(args[0], args[1], latestFlag, updateChan, errorChan, baseFlag, remoteFlag)
+					report, er := runGitHistoryReport(args[0], args[1], latestFlag, updateChan, errorChan, baseFlag,
+						remoteFlag, limitFlag)
 
 					<-doneChan
 
@@ -164,13 +165,14 @@ func GetReportCommand() *cobra.Command {
 					}
 
 					if er != nil {
+						pterm.Error.Println("errors occurred while processing the git history")
 						for x := range er {
 							pterm.Error.Println(er[x].Error())
 						}
 						return er[0]
 					}
-
-					jsonBytes, _ := json.MarshalIndent(report, "", "  ")
+					flat := FlattenHistoricalReport(report)
+					jsonBytes, _ := json.MarshalIndent(flat, "", "  ")
 					fmt.Println(string(jsonBytes))
 					return nil
 
@@ -204,7 +206,9 @@ func GetReportCommand() *cobra.Command {
 						return nil
 					}
 
-					jsonBytes, _ := json.MarshalIndent(report, "", "  ")
+					// flatten report
+					flat := FlattenReport(report)
+					jsonBytes, _ := json.MarshalIndent(flat, "", "  ")
 					fmt.Println(string(jsonBytes))
 					return nil
 				}
@@ -218,7 +222,7 @@ func GetReportCommand() *cobra.Command {
 }
 
 func runGitHistoryReport(gitPath, filePath string, latest bool,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) (*model.HistoricalReport, []error) {
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool, limit int) (*model.HistoricalReport, []error) {
 
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
@@ -232,7 +236,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 			filePath, gitPath), false, updateChan)
 
 	// build commit history.
-	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan)
+	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan, limit)
 	if err != nil {
 		model.SendProgressError("git", fmt.Sprintf("%d errors found building history", len(err)), errorChan)
 		close(updateChan)
@@ -266,7 +270,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 		GitRepoPath:   gitPath,
 		GitFilePath:   filePath,
 		Filename:      path.Base(filePath),
-		DateGenerated: time.Now().String(),
+		DateGenerated: time.Now().Format(time.RFC3339),
 		Reports:       changeReports,
 	}, nil
 
@@ -302,7 +306,7 @@ func runGithubHistoryReport(username, repo, filePath string, latest bool, limit 
 		GitRepoPath:   fmt.Sprintf("%s/%s", username, repo),
 		GitFilePath:   filePath,
 		Filename:      path.Base(filePath),
-		DateGenerated: time.Now().String(),
+		DateGenerated: time.Now().Format(time.RFC3339),
 		Reports:       ghReports,
 	}, nil
 
