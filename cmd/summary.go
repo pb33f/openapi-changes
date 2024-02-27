@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/pb33f/openapi-changes/builder"
 	"io"
 	"net/http"
 	"net/url"
@@ -16,6 +15,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/pb33f/openapi-changes/builder"
 
 	"github.com/pb33f/libopenapi/what-changed/reports"
 	"github.com/pb33f/openapi-changes/git"
@@ -55,93 +56,14 @@ func GetSummaryCommand() *cobra.Command {
 				PrintBanner()
 			}
 
-			// if there are no args, print out how to use the console.
-			if len(args) == 0 {
-				PrintHowToUse("summary")
-				return nil
-			}
-
-			listenForUpdates := func(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) {
-				spinner, _ := pterm.DefaultSpinner.Start("starting work.")
-
-				spinner.InfoPrinter = &pterm.PrefixPrinter{
-					MessageStyle: &pterm.Style{pterm.FgLightCyan},
-					Prefix: pterm.Prefix{
-						Style: &pterm.Style{pterm.FgBlack, pterm.BgLightMagenta},
-						Text:  " SPEC ",
-					},
-				}
-				spinner.SuccessPrinter = &pterm.PrefixPrinter{
-					MessageStyle: &pterm.Style{pterm.FgLightCyan},
-					Prefix: pterm.Prefix{
-						Style: &pterm.Style{pterm.FgBlack, pterm.BgLightCyan},
-						Text:  " DONE ",
-					},
-				}
-
-				var warnings []string
-
-				for {
-					select {
-					case update, ok := <-updateChan:
-						if ok {
-							if !update.Completed {
-								spinner.UpdateText(update.Message)
-							} else {
-								spinner.Info(update.Message)
-							}
-							if update.Warning {
-								warnings = append(warnings, update.Message)
-							}
-						} else {
-							if !failed {
-								spinner.Success("completed")
-								spinner.Stop()
-								pterm.Println()
-								pterm.Println()
-							} else {
-								spinner.Fail("failed to complete. sorry!")
-							}
-							if len(warnings) > 0 {
-								pterm.Warning.Print("warnings reported during processing")
-								pterm.Println()
-								dupes := make(map[string]bool)
-								for w := range warnings {
-									sum := md5.Sum([]byte(warnings[w]))
-									md5 := hex.EncodeToString(sum[:])
-									if !dupes[md5] {
-										dupes[md5] = true
-									} else {
-										continue
-									}
-									pterm.Println(fmt.Sprintf("⚠️  %s", pterm.FgYellow.Sprint(warnings[w])))
-								}
-							}
-
-							doneChan <- true
-
-							return err
-						}
-					case err := <-errorChan:
-						if err.Fatal {
-							spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
-							spinner.Stop()
-						} else {
-							warnings = append(warnings, err.Message)
-						}
-					}
-				}
-			}
-
-			// check for two args (left and right)
-			if len(args) < 2 {
-
+			if len(args) == 1 {
 				// check if arg is an url (like a github url)
 				specUrl, err := url.Parse(args[0])
 				if err == nil {
+					supportedHosts := []string{"github.com"}
 
 					if specUrl.Host == "github.com" {
-						go listenForUpdates(updateChan, errorChan)
+						go listenForUpdates(updateChan, errorChan, doneChan, failed)
 
 						user, repo, filePath, e := ExtractGithubDetailsFromURL(specUrl)
 						if e != nil {
@@ -161,14 +83,14 @@ func GetSummaryCommand() *cobra.Command {
 							return er
 						}
 						return nil
+					} else {
+						return errors.New(fmt.Sprintf("Host %q is not supported.\nSupported hosts are: %v", specUrl.Host, supportedHosts))
 					}
 
 				} else {
-					pterm.Error.Println("Two arguments are required to compare left and right OpenAPI Specifications.")
-					return nil
+					return errors.New(fmt.Sprintf("Error parsing url: %v", err))
 				}
-			}
-			if len(args) == 2 {
+			} else if len(args) == 2 {
 
 				var left, right string
 				var urlErr error
@@ -198,7 +120,7 @@ func GetSummaryCommand() *cobra.Command {
 						return err
 					}
 
-					go listenForUpdates(updateChan, errorChan)
+					go listenForUpdates(updateChan, errorChan, doneChan, failed)
 
 					err = runGitHistorySummary(args[0], args[1], latestFlag, updateChan, errorChan, baseFlag, remoteFlag)
 
@@ -209,7 +131,7 @@ func GetSummaryCommand() *cobra.Command {
 						return err
 					}
 				} else {
-					go listenForUpdates(updateChan, errorChan)
+					go listenForUpdates(updateChan, errorChan, doneChan, failed)
 
 					// check if the first arg is a URL, if so download it, if not - assume it's a file.
 					left, urlErr = checkURL(args[0], errorChan)
@@ -233,15 +155,89 @@ func GetSummaryCommand() *cobra.Command {
 						}
 						return errors.Join(errs...)
 					}
-					return nil
 				}
+			} else {
+				// if an invalid number of arguments are provided, print usage
+				PrintHowToUse("summary")
+				return errors.New("invalid number of arguments provided")
 			}
-			pterm.Error.Println("wrong number of arguments, expecting two (2)")
 			return nil
 		},
 	}
 	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
 	return cmd
+}
+
+func listenForUpdates(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, doneChan chan bool, failed bool) {
+	spinner, _ := pterm.DefaultSpinner.Start("starting work.")
+
+	spinner.InfoPrinter = &pterm.PrefixPrinter{
+		MessageStyle: &pterm.Style{pterm.FgLightCyan},
+		Prefix: pterm.Prefix{
+			Style: &pterm.Style{pterm.FgBlack, pterm.BgLightMagenta},
+			Text:  " SPEC ",
+		},
+	}
+	spinner.SuccessPrinter = &pterm.PrefixPrinter{
+		MessageStyle: &pterm.Style{pterm.FgLightCyan},
+		Prefix: pterm.Prefix{
+			Style: &pterm.Style{pterm.FgBlack, pterm.BgLightCyan},
+			Text:  " DONE ",
+		},
+	}
+
+	var warnings []string
+
+	for {
+		select {
+		case update, ok := <-updateChan:
+			if ok {
+				if !update.Completed {
+					spinner.UpdateText(update.Message)
+				} else {
+					spinner.Info(update.Message)
+				}
+				if update.Warning {
+					warnings = append(warnings, update.Message)
+				}
+			} else {
+				if !failed {
+					spinner.Success("completed")
+					spinner.Stop()
+					pterm.Println()
+					pterm.Println()
+				} else {
+					spinner.Fail("failed to complete. sorry!")
+				}
+				if len(warnings) > 0 {
+					pterm.Warning.Print("warnings reported during processing")
+					pterm.Println()
+					dupes := make(map[string]bool)
+					for w := range warnings {
+						sum := md5.Sum([]byte(warnings[w]))
+						md5 := hex.EncodeToString(sum[:])
+						if !dupes[md5] {
+							dupes[md5] = true
+						} else {
+							continue
+						}
+						pterm.Println(fmt.Sprintf("⚠️  %s", pterm.FgYellow.Sprint(warnings[w])))
+					}
+				}
+
+				doneChan <- true
+
+				return
+			}
+		case err := <-errorChan:
+			if err.Fatal {
+				spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
+				spinner.Stop()
+			} else {
+				warnings = append(warnings, err.Message)
+			}
+		}
+	}
 }
 
 func checkURL(urlString string, errorChan chan model.ProgressError) (string, error) {
@@ -430,12 +426,15 @@ func printSummaryDetails(commitHistory []*model.Commit) error {
 			}
 			if overallStatistics.BreakingRemoved > 0 {
 				pterm.Info.Printf("Breaking Removals: %s\n", pterm.LightRed(overallStatistics.BreakingRemoved))
+				tb = overallStatistics.BreakingRemoved
 			}
 			if overallStatistics.BreakingModified > 0 {
 				pterm.Info.Printf("Breaking Modifications: %s\n", pterm.LightRed(overallStatistics.BreakingModified))
+				tb = overallStatistics.BreakingModified
 			}
 			if overallStatistics.BreakingAdded > 0 {
 				pterm.Info.Printf("Breaking Additions: %s\n", pterm.LightRed(overallStatistics.BreakingAdded))
+				tb = overallStatistics.BreakingAdded
 			}
 
 			if c < len(commitHistory) {
