@@ -10,8 +10,8 @@ import (
 )
 
 type Commit struct {
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	CreatedAt         time.Time              `json:"-"`
+	UpdatedAt         time.Time              `json:"-"`
 	ID                uint                   `gorm:"primaryKey" json:"-"`
 	Hash              string                 `json:"commitHash"`
 	Message           string                 `json:"message"`

@@ -216,6 +216,9 @@ func GetConsoleCommand() *cobra.Command {
 
 					// boot.
 					app := tui.BuildApplication(commits, Version)
+					if app == nil {
+						return errors.New("console is unable to start")
+					}
 					if err := app.Run(); err != nil {
 						pterm.Error.Println("console is unable to start, are you running this inside a container?")
 						pterm.Error.Println("the console requires a terminal to run, it cannot run on a headless system.")
@@ -223,6 +226,7 @@ func GetConsoleCommand() *cobra.Command {
 						fmt.Println()
 						return err
 					}
+					return nil
 
 				} else {
 					go listenForUpdates(updateChan, errorChan)
@@ -310,7 +314,7 @@ func runGitHistoryConsole(gitPath, filePath string, latest bool, limit int,
 			filePath, gitPath), false, updateChan)
 
 	// build commit history.
-	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan)
+	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan, limit)
 	if err != nil {
 		close(updateChan)
 		model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(err)), errorChan)
