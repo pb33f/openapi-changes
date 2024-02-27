@@ -429,6 +429,7 @@ func printSummaryDetails(commitHistory []*model.Commit) error {
 			}
 			if overallStatistics.BreakingModified > 0 {
 				pterm.Info.Printf("Breaking Modifications: %s\n", pterm.LightRed(overallStatistics.BreakingModified))
+				os.Exit(1)
 			}
 			if overallStatistics.BreakingAdded > 0 {
 				pterm.Info.Printf("Breaking Additions: %s\n", pterm.LightRed(overallStatistics.BreakingAdded))
@@ -446,6 +447,7 @@ func printSummaryDetails(commitHistory []*model.Commit) error {
 	}
 
 	if tb > 0 {
+		os.Exit(1)
 		return errors.New("breaking changes discovered")
 	} else {
 		return nil
