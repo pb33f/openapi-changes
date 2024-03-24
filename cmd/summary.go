@@ -44,6 +44,7 @@ func GetSummaryCommand() *cobra.Command {
 			noColorFlag, _ := cmd.Flags().GetBool("no-color")
 			limitFlag, _ := cmd.Flags().GetInt("limit")
 			remoteFlag, _ := cmd.Flags().GetBool("remote")
+			markdownFlag, _ := cmd.Flags().GetBool("markdown")
 
 			if noColorFlag {
 				pterm.DisableStyling()
@@ -126,6 +127,8 @@ func GetSummaryCommand() *cobra.Command {
 						} else {
 							warnings = append(warnings, err.Message)
 						}
+						doneChan <- true
+						return
 					}
 				}
 			}
@@ -151,17 +154,22 @@ func GetSummaryCommand() *cobra.Command {
 						}
 
 						er := runGithubHistorySummary(user, repo, filePath, latestFlag, limitFlag, updateChan,
-							errorChan, baseFlag, remoteFlag)
+							errorChan, baseFlag, remoteFlag, markdownFlag)
 						// wait for things to be completed.
 						<-doneChan
 						if er != nil {
 							return er
 						}
 						return nil
+					} else {
+						pterm.Error.Println("When using a single argument (URL), only github.com is supported at this time. Please provide a github url")
+						return nil
 					}
 
 				} else {
-					pterm.Error.Println("Two arguments are required to compare left and right OpenAPI Specifications.")
+					// if an invalid number of arguments are provided, print usage
+					pterm.Error.Println("Invalid URL")
+					PrintHowToUse("summary")
 					return nil
 				}
 			}
@@ -197,7 +205,8 @@ func GetSummaryCommand() *cobra.Command {
 
 					go listenForUpdates(updateChan, errorChan)
 
-					err = runGitHistorySummary(args[0], args[1], latestFlag, updateChan, errorChan, baseFlag, remoteFlag, limitFlag)
+					err = runGitHistorySummary(args[0], args[1], latestFlag, updateChan, errorChan,
+						baseFlag, remoteFlag, markdownFlag, limitFlag)
 
 					<-doneChan
 
@@ -224,7 +233,7 @@ func GetSummaryCommand() *cobra.Command {
 						return urlErr
 					}
 
-					errs := runLeftRightSummary(left, right, updateChan, errorChan, baseFlag, remoteFlag)
+					errs := runLeftRightSummary(left, right, updateChan, errorChan, baseFlag, remoteFlag, markdownFlag)
 					<-doneChan
 					if len(errs) > 0 {
 						for e := range errs {
@@ -235,11 +244,14 @@ func GetSummaryCommand() *cobra.Command {
 					return nil
 				}
 			}
-			pterm.Error.Println("wrong number of arguments, expecting two (2)")
+			pterm.Error.Println("Invalid arguments")
+			pterm.Println()
+			PrintHowToUse("summary")
 			return nil
 		},
 	}
 	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
+	cmd.Flags().BoolP("markdown", "m", false, "Render output in markdown, using emojis")
 	return cmd
 }
 
@@ -279,7 +291,7 @@ func checkURL(urlString string, errorChan chan model.ProgressError) (string, err
 }
 
 func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpdate,
-	errorChan chan model.ProgressError, base string, remote bool) []error {
+	errorChan chan model.ProgressError, base string, remote, markdown bool) []error {
 
 	var leftBytes, rightBytes []byte
 	// var errs []error
@@ -320,8 +332,9 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 	model.SendProgressUpdate("extraction",
 		fmt.Sprintf("extracted %d commits from history", len(commits)), true, updateChan)
 
-	e := printSummaryDetails(commits)
+	e := printSummaryDetails(commits, markdown)
 	if e != nil {
+		model.SendProgressError("git", e.Error(), errorChan)
 		close(updateChan)
 		return []error{e}
 	}
@@ -330,7 +343,7 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 }
 
 func runGithubHistorySummary(username, repo, filePath string, latest bool, limit int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) error {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown bool) error {
 	commitHistory, _ := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan,
 		false, limit, base, remote)
 
@@ -343,11 +356,11 @@ func runGithubHistorySummary(username, repo, filePath string, latest bool, limit
 
 	close(progressChan)
 
-	return printSummaryDetails(commitHistory)
+	return printSummaryDetails(commitHistory, markdown)
 }
 
 func runGitHistorySummary(gitPath, filePath string, latest bool,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool, limit int) error {
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown bool, limit int) error {
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
 		model.SendProgressError("git", err.Error(), errorChan)
@@ -373,7 +386,7 @@ func runGitHistorySummary(gitPath, filePath string, latest bool,
 		commitHistory = commitHistory[:1]
 	}
 
-	err := printSummaryDetails(commitHistory)
+	err := printSummaryDetails(commitHistory, markdown)
 
 	model.SendProgressUpdate("extraction",
 		fmt.Sprintf("extracted %d commits from history\n", len(commitHistory)), true, updateChan)
@@ -381,7 +394,7 @@ func runGitHistorySummary(gitPath, filePath string, latest bool,
 	return err
 }
 
-func printSummaryDetails(commitHistory []*model.Commit) error {
+func printSummaryDetails(commitHistory []*model.Commit, markdown bool) error {
 	tt := 0
 	tb := 0
 	pterm.Println()
@@ -392,7 +405,7 @@ func printSummaryDetails(commitHistory []*model.Commit) error {
 
 		if commitHistory[c].Changes != nil {
 			if c == 0 {
-				buildConsoleTree(commitHistory[c].Changes)
+				buildConsoleTree(commitHistory[c].Changes, markdown)
 			}
 
 			_, overallStatistics := builder.BuildTree(commitHistory[c].Changes)
@@ -400,6 +413,13 @@ func printSummaryDetails(commitHistory []*model.Commit) error {
 			report := reports.CreateOverallReport(commitHistory[c].Changes)
 			total := 0
 			breaking := 0
+
+			if markdown {
+
+				fmt.Println("| Document Element | Total Changes | Breaking Changes |")
+				fmt.Println("|------------------|---------------|------------------|")
+			}
+
 			for l := range report.ChangeReport {
 				total += report.ChangeReport[l].Total
 				tt += total
@@ -410,34 +430,83 @@ func printSummaryDetails(commitHistory []*model.Commit) error {
 					fmt.Sprint(report.ChangeReport[l].Total),
 					fmt.Sprint(report.ChangeReport[l].Breaking),
 				})
+				if markdown {
+					elementSpace := 16 - len(l)
+					totalChangesSpace := 13 - len(fmt.Sprint(report.ChangeReport[l].Total))
+					breakingChangesSpace := 16 - len(fmt.Sprint(report.ChangeReport[l].Breaking))
+
+					fmt.Printf("| %s%s | %d%s | %d%s |\n", l, strings.Repeat(" ", elementSpace),
+						report.ChangeReport[l].Total, strings.Repeat(" ", totalChangesSpace), report.ChangeReport[l].Breaking, strings.Repeat(" ", breakingChangesSpace))
+				}
 			}
+			pterm.Println()
 			pterm.Printf("Date: %s | Commit: %s\n",
 				commitHistory[c].CommitDate.Format("01/02/06"),
 				commitHistory[c].Message)
-			_ = pterm.DefaultTable.WithHasHeader().WithData(tableData).Render()
-			if breaking == 0 {
-				pterm.Info.Printf("Total Changes: %s\n", pterm.LightMagenta(total))
+
+			if !markdown {
+				_ = pterm.DefaultTable.WithHasHeader().WithData(tableData).Render()
 			} else {
-				errorStyle.Printf("❌  %d Breaking changes out of %d\n", breaking, total)
+				fmt.Println()
+			}
+
+			if breaking == 0 {
+				if markdown {
+					pterm.Printf("**Total Changes**: _%d_\n", total)
+				} else {
+					pterm.Info.Printf("Total Changes: %s\n", pterm.LightMagenta(total))
+				}
+			} else {
+				if markdown {
+					pterm.Printf("- ❌ **BREAKING Changes**: _%d_\n", total)
+				} else {
+					errorStyle.Printf("❌  %d Breaking changes out of %d\n", breaking, total)
+				}
 			}
 			if overallStatistics.Modified > 0 {
-				pterm.Info.Printf("Modifications: %s\n", pterm.LightMagenta(overallStatistics.Modified))
+				if markdown {
+					pterm.Printf("- **Modifications**: _%d_\n", overallStatistics.Modified)
+				} else {
+					pterm.Info.Printf("Modifications: %s\n", pterm.LightMagenta())
+				}
 			}
 			if overallStatistics.Removed > 0 {
-				pterm.Info.Printf("Removals: %s\n", pterm.LightMagenta(overallStatistics.Removed))
+				if markdown {
+					pterm.Printf("- **Removals**: _%d_\n", overallStatistics.Removed)
+				} else {
+					pterm.Info.Printf("Removals: %s\n", pterm.LightMagenta(overallStatistics.Removed))
+				}
 			}
 			if overallStatistics.Added > 0 {
-				pterm.Info.Printf("Additions: %s\n", pterm.LightMagenta(overallStatistics.Added))
+				if markdown {
+					pterm.Printf("- **Additions**: _%d_\n", overallStatistics.Added)
+				} else {
+					pterm.Info.Printf("Additions: %s\n", pterm.LightMagenta(overallStatistics.Added))
+				}
 			}
 			if overallStatistics.BreakingRemoved > 0 {
-				pterm.Info.Printf("Breaking Removals: %s\n", pterm.LightRed(overallStatistics.BreakingRemoved))
+				if markdown {
+					pterm.Printf("- **Breaking Removals**: _%d_\n", overallStatistics.BreakingRemoved)
+				} else {
+					pterm.Info.Printf("Breaking Removals: %s\n", pterm.LightRed(overallStatistics.BreakingRemoved))
+				}
 			}
 			if overallStatistics.BreakingModified > 0 {
-				pterm.Info.Printf("Breaking Modifications: %s\n", pterm.LightRed(overallStatistics.BreakingModified))
+				if markdown {
+					pterm.Printf("- **Breaking Modifications**: _%d_\n", overallStatistics.BreakingModified)
+				} else {
+					pterm.Info.Printf("Breaking Modifications: %s\n", pterm.LightRed(overallStatistics.BreakingModified))
+				}
 			}
 			if overallStatistics.BreakingAdded > 0 {
-				pterm.Info.Printf("Breaking Additions: %s\n", pterm.LightRed(overallStatistics.BreakingAdded))
+				if markdown {
+					pterm.Printf("- **Breaking Additions**: _%d_\n", overallStatistics.BreakingAdded)
+				} else {
+					pterm.Info.Printf("Breaking Additions: %s\n", pterm.LightRed(overallStatistics.BreakingAdded))
+				}
 			}
+
+			pterm.Println()
 
 			if c < len(commitHistory) {
 				//pterm.Println()
