@@ -37,7 +37,7 @@ func TestExtractHistoryFromFile(t *testing.T) {
 	history, _ := ExtractHistoryFromFile("./", "read_local.go", c, e, 25)
 	<-d
 	assert.NotNil(t, history)
-	assert.Equal(t, "adding read_local.go to test repo code", history[len(history)-1].Message)
+	assert.Equal(t, "refactoring sketch code", history[len(history)-1].Message)
 }
 
 func TestExtractHistoryFromFile_Fail(t *testing.T) {
