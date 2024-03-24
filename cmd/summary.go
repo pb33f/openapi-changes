@@ -117,7 +117,6 @@ func GetSummaryCommand() *cobra.Command {
 							}
 
 							doneChan <- true
-
 							return
 						}
 					case err := <-errorChan:
@@ -323,6 +322,7 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 
 	e := printSummaryDetails(commits)
 	if e != nil {
+		close(updateChan)
 		return []error{e}
 	}
 	close(updateChan)
