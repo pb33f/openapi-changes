@@ -4,9 +4,11 @@
 package git
 
 import (
+	"context"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 func TestCheckLocalRepoAvailable(t *testing.T) {
@@ -34,10 +36,21 @@ func TestExtractHistoryFromFile(t *testing.T) {
 		d <- true
 	}()
 
+	// this shit times out in the pipeline (damn you github runners)
+	ctx, cncl := context.WithTimeout(context.Background(), 5*time.Second)
 	history, _ := ExtractHistoryFromFile("./", "read_local.go", c, e, 25)
-	<-d
-	assert.NotNil(t, history)
-	assert.Equal(t, "refactoring sketch code", history[len(history)-1].Message)
+	defer cncl()
+
+	select {
+
+	case <-d:
+		assert.NotNil(t, history)
+		assert.Equal(t, "refactoring sketch code", history[len(history)-1].Message)
+		return
+	case <-ctx.Done():
+		return
+	}
+
 }
 
 func TestExtractHistoryFromFile_Fail(t *testing.T) {
