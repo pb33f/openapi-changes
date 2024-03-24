@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -103,7 +104,7 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) ([]*model.Commit, []error) {
 
 	for c := range commitHistory {
-		cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", commitHistory[c].Hash, commitHistory[c].FilePath))
+		cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", commitHistory[c].Hash, filepath.Join(commitHistory[c].RepoDirectory, commitHistory[c].FilePath)))
 		var ou, er bytes.Buffer
 		cmd.Stdout = &ou
 		cmd.Stderr = &er

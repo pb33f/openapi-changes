@@ -21,18 +21,20 @@ func TestExtractHistoryFromFile(t *testing.T) {
 	d := make(chan bool)
 	go func() {
 		iterations := 0
-		for iterations < 23 {
+		for iterations < 26 {
 			select {
 			case <-c:
+
 				iterations++
 			case <-e:
+
 				iterations++
 			}
 		}
 		d <- true
 	}()
 
-	history, _ := ExtractHistoryFromFile("./", "read_local.go", c, e)
+	history, _ := ExtractHistoryFromFile("./", "read_local.go", c, e, 25)
 	<-d
 	assert.NotNil(t, history)
 	assert.Equal(t, "adding read_local.go to test repo code", history[len(history)-1].Message)
@@ -52,7 +54,7 @@ func TestExtractHistoryFromFile_Fail(t *testing.T) {
 		}
 	}()
 
-	history, _ := ExtractHistoryFromFile("./", "no_file_nope", c, e)
+	history, _ := ExtractHistoryFromFile("./", "no_file_nope", c, e, 5)
 	<-d
 	assert.Len(t, history, 0)
 }
