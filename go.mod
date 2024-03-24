@@ -4,12 +4,12 @@ go 1.21
 
 require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
-	github.com/gdamore/tcell/v2 v2.7.1
-	github.com/pb33f/libopenapi v0.15.12
+	github.com/gdamore/tcell/v2 v2.7.4
+	github.com/pb33f/libopenapi v0.15.14
 	github.com/pterm/pterm v0.12.79
-	github.com/rivo/tview v0.0.0-20240204151237-861aa94d61c8
+	github.com/rivo/tview v0.0.0-20240307173318-e804876934a1
 	github.com/spf13/cobra v1.8.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/twinj/uuid v1.0.0
 	golang.org/x/text v0.14.0
 )
@@ -33,7 +33,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/myesui/uuid v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rivo/uniseg v0.4.7-0.20240127222946-601bbb3750c2 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
