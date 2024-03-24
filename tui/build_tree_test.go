@@ -23,7 +23,7 @@ func TestBuildTreeModel_SliceOfChanges(t *testing.T) {
 		},
 	}
 
-	p := &whatChangedModel.PropertyChanges{Changes: changed}=
+	p := &whatChangedModel.PropertyChanges{Changes: changed}
 	f := tview.TreeNode{}
 	v := buildTreeNode(&f, p)
 	assert.NotNil(t, v)
