@@ -22,6 +22,8 @@ func PrintBanner() {
  :        :: : ::    : : :    : : :    :
 `
 	pterm.DefaultBasicText.Println(pterm.LightMagenta(text))
+	pterm.Println(pterm.LightCyan("🔗 https://pb33f.io/openapi-changes/"))
+	pterm.Println("------------------------------------")
 	pterm.Print(pterm.LightCyan(fmt.Sprintf("openapi-changes version: %s", Version)))
 	pterm.Println(pterm.LightMagenta(fmt.Sprintf(" | compiled: %s", Date)))
 	pterm.Println()
