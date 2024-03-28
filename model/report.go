@@ -20,6 +20,7 @@ type Report struct {
 type FlatReport struct {
 	Summary map[string]*reports.Changed `json:"reportSummary"`
 	Changes []*model.Change             `json:"changes"`
+	Commit  *Commit                     `gorm:"foreignKey:ID" json:"commitDetails"`
 }
 
 type FlatHistoricalReport struct {

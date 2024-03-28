@@ -18,6 +18,12 @@ func FlattenReport(report *model.Report) *model.FlatReport {
 		changes = append(changes, change)
 	}
 	flatReport.Changes = changes
+
+	// Copy the Commit information from the report to the flatReport and then delete the changes
+	flatReport.Commit = &model.Commit{}
+	*flatReport.Commit = *report.Commit
+	flatReport.Commit.Changes = nil
+
 	return flatReport
 }
 
