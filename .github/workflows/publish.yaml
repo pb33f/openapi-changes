@@ -7,7 +7,7 @@ on:
 jobs:
   release_and_brew:
     name: Release and bump homebrew version
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code from repo
