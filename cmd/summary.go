@@ -329,6 +329,11 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 
 	commits, _ = git.BuildCommitChangelog(commits, updateChan, errorChan, base, remote)
 
+	if len(commits) <= 0 {
+		close(updateChan)
+		return []error{errors.New("cannot compare files, nothing was extracted")}
+	}
+
 	model.SendProgressUpdate("extraction",
 		fmt.Sprintf("extracted %d commits from history", len(commits)), true, updateChan)
 

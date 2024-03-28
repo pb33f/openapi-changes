@@ -203,12 +203,16 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 		var err error
 		if len(oldBits) > 0 && len(newBits) > 0 {
 			oldDoc, err = libopenapi.NewDocumentWithConfiguration(oldBits, docConfig)
-			model.SendProgressUpdate("building models",
-				fmt.Sprintf("Building original model for commit %s", commitHistory[c].Hash[0:6]), false, progressChan)
 
 			if err != nil {
-				model.SendProgressError("building models", fmt.Sprintf("unable to parse original document: %s", err.Error()), errorChan)
+				model.SendFatalError("building models", fmt.Sprintf("unable to parse original document: %s", err.Error()), errorChan)
 				changeErrors = append(changeErrors, err)
+				return nil, changeErrors
+			} else {
+
+				model.SendProgressUpdate("building models",
+					fmt.Sprintf("Building original model for commit %s", commitHistory[c].Hash[0:6]), false, progressChan)
+
 			}
 			newDoc, err = libopenapi.NewDocumentWithConfiguration(newBits, docConfig)
 			if err != nil {
@@ -221,17 +225,20 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 
 				if errs != nil {
 					model.SendProgressError("building models", fmt.Sprintf("Error thrown when comparing: %s", errs[0].Error()), errorChan)
-					changeErrors = append(changeErrors, errs...)
+					changeErrors = append(changeErrors, err)
 				}
 				commitHistory[c].Changes = changes
 			} else {
 				model.SendProgressError("building models", "No OpenAPI documents can be compared!", errorChan)
+				changeErrors = append(changeErrors, err)
 			}
 		}
 		if len(oldBits) == 0 && len(newBits) > 0 {
 			newDoc, err = libopenapi.NewDocumentWithConfiguration(newBits, docConfig)
 			if err != nil {
-				model.SendProgressError("building models", fmt.Sprintf("unable to create OpenAPI modified document: %s", err.Error()), errorChan)
+				model.SendFatalError("building models", fmt.Sprintf("unable to create OpenAPI modified document: %s", err.Error()), errorChan)
+				changeErrors = append(changeErrors, err)
+				return nil, changeErrors
 			}
 		}
 		if newDoc != nil {
