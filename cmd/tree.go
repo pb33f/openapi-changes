@@ -214,7 +214,9 @@ func buildConsoleTree(doc *wcModel.DocumentChanges, markdown bool) {
 		fmt.Println("```")
 	}
 	pterm.DefaultTree.WithRoot(root).Render()
-	fmt.Println("```")
+	if markdown {
+		fmt.Println("```")
+	}
 	fmt.Println()
 
 }
