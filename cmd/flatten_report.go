@@ -6,6 +6,7 @@ package cmd
 import (
 	whatChanged "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
+	"time"
 )
 
 func FlattenReport(report *model.Report) *model.FlatReport {
@@ -18,6 +19,19 @@ func FlattenReport(report *model.Report) *model.FlatReport {
 		changes = append(changes, change)
 	}
 	flatReport.Changes = changes
+<<<<<<< Updated upstream
+=======
+
+	// Copy the Commit information from the report to the flatReport and then delete the changes
+	flatReport.Commit = &model.Commit{}
+	*flatReport.Commit = *report.Commit
+	flatReport.Commit.Changes = nil
+
+	// This should never produce a parsing error, so we'll ignore the error
+	// This forces the commit date to properly format when converted to a string during marshalling
+	flatReport.Commit.CommitDate, _ = time.Parse(time.RFC3339, flatReport.Commit.CommitDate.Format(time.RFC3339))
+
+>>>>>>> Stashed changes
 	return flatReport
 }
 
