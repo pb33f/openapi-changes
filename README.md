@@ -1,6 +1,11 @@
 
 ![logo](openapi-changes-logo.webp)
 
+[![discord](https://img.shields.io/discord/923258363540815912)](https://discord.gg/x7VACVuEGP)
+[![GitHub downloads](https://img.shields.io/github/downloads/pb33f/openapi-changes/total?label=github%20downloads&style=flat-square)](https://github.com/pb33f/wiretap/releases)
+[![npm](https://img.shields.io/npm/dm/@pb33f/openapi-changes?style=flat-square&label=npm%20downloads)](https://www.npmjs.com/package/@pb33f/openapi-changes)
+[![Docker Pulls](https://img.shields.io/docker/pulls/pb33f/openapi-changes?style=flat-square)](https://hub.docker.com/r/pb33f/openapi-changes)
+
 # OpenAPI Changes
 
 ## The world's **_sexiest_** OpenAPI diff tool.
