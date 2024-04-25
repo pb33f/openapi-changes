@@ -18,7 +18,7 @@ export const ReportContainer: React.FC = () => {
 
     const overallChanges = [
         {
-            type: "Modifications",
+            type: "Modified",
             value: stats.modified
         },
         {
@@ -32,7 +32,7 @@ export const ReportContainer: React.FC = () => {
     ];
     const breakingChanges = [
         {
-            type: "Modifications",
+            type: "Modified",
             value: stats.breakingModified
         },
         {
