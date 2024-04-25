@@ -1,7 +1,7 @@
 .chart-container {
     margin-right: 40px;
-    height: 165px;
-    width: 175px;
+    height: 200px;
+    width: 200px;
 }
 
 .report-container {
@@ -12,7 +12,7 @@
 }
 
 .report-summary {
-    width: calc(100vw - 643px);
+    width: calc(100vw - 743px);
 }
 
 .report-summary-stats {

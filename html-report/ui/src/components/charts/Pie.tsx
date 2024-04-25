@@ -48,8 +48,9 @@ export function PieChart(props: PieChartProps) {
                             maxHeight: 40,
                             labels: {
                                 usePointStyle: true,
+                                color: 'rgb(255, 255, 255)',
                                 font: {
-                                    size: 8,
+                                    size: 10,
                                     family: "Menlo, Monaco, Roboto Mono, Lucida Console, Liberation Mono"
                                 }
                             }
