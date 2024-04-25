@@ -197,7 +197,9 @@ func GetReportCommand() *cobra.Command {
 					<-doneChan
 					if len(errs) > 0 {
 						for e := range errs {
-							pterm.Error.Println(errs[e].Error())
+							if errs[e] != nil {
+								pterm.Error.Println(errs[e].Error())
+							}
 						}
 						return errors.New("unable to process specifications")
 					}
