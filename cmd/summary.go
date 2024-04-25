@@ -327,7 +327,12 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 		},
 	}
 
-	commits, _ = git.BuildCommitChangelog(commits, updateChan, errorChan, base, remote)
+	var errs []error
+	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan, base, remote)
+	if len(errs) > 0 {
+		close(updateChan)
+		return errs
+	}
 
 	if len(commits) <= 0 {
 		close(updateChan)

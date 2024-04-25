@@ -225,7 +225,7 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 
 				if errs != nil {
 					model.SendProgressError("building models", fmt.Sprintf("Error thrown when comparing: %s", errs[0].Error()), errorChan)
-					changeErrors = append(changeErrors, err)
+					changeErrors = append(changeErrors, errs...)
 				}
 				commitHistory[c].Changes = changes
 			} else {
