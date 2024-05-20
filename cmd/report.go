@@ -13,12 +13,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/pb33f/libopenapi/what-changed/reports"
 	"github.com/pb33f/openapi-changes/git"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
-	"github.com/twinj/uuid"
 )
 
 func GetReportCommand() *cobra.Command {
@@ -338,13 +338,13 @@ func runLeftRightReport(left, right string,
 
 	commits := []*model.Commit{
 		{
-			Hash:       uuid.NewV4().String()[:6],
+			Hash:       uuid.New().String()[:6],
 			Message:    fmt.Sprintf("New: %s, Original: %s", right, left),
 			CommitDate: time.Now(),
 			Data:       rightBytes,
 		},
 		{
-			Hash:       uuid.NewV4().String()[:6],
+			Hash:       uuid.New().String()[:6],
 			Message:    fmt.Sprintf("Original file: %s", left),
 			CommitDate: time.Now(),
 			Data:       leftBytes,

@@ -5,10 +5,10 @@ package builder
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	v3 "github.com/pb33f/libopenapi/datamodel/low/v3"
 	wcModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
-	"github.com/twinj/uuid"
 	"reflect"
 	"strings"
 )
@@ -227,7 +227,7 @@ func exploreGraphObject(parent *model.NodeData[any], object any, nodes *[]*model
 }
 
 func buildId(label string) string {
-	return fmt.Sprintf("%s-%s", strings.ToLower(label), uuid.NewV4().String()[:6])
+	return fmt.Sprintf("%s-%s", strings.ToLower(label), uuid.New().String()[:6])
 }
 
 func calcWidth(label string) int {
