@@ -4,11 +4,11 @@
 package builder
 
 import (
+	"github.com/google/uuid"
 	v3 "github.com/pb33f/libopenapi/datamodel/low/v3"
 	wcModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/libopenapi/what-changed/reports"
 	"github.com/pb33f/openapi-changes/model"
-	"github.com/twinj/uuid"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"reflect"
@@ -86,7 +86,7 @@ func exploreTreeObject(parent *model.TreeNode, object any) {
 
 						parent.Children = append(parent.Children, &model.TreeNode{
 							TitleString: title,
-							Key:         uuid.NewV4().String(),
+							Key:         uuid.New().String(),
 							Change:      topChanges[x],
 							IsLeaf:      true,
 							Selectable:  true,
@@ -290,7 +290,7 @@ func DigIntoTreeNode[T any](parent *model.TreeNode, field reflect.Value, label s
 	if !field.IsZero() {
 		e := &model.TreeNode{
 			TitleString:     label,
-			Key:             uuid.NewV4().String(),
+			Key:             uuid.New().String(),
 			IsLeaf:          false,
 			Selectable:      false,
 			TotalChanges:    tc,
@@ -309,7 +309,7 @@ func DigIntoTreeNodeSlice[T any](parent *model.TreeNode, field reflect.Value, la
 			f := field.Index(k)
 			e := &model.TreeNode{
 				TitleString: label,
-				Key:         uuid.NewV4().String(),
+				Key:         uuid.New().String(),
 				IsLeaf:      false,
 				Selectable:  false,
 				Disabled:    false,
@@ -336,7 +336,7 @@ func BuildTreeMapNode(parent *model.TreeNode, field reflect.Value) {
 			default:
 				tn := &model.TreeNode{
 					TitleString: e.String(),
-					Key:         uuid.NewV4().String(),
+					Key:         uuid.New().String(),
 					IsLeaf:      false,
 					Selectable:  false,
 					Disabled:    false,

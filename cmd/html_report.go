@@ -8,13 +8,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/pb33f/libopenapi/index"
 	"github.com/pb33f/openapi-changes/git"
 	htmlReport "github.com/pb33f/openapi-changes/html-report"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
-	"github.com/twinj/uuid"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -410,13 +410,13 @@ func RunLeftRightHTMLReport(left, right string, useCDN bool,
 
 	commits := []*model.Commit{
 		{
-			Hash:       uuid.NewV4().String()[:6],
+			Hash:       uuid.New().String()[:6],
 			Message:    fmt.Sprintf("New: %s, Original: %s", right, left),
 			CommitDate: time.Now(),
 			Data:       rightBytes,
 		},
 		{
-			Hash:       uuid.NewV4().String()[:6],
+			Hash:       uuid.New().String()[:6],
 			Message:    fmt.Sprintf("Original file: %s", left),
 			CommitDate: time.Now(),
 			Data:       leftBytes,
@@ -442,13 +442,13 @@ func RunLeftRightHTMLReportViaString(left, right string, useCDN, embedded bool,
 
 	commits := []*model.Commit{
 		{
-			Hash:       uuid.NewV4().String()[:6],
+			Hash:       uuid.New().String()[:6],
 			Message:    fmt.Sprintf("Uploaded original (%d bytes)", len(left)),
 			CommitDate: time.Now(),
 			Data:       []byte(left),
 		},
 		{
-			Hash:       uuid.NewV4().String()[:6],
+			Hash:       uuid.New().String()[:6],
 			Message:    fmt.Sprintf("Uploaded modification (%d bytes)", len(right)),
 			CommitDate: time.Now(),
 			Data:       []byte(right),
