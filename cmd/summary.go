@@ -462,13 +462,13 @@ func printSummaryDetails(commitHistory []*model.Commit, markdown bool) error {
 
 			if breaking == 0 {
 				if markdown {
-					pterm.Printf("**Total Changes**: _%d_\n", total)
+					pterm.Printf("- **Total Changes**: _%d_\n", total)
 				} else {
 					pterm.Info.Printf("Total Changes: %s\n", pterm.LightMagenta(total))
 				}
 			} else {
 				if markdown {
-					pterm.Printf("- ❌ **BREAKING Changes**: _%d_\n", total)
+					pterm.Printf("- ❌ **BREAKING Changes**: _%d_ out of _%d_\n", breaking, total)
 				} else {
 					errorStyle.Printf("❌  %d Breaking changes out of %d\n", breaking, total)
 				}
@@ -477,7 +477,7 @@ func printSummaryDetails(commitHistory []*model.Commit, markdown bool) error {
 				if markdown {
 					pterm.Printf("- **Modifications**: _%d_\n", overallStatistics.Modified)
 				} else {
-					pterm.Info.Printf("Modifications: %s\n", pterm.LightMagenta())
+					pterm.Info.Printf("Modifications: %s\n", pterm.LightMagenta(overallStatistics.Modified))
 				}
 			}
 			if overallStatistics.Removed > 0 {
