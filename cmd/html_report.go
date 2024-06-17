@@ -42,6 +42,7 @@ func GetHTMLReportCommand() *cobra.Command {
 			cdnFlag, _ := cmd.Flags().GetBool("use-cdn")
 			latestFlag, _ := cmd.Flags().GetBool("top")
 			limitFlag, _ := cmd.Flags().GetInt("limit")
+			limitTimeFlag, _ := cmd.Flags().GetInt("limit-time")
 			remoteFlag, _ := cmd.Flags().GetBool("remote")
 
 			if noColorFlag {
@@ -167,7 +168,7 @@ func GetHTMLReportCommand() *cobra.Command {
 							return err
 						}
 						report, _, er := RunGithubHistoryHTMLReport(user, repo, filePath, latestFlag, cdnFlag,
-							false, updateChan, errorChan, limitFlag, baseFlag, remoteFlag)
+							false, updateChan, errorChan, limitFlag, limitTimeFlag, baseFlag, remoteFlag)
 
 						// wait for things to be completed.
 						<-doneChan
@@ -225,7 +226,7 @@ func GetHTMLReportCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					report, _, er := RunGitHistoryHTMLReport(args[0], args[1], latestFlag, cdnFlag,
-						updateChan, errorChan, baseFlag, remoteFlag, limitFlag)
+						updateChan, errorChan, baseFlag, remoteFlag, limitFlag, limitTimeFlag)
 					<-doneChan
 					if er != nil {
 						for x := range er {
@@ -302,7 +303,7 @@ func ExtractGithubDetailsFromURL(url *url.URL) (string, string, string, error) {
 }
 
 func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool, limit int) ([]byte, []*model.Report, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool, limit int, limitTime int) ([]byte, []*model.Report, []error) {
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
 		model.SendProgressError("reading paths",
@@ -312,7 +313,7 @@ func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
 	}
 
 	// build commit history.
-	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, progressChan, errorChan, limit)
+	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, progressChan, errorChan, limit, limitTime)
 	if err != nil {
 		model.SendFatalError("extraction",
 			fmt.Sprintf("cannot extract history %s", errors.Join(err...)), errorChan)
@@ -321,7 +322,7 @@ func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
 	}
 
 	// populate history with changes and data
-	commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, progressChan, errorChan, base, remote)
+	commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, limitTime, progressChan, errorChan, base, remote)
 	if err != nil {
 		model.SendFatalError("extraction",
 			fmt.Sprintf("cannot extract history %s", errors.Join(err...)), errorChan)
@@ -352,9 +353,9 @@ func RunGitHistoryHTMLReport(gitPath, filePath string, latest, useCDN bool,
 }
 
 func RunGithubHistoryHTMLReport(username, repo, filePath string, latest, useCDN, embeddedMode bool,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, limit int, base string, remote bool) ([]byte, []*model.Report, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, limit int, limitTime int, base string, remote bool) ([]byte, []*model.Report, []error) {
 
-	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, true, limit, base, remote)
+	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, true, limit, limitTime, base, remote)
 	if latest && len(commitHistory) > 1 {
 		commitHistory = commitHistory[:1]
 	}

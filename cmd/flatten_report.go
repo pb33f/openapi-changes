@@ -4,7 +4,6 @@
 package cmd
 
 import (
-	whatChanged "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 )
 
@@ -12,10 +11,16 @@ func FlattenReport(report *model.Report) *model.FlatReport {
 
 	flatReport := &model.FlatReport{}
 	flatReport.Summary = report.Summary
-	var changes []*whatChanged.Change
+	var changes []*model.HashedChange
 	rpt := report.Commit.Changes
 	for _, change := range rpt.GetAllChanges() {
-		changes = append(changes, change)
+		hashedChange := model.HashedChange{
+			Change: change,
+		}
+
+		hashedChange.HashChange()
+
+		changes = append(changes, &hashedChange)
 	}
 	flatReport.Changes = changes
 
@@ -34,6 +39,7 @@ func FlattenHistoricalReport(report *model.HistoricalReport) *model.FlatHistoric
 	flatReport.GitFilePath = report.GitFilePath
 	flatReport.DateGenerated = report.DateGenerated
 	flatReport.Filename = report.Filename
+	flatReport.Reports = make([]*model.FlatReport, 0)
 	for _, r := range report.Reports {
 		flatReport.Reports = append(flatReport.Reports, FlattenReport(r))
 	}
