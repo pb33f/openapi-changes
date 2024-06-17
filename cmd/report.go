@@ -37,6 +37,7 @@ func GetReportCommand() *cobra.Command {
 			failed := false
 			latestFlag, _ := cmd.Flags().GetBool("top")
 			limitFlag, _ := cmd.Flags().GetInt("limit")
+			limitTimeFlag, _ := cmd.Flags().GetInt("limit-time")
 			baseFlag, _ := cmd.Flags().GetString("base")
 			noColorFlag, _ := cmd.Flags().GetBool("no-color")
 			remoteFlag, _ := cmd.Flags().GetBool("remote")
@@ -90,7 +91,7 @@ func GetReportCommand() *cobra.Command {
 							<-doneChan
 							return err
 						}
-						report, er := runGithubHistoryReport(user, repo, filePath, latestFlag, limitFlag, updateChan,
+						report, er := runGithubHistoryReport(user, repo, filePath, latestFlag, limitFlag, limitTimeFlag, updateChan,
 							errorChan, baseFlag, remoteFlag)
 
 						// wait for things to be completed.
@@ -153,7 +154,7 @@ func GetReportCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					report, er := runGitHistoryReport(args[0], args[1], latestFlag, updateChan, errorChan, baseFlag,
-						remoteFlag, limitFlag)
+						remoteFlag, limitFlag, limitTimeFlag)
 
 					<-doneChan
 
@@ -222,7 +223,7 @@ func GetReportCommand() *cobra.Command {
 }
 
 func runGitHistoryReport(gitPath, filePath string, latest bool,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool, limit int) (*model.HistoricalReport, []error) {
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool, limit int, limitTime int) (*model.HistoricalReport, []error) {
 
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
@@ -236,7 +237,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 			filePath, gitPath), false, updateChan)
 
 	// build commit history.
-	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan, limit)
+	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan, limit, limitTime)
 	if err != nil {
 		model.SendProgressError("git", fmt.Sprintf("%d errors found building history", len(err)), errorChan)
 		close(updateChan)
@@ -244,7 +245,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 	}
 
 	// populate history with changes and data
-	commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, updateChan, errorChan, base, remote)
+	commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, limitTime, updateChan, errorChan, base, remote)
 	if err != nil {
 		model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(err)), errorChan)
 		close(updateChan)
@@ -255,7 +256,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 		commitHistory = commitHistory[:1]
 	}
 
-	var changeReports []*model.Report
+	var changeReports = make([]*model.Report, 0)
 	for r := range commitHistory {
 		if commitHistory[r].Changes != nil {
 			changeReports = append(changeReports, createReport(commitHistory[r]))
@@ -276,11 +277,11 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 
 }
 
-func runGithubHistoryReport(username, repo, filePath string, latest bool, limit int,
+func runGithubHistoryReport(username, repo, filePath string, latest bool, limit int, limitTime int,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) (*model.HistoricalReport, []error) {
 
 	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan,
-		false, limit, base, remote)
+		false, limit, limitTime, base, remote)
 	if errs != nil {
 		model.SendProgressError("git", errors.Join(errs...).Error(), errorChan)
 		close(progressChan)
@@ -291,7 +292,7 @@ func runGithubHistoryReport(username, repo, filePath string, latest bool, limit 
 		commitHistory = commitHistory[:1]
 	}
 
-	var ghReports []*model.Report
+	var ghReports = make([]*model.Report, 0)
 	for r := range commitHistory {
 		if commitHistory[r].Changes != nil {
 			ghReports = append(ghReports, createReport(commitHistory[r]))

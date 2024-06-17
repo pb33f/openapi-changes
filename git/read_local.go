@@ -17,8 +17,8 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"strings"
+	"time"
 )
 
 const (
@@ -57,7 +57,7 @@ func GetTopLevel(dir string) (string, error) {
 }
 
 func ExtractHistoryFromFile(repoDirectory, filePath string,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, limit int) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, limit int, limitTime int) ([]*model.Commit, []error) {
 
 	cmd := exec.Command(GIT, NOPAGER, LOG, LOGFORMAT, DIV, filePath)
 	var stdout, stderr bytes.Buffer
@@ -72,10 +72,17 @@ func ExtractHistoryFromFile(repoDirectory, filePath string,
 		return nil, []error{errors.New(errString)}
 	}
 
+	var commitTimeCutoff *time.Time
+
+	if limitTime != -1 {
+		temp := time.Now().Add(time.Duration(-limitTime) * time.Hour * 24)
+		commitTimeCutoff = &temp
+	}
+
 	outStr, _ := string(stdout.Bytes()), string(stderr.Bytes())
 	lines := strings.Split(outStr, "\n")
 	for k := range lines {
-		if k == limit {
+		if k == limit && commitTimeCutoff == nil {
 			break
 		}
 		c := strings.Split(lines[k], "||")
@@ -94,17 +101,25 @@ func ExtractHistoryFromFile(repoDirectory, filePath string,
 			model.SendProgressUpdate(c[1],
 				fmt.Sprintf("extacted commit '%s'", c[1]), false, progressChan)
 		}
+
+		if commitTimeCutoff != nil {
+			if commitTimeCutoff.After(commitHistory[len(commitHistory)-1].CommitDate) {
+				// Remove the last element because it doesn't count for history
+				commitHistory = commitHistory[0 : len(commitHistory)-1]
+				break
+			}
+		}
 	}
 	model.SendProgressUpdate("extraction",
 		fmt.Sprintf("%d commits extracted", len(commitHistory)), true, progressChan)
 	return commitHistory, nil
 }
 
-func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int,
+func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitTime int,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) ([]*model.Commit, []error) {
 
 	for c := range commitHistory {
-		cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", commitHistory[c].Hash, filepath.Join(commitHistory[c].RepoDirectory, commitHistory[c].FilePath)))
+		cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", commitHistory[c].Hash, commitHistory[c].FilePath))
 		var ou, er bytes.Buffer
 		cmd.Stdout = &ou
 		cmd.Stderr = &er
@@ -120,16 +135,16 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int,
 
 	}
 
-	if limit > 0 && limit+1 < len(commitHistory) {
+	if limitTime != -1 && limit > 0 && limit+1 < len(commitHistory) {
 		commitHistory = commitHistory[0 : limit+1]
 	}
 
-	cleaned, errors := BuildCommitChangelog(commitHistory, progressChan, errorChan, base, remote)
-	if len(errors) > 0 {
+	cleaned, errs := BuildCommitChangelog(commitHistory, progressChan, errorChan, base, remote)
+	if len(errs) > 0 {
 		model.SendProgressError("git",
-			fmt.Sprintf("%d error(s) found building commit change log", len(errors)), errorChan)
+			fmt.Sprintf("%d error(s) found building commit change log", len(errs)), errorChan)
 
-		return cleaned, errors
+		return cleaned, errs
 	}
 	model.SendProgressUpdate("populated",
 		fmt.Sprintf("%d commits processed and populated", len(cleaned)), true, progressChan)

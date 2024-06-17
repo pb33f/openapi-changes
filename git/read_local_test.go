@@ -38,7 +38,7 @@ func TestExtractHistoryFromFile(t *testing.T) {
 
 	// this shit times out in the pipeline (damn you github runners)
 	ctx, cncl := context.WithTimeout(context.Background(), 5*time.Second)
-	history, _ := ExtractHistoryFromFile("./", "read_local.go", c, e, 25)
+	history, _ := ExtractHistoryFromFile("./", "read_local.go", c, e, 25, -1)
 	defer cncl()
 
 	select {
@@ -67,7 +67,7 @@ func TestExtractHistoryFromFile_Fail(t *testing.T) {
 		}
 	}()
 
-	history, _ := ExtractHistoryFromFile("./", "no_file_nope", c, e, 5)
+	history, _ := ExtractHistoryFromFile("./", "no_file_nope", c, e, 5, -1)
 	<-d
 	assert.Len(t, history, 0)
 }

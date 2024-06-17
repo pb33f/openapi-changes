@@ -61,6 +61,7 @@ func init() {
 	rootCmd.AddCommand(GetHTMLReportCommand())
 	rootCmd.PersistentFlags().BoolP("top", "t", false, "Only show latest changes (last git revision against HEAD)")
 	rootCmd.PersistentFlags().IntP("limit", "l", 5, "Limit history to number of revisions (default is 5)")
+	rootCmd.PersistentFlags().IntP("limit-time", "d", -1, "Limit history to number of days. Supersedes limit argument if present.")
 	rootCmd.PersistentFlags().BoolP("no-logo", "b", false, "Don't print the big purple pb33f banner")
 	rootCmd.PersistentFlags().StringP("base", "p", "", "Base URL or path to use for resolving relative or remote references")
 	rootCmd.PersistentFlags().BoolP("remote", "r", true, "Allow remote reference (URLs and files) to be auto resolved, without a base URL or path (default is on)")

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/araddon/dateparse"
 	"github.com/pb33f/openapi-changes/model"
 	"io"
 	"net"
@@ -50,7 +51,7 @@ type APIFile struct {
 
 func GetCommitsForGithubFile(user, repo, path string,
 	progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError,
-	forceCutoff bool, limit int) ([]*APICommit, error) {
+	forceCutoff bool, limit int, limitTime int) ([]*APICommit, error) {
 
 	// we can make a lot of http calls, very quickly - so ensure we give the client enough
 	// breathing space to cope with lots of TLS handshakes.
@@ -200,6 +201,16 @@ func GetCommitsForGithubFile(user, repo, path string,
 
 	totalCommits := len(commits)
 
+	if limitTime != -1 {
+		newLimit := getCommitTimeLimit(limitTime, commits)
+
+		if newLimit == 0 {
+			return []*APICommit{}, nil
+		}
+
+		limit = newLimit
+	}
+
 	if limit > 0 && totalCommits > limit {
 		totalCommits = limit + 1
 	}
@@ -283,7 +294,7 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
 
 func ProcessGithubRepo(username string, repo string, filePath string,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
-	forceCutoff bool, limit int, base string, remote bool) ([]*model.Commit, []error) {
+	forceCutoff bool, limit int, limitTime int, base string, remote bool) ([]*model.Commit, []error) {
 
 	if username == "" || repo == "" || filePath == "" {
 		err := errors.New("please supply valid github username/repo and filepath")
@@ -291,7 +302,7 @@ func ProcessGithubRepo(username string, repo string, filePath string,
 		return nil, []error{err}
 	}
 
-	githubCommits, err := GetCommitsForGithubFile(username, repo, filePath, progressChan, errorChan, forceCutoff, limit)
+	githubCommits, err := GetCommitsForGithubFile(username, repo, filePath, progressChan, errorChan, forceCutoff, limit, limitTime)
 
 	if err != nil {
 		return nil, []error{err}
@@ -305,4 +316,29 @@ func ProcessGithubRepo(username string, repo string, filePath string,
 		return commitHistory, errs
 	}
 	return commitHistory, nil
+}
+
+func getCommitTimeLimit(limitTime int, commits []*APICommit) int {
+	var commitTimeCutoff *time.Time
+	newLimit := 0
+
+	if limitTime <= 0 {
+		return 0
+	}
+
+	temp := time.Now().Add(time.Duration(-limitTime) * time.Hour * 24)
+	commitTimeCutoff = &temp
+
+	for x := range commits {
+		commitTime, _ := dateparse.ParseAny(commits[x].CommitDetails.Author.Date)
+
+		if commitTimeCutoff.After(commitTime) {
+			break
+		}
+
+		newLimit++
+	}
+
+	return newLimit
+
 }
