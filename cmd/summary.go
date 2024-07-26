@@ -64,21 +64,24 @@ func GetSummaryCommand() *cobra.Command {
 			}
 
 			listenForUpdates := func(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) {
-				spinner, _ := pterm.DefaultSpinner.Start("starting work.")
+				var spinner *pterm.SpinnerPrinter
+				if !noColorFlag {
+					spinner, _ := pterm.DefaultSpinner.Start("starting work.")
 
-				spinner.InfoPrinter = &pterm.PrefixPrinter{
-					MessageStyle: &pterm.Style{pterm.FgLightCyan},
-					Prefix: pterm.Prefix{
-						Style: &pterm.Style{pterm.FgBlack, pterm.BgLightMagenta},
-						Text:  " SPEC ",
-					},
-				}
-				spinner.SuccessPrinter = &pterm.PrefixPrinter{
-					MessageStyle: &pterm.Style{pterm.FgLightCyan},
-					Prefix: pterm.Prefix{
-						Style: &pterm.Style{pterm.FgBlack, pterm.BgLightCyan},
-						Text:  " DONE ",
-					},
+					spinner.InfoPrinter = &pterm.PrefixPrinter{
+						MessageStyle: &pterm.Style{pterm.FgLightCyan},
+						Prefix: pterm.Prefix{
+							Style: &pterm.Style{pterm.FgBlack, pterm.BgLightMagenta},
+							Text:  " SPEC ",
+						},
+					}
+					spinner.SuccessPrinter = &pterm.PrefixPrinter{
+						MessageStyle: &pterm.Style{pterm.FgLightCyan},
+						Prefix: pterm.Prefix{
+							Style: &pterm.Style{pterm.FgBlack, pterm.BgLightCyan},
+							Text:  " DONE ",
+						},
+					}
 				}
 
 				var warnings []string
@@ -87,20 +90,26 @@ func GetSummaryCommand() *cobra.Command {
 					select {
 					case update, ok := <-updateChan:
 						if ok {
-							if !update.Completed {
-								spinner.UpdateText(update.Message)
-							} else {
-								spinner.Info(update.Message)
+							if !noColorFlag {
+								if !update.Completed {
+									spinner.UpdateText(update.Message)
+								} else {
+									spinner.Info(update.Message)
+								}
 							}
 							if update.Warning {
 								warnings = append(warnings, update.Message)
 							}
 						} else {
 							if !failed {
-								spinner.Success("completed")
-								fmt.Println()
+								if !noColorFlag {
+									spinner.Success("completed")
+									fmt.Println()
+								}
 							} else {
-								spinner.Fail("failed to complete. sorry!")
+								if !noColorFlag {
+									spinner.Fail("failed to complete. sorry!")
+								}
 							}
 							if len(warnings) > 0 {
 								pterm.Warning.Print("warnings reported during processing")
@@ -123,8 +132,10 @@ func GetSummaryCommand() *cobra.Command {
 						}
 					case err := <-errorChan:
 						if err.Fatal {
-							spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
-							spinner.Stop()
+							if !noColorFlag {
+								spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
+								spinner.Stop()
+							}
 						} else {
 							warnings = append(warnings, err.Message)
 						}
