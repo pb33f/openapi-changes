@@ -37,10 +37,22 @@ func (hc *HashedChange) MarshalJSON() ([]byte, error) {
 	return json.Marshal(data)
 }
 
+func getIntValue(pointer *int) int {
+	if pointer == nil {
+		return -1
+	}
+
+	return *pointer
+}
+
 func (hc *HashedChange) HashChange() {
 
 	context := hc.Context
-	contextString := fmt.Sprintf("%d-%d-%d-%d", context.OriginalLine, context.OriginalColumn, context.NewLine, context.NewColumn)
+	contextString := fmt.Sprintf("%d-%d-%d-%d",
+		getIntValue(context.OriginalLine),
+		getIntValue(context.OriginalColumn),
+		getIntValue(context.NewLine),
+		getIntValue(context.NewColumn))
 
 	changeString := fmt.Sprintf("%d-%s-%s-%s-%s", hc.ChangeType, hc.Property, hc.Original, hc.New, contextString)
 
