@@ -92,9 +92,13 @@ func GetSummaryCommand() *cobra.Command {
 						if ok {
 							if !noColorFlag {
 								if !update.Completed {
-									spinner.UpdateText(update.Message)
+									if spinner != nil {
+										spinner.UpdateText(update.Message)
+									}
 								} else {
-									spinner.Info(update.Message)
+									if spinner != nil {
+										spinner.Info(update.Message)
+									}
 								}
 							}
 							if update.Warning {
@@ -103,12 +107,16 @@ func GetSummaryCommand() *cobra.Command {
 						} else {
 							if !failed {
 								if !noColorFlag {
-									spinner.Success("completed")
+									if spinner != nil {
+										spinner.Success("completed")
+									}
 									fmt.Println()
 								}
 							} else {
 								if !noColorFlag {
-									spinner.Fail("failed to complete. sorry!")
+									if spinner != nil {
+										spinner.Fail("failed to complete. sorry!")
+									}
 								}
 							}
 							if len(warnings) > 0 {
