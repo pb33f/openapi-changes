@@ -37,6 +37,7 @@ func GetConsoleCommand() *cobra.Command {
 			doneChan := make(chan bool)
 			failed := false
 			latestFlag, _ := cmd.Flags().GetBool("top")
+			repoRevisionsFlag, _ := cmd.Flags().GetBool("repo-revisions")
 			limitFlag, _ := cmd.Flags().GetInt("limit")
 			limitTimeFlag, _ := cmd.Flags().GetInt("limit-time")
 			baseFlag, _ := cmd.Flags().GetString("base")
@@ -205,7 +206,7 @@ func GetConsoleCommand() *cobra.Command {
 
 					go listenForUpdates(updateChan, errorChan)
 
-					commits, errs := runGitHistoryConsole(args[0], args[1], latestFlag, limitFlag, limitTimeFlag,
+					commits, errs := runGitHistoryConsole(args[0], args[1], latestFlag, repoRevisionsFlag, limitFlag, limitTimeFlag,
 						updateChan, errorChan, baseFlag, remoteFlag)
 
 					// wait.
@@ -301,7 +302,7 @@ func runGithubHistoryConsole(username, repo, filePath string, latest bool, limit
 	return commitHistory, nil
 }
 
-func runGitHistoryConsole(gitPath, filePath string, latest bool, limit int, limitTime int,
+func runGitHistoryConsole(gitPath, filePath string, latest bool, repoRevisions bool, limit int, limitTime int,
 	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) ([]*model.Commit, []error) {
 
 	if gitPath == "" || filePath == "" {
@@ -315,7 +316,7 @@ func runGitHistoryConsole(gitPath, filePath string, latest bool, limit int, limi
 			filePath, gitPath), false, updateChan)
 
 	// build commit history.
-	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan, limit, limitTime)
+	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan, repoRevisions, limit, limitTime)
 
 	if err != nil {
 		close(updateChan)

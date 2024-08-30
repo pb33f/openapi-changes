@@ -7,11 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/araddon/dateparse"
-	"github.com/pb33f/libopenapi"
-	"github.com/pb33f/libopenapi/datamodel"
-	"github.com/pb33f/openapi-changes/model"
-	"github.com/pterm/pterm"
 	"log/slog"
 	"net/url"
 	"os"
@@ -19,6 +14,12 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	"github.com/araddon/dateparse"
+	"github.com/pb33f/libopenapi"
+	"github.com/pb33f/libopenapi/datamodel"
+	"github.com/pb33f/openapi-changes/model"
+	"github.com/pterm/pterm"
 )
 
 const (
@@ -57,7 +58,7 @@ func GetTopLevel(dir string) (string, error) {
 }
 
 func ExtractHistoryFromFile(repoDirectory, filePath string,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, limit int, limitTime int) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, repoRevisions bool, limit int, limitTime int) ([]*model.Commit, []error) {
 
 	cmd := exec.Command(GIT, NOPAGER, LOG, LOGFORMAT, DIV, filePath)
 	var stdout, stderr bytes.Buffer
