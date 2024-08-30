@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,6 +31,7 @@ const (
 	TOPLEVEL  = "--show-toplevel"
 	NOPAGER   = "--no-pager"
 	LOGFORMAT = "--pretty=%cD||%h||%s||%an||%ae"
+	NUMBER    = "-n"
 	DIV       = "--"
 )
 
@@ -60,7 +62,17 @@ func GetTopLevel(dir string) (string, error) {
 func ExtractHistoryFromFile(repoDirectory, filePath string,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, repoRevisions bool, limit int, limitTime int) ([]*model.Commit, []error) {
 
-	cmd := exec.Command(GIT, NOPAGER, LOG, LOGFORMAT, DIV, filePath)
+	args := []string{NOPAGER, LOG, LOGFORMAT}
+
+	if limit > 0 && repoRevisions {
+		args = append(args, fmt.Sprintf("HEAD~%d..HEAD", limit))
+	} else if limit > 0 {
+		args = append(args, NUMBER, strconv.Itoa(limit))
+	}
+
+	args = append(args, DIV, filePath)
+
+	cmd := exec.Command(GIT, args...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
