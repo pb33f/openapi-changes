@@ -36,7 +36,7 @@ func GetReportCommand() *cobra.Command {
 			doneChan := make(chan bool)
 			failed := false
 			latestFlag, _ := cmd.Flags().GetBool("top")
-			repoRevisionsFlag, _ := cmd.Flags().GetBool("repo-revisions")
+			globalRevisionsFlag, _ := cmd.Flags().GetBool("global-revisions")
 			limitFlag, _ := cmd.Flags().GetInt("limit")
 			limitTimeFlag, _ := cmd.Flags().GetInt("limit-time")
 			baseFlag, _ := cmd.Flags().GetString("base")
@@ -155,7 +155,7 @@ func GetReportCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					report, er := runGitHistoryReport(args[0], args[1], latestFlag, updateChan, errorChan, baseFlag,
-						remoteFlag, repoRevisionsFlag, limitFlag, limitTimeFlag)
+						remoteFlag, globalRevisionsFlag, limitFlag, limitTimeFlag)
 
 					<-doneChan
 
@@ -226,7 +226,7 @@ func GetReportCommand() *cobra.Command {
 }
 
 func runGitHistoryReport(gitPath, filePath string, latest bool,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool, repoRevisions bool, limit int, limitTime int) (*model.HistoricalReport, []error) {
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool, globalRevisions bool, limit int, limitTime int) (*model.HistoricalReport, []error) {
 
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
@@ -240,7 +240,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 			filePath, gitPath), false, updateChan)
 
 	// build commit history.
-	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan, repoRevisions, limit, limitTime)
+	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan, globalRevisions, limit, limitTime)
 	if err != nil {
 		model.SendProgressError("git", fmt.Sprintf("%d errors found building history", len(err)), errorChan)
 		close(updateChan)
