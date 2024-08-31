@@ -60,11 +60,11 @@ func GetTopLevel(dir string) (string, error) {
 }
 
 func ExtractHistoryFromFile(repoDirectory, filePath string,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, repoRevisions bool, limit int, limitTime int) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, globalRevisions bool, limit int, limitTime int) ([]*model.Commit, []error) {
 
 	args := []string{NOPAGER, LOG, LOGFORMAT}
 
-	if limit > 0 && repoRevisions {
+	if limit > 0 && globalRevisions {
 		args = append(args, fmt.Sprintf("HEAD~%d..HEAD", limit))
 	} else if limit > 0 {
 		args = append(args, NUMBER, strconv.Itoa(limit))
