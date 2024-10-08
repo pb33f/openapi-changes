@@ -46,7 +46,7 @@ func TestExtractHistoryFromFile(t *testing.T) {
 
 	case <-d:
 		assert.NotNil(t, history)
-		assert.Equal(t, "refactoring sketch code", history[len(history)-1].Message)
+		assert.Equal(t, "Wired in left/right file viewing for console and updated readme.", history[len(history)-1].Message)
 		return
 	case <-ctx.Done():
 		return
