@@ -216,12 +216,10 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 		if len(commitHistory) == c+1 {
 			newBits = commitHistory[c].Data
 
-			// Obtain data from the previous commit
-			var err []error
-			oldBits, err = readFile(commitHistory[c].RepoDirectory, fmt.Sprintf("%s~1", commitHistory[c].Hash), commitHistory[c].FilePath)
-			if err != nil {
-				return nil, err
-			}
+			// Obtain data from the previous commit and fail gracefully, if git
+			// errors. This might happen when the file does not exist in the git
+			// history.
+			oldBits, _ = readFile(commitHistory[c].RepoDirectory, fmt.Sprintf("%s~1", commitHistory[c].Hash), commitHistory[c].FilePath)
 		} else {
 			oldBits = commitHistory[c+1].Data
 			commitHistory[c].OldData = oldBits
