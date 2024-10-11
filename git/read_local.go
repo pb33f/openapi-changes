@@ -132,16 +132,11 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitT
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) ([]*model.Commit, []error) {
 
 	for c := range commitHistory {
-		cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", commitHistory[c].Hash, commitHistory[c].FilePath))
-		var ou, er bytes.Buffer
-		cmd.Stdout = &ou
-		cmd.Stderr = &er
-		cmd.Dir = commitHistory[c].RepoDirectory
-		err := cmd.Run()
+		var err []error
+		commitHistory[c].Data, err = readFile(commitHistory[c].RepoDirectory, commitHistory[c].Hash, commitHistory[c].FilePath)
 		if err != nil {
-			return nil, []error{err}
+			return nil, err
 		}
-		commitHistory[c].Data = ou.Bytes()
 		model.SendProgressUpdate("population",
 			fmt.Sprintf("Extracting %d bytes extracted from commit '%s'",
 				len(commitHistory[c].Data)/1024, commitHistory[c].Hash), false, progressChan)
@@ -289,4 +284,20 @@ func ExtractPathAndFile(location string) (string, string) {
 	dir := path.Dir(location)
 	file := path.Base(location)
 	return dir, file
+}
+
+// readFile reads the specified file at the specified commit hash from the
+// specified git repository.
+func readFile(repoDir, hash, filePath string) ([]byte, []error) {
+	cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", hash, filePath))
+	var ou, er bytes.Buffer
+	cmd.Stdout = &ou
+	cmd.Stderr = &er
+	cmd.Dir = repoDir
+	err := cmd.Run()
+	if err != nil {
+		return nil, []error{fmt.Errorf("read file from git: %v", err)}
+	}
+
+	return ou.Bytes(), nil
 }
