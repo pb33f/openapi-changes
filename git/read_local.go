@@ -215,6 +215,13 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 		var oldBits, newBits []byte
 		if len(commitHistory) == c+1 {
 			newBits = commitHistory[c].Data
+
+			// Obtain data from the previous commit
+			var err []error
+			oldBits, err = readFile(commitHistory[c].RepoDirectory, fmt.Sprintf("%s~1", commitHistory[c].Hash), commitHistory[c].FilePath)
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			oldBits = commitHistory[c+1].Data
 			commitHistory[c].OldData = oldBits
