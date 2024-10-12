@@ -143,8 +143,14 @@ func GetReportCommand() *cobra.Command {
 				}
 
 				if f.IsDir() {
-
 					repo := p
+					if !path.IsAbs(repo) {
+						wd, err := os.Getwd()
+						if err != nil {
+							return fmt.Errorf("get working dir: %v", err)
+						}
+						repo = filepath.Join(wd, repo)
+					}
 					p = args[1]
 					f, err = os.Stat(filepath.Join(repo, p))
 					if err != nil {
@@ -154,7 +160,7 @@ func GetReportCommand() *cobra.Command {
 
 					go listenForUpdates(updateChan, errorChan)
 
-					report, er := runGitHistoryReport(args[0], args[1], latestFlag, updateChan, errorChan, baseFlag,
+					report, er := runGitHistoryReport(repo, p, latestFlag, updateChan, errorChan, baseFlag,
 						remoteFlag, globalRevisionsFlag, limitFlag, limitTimeFlag)
 
 					<-doneChan
