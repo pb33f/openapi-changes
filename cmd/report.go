@@ -143,13 +143,10 @@ func GetReportCommand() *cobra.Command {
 				}
 
 				if f.IsDir() {
-					repo := p
-					if !path.IsAbs(repo) {
-						wd, err := os.Getwd()
-						if err != nil {
-							return fmt.Errorf("get working dir: %v", err)
-						}
-						repo = filepath.Join(wd, repo)
+					repo, err := absoluteRepoPath(p)
+					if err != nil {
+						pterm.Error.Println(err.Error())
+						return err
 					}
 					p = args[1]
 					f, err = os.Stat(filepath.Join(repo, p))
