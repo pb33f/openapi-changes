@@ -196,7 +196,11 @@ func GetConsoleCommand() *cobra.Command {
 				}
 
 				if f.IsDir() {
-					repo := p
+					repo, err := absoluteRepoPath(p)
+					if err != nil {
+						pterm.Error.Println(err.Error())
+						return err
+					}
 					p = args[1]
 					f, err = os.Stat(filepath.Join(repo, p))
 					if err != nil {

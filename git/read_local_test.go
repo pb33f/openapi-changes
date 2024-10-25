@@ -88,3 +88,9 @@ func TestGetTopLevel(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, str)
 }
+
+func TestReadFile(t *testing.T) {
+	contentRaw, err := readFile("../", "HEAD", "./git/read_local.go")
+	assert.NoError(t, err)
+	assert.NotEmpty(t, contentRaw)
+}

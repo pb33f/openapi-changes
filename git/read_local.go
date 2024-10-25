@@ -132,10 +132,10 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitT
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) ([]*model.Commit, []error) {
 
 	for c := range commitHistory {
-		var err []error
+		var err error
 		commitHistory[c].Data, err = readFile(commitHistory[c].RepoDirectory, commitHistory[c].Hash, commitHistory[c].FilePath)
 		if err != nil {
-			return nil, err
+			return nil, []error{err}
 		}
 		model.SendProgressUpdate("population",
 			fmt.Sprintf("Extracting %d bytes extracted from commit '%s'",
@@ -293,7 +293,7 @@ func ExtractPathAndFile(location string) (string, string) {
 
 // readFile reads the specified file at the specified commit hash from the
 // specified git repository.
-func readFile(repoDir, hash, filePath string) ([]byte, []error) {
+func readFile(repoDir, hash, filePath string) ([]byte, error) {
 	cmd := exec.Command(GIT, NOPAGER, SHOW, fmt.Sprintf("%s:%s", hash, filePath))
 	var ou, er bytes.Buffer
 	cmd.Stdout = &ou
@@ -301,7 +301,7 @@ func readFile(repoDir, hash, filePath string) ([]byte, []error) {
 	cmd.Dir = repoDir
 	err := cmd.Run()
 	if err != nil {
-		return nil, []error{fmt.Errorf("read file from git: %v", err)}
+		return nil, fmt.Errorf("read file from git: %v", err)
 	}
 
 	return ou.Bytes(), nil
