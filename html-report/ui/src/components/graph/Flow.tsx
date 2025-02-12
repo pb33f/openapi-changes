@@ -43,8 +43,8 @@ export const HorizontalFlow = () => {
     const [nodes, setNodes] = useState<NodeData[]>(nodeData)
     const [edges, setEdges] = useState<EdgeData[]>(edgeData)
     const [selections, setSelections] = useState<string[]>([]);
-    const maxWidth = 2000;
-    const maxHeight = 1000;
+    const maxWidth = 4000;
+    const maxHeight = 4000;
 
     let timer: any
     const changeSize = () => {
