@@ -315,7 +315,8 @@ func BuildGraphMapNode(parent *model.NodeData[any], field reflect.Value, nodes *
 			v := field.MapIndex(e)
 			switch t := v.Interface().(type) {
 			default:
-				lowerLabel := strings.ToLower(e.String())
+				//lowerLabel := strings.ToLower(e.String())
+				lowerLabel := e.String()
 				n := buildNode(lowerLabel, calcWidth(lowerLabel), DefaultHeight, nil)
 				if parent != nil {
 					ed := &model.EdgeData[any]{
