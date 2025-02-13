@@ -46,6 +46,7 @@ func GetHTMLReportCommand() *cobra.Command {
 			limitFlag, _ := cmd.Flags().GetInt("limit")
 			limitTimeFlag, _ := cmd.Flags().GetInt("limit-time")
 			remoteFlag, _ := cmd.Flags().GetBool("remote")
+			reportFile, _ := cmd.Flags().GetString("report-file")
 
 			if noColorFlag {
 				pterm.DisableStyling()
@@ -179,12 +180,12 @@ func GetHTMLReportCommand() *cobra.Command {
 							return er[0]
 						}
 						if len(report) > 0 {
-							err = os.WriteFile("report.html", report, 0664)
+							err = os.WriteFile(reportFile, report, 0664)
 							if err != nil {
 								pterm.Error.Println(err.Error())
 								return err
 							}
-							pterm.Success.Printf("%s report written to file 'report.html' (%s)", specUrl.String(),
+							pterm.Success.Printf("%s report written to file '%s' (%s)", reportFile, specUrl.String(),
 								index.HumanFileSize(float64(len(report))))
 							pterm.Println()
 							pterm.Println()
@@ -237,12 +238,12 @@ func GetHTMLReportCommand() *cobra.Command {
 						return er[0]
 					}
 
-					err = os.WriteFile("report.html", report, 0744)
+					err = os.WriteFile(reportFile, report, 0744)
 					if err != nil {
 						pterm.Error.Println(err.Error())
 						return err
 					}
-					pterm.Success.Printf("report written to file 'report.html' (%dkb)", len(report)/1024)
+					pterm.Success.Printf("report written to file '%s' (%dkb)", reportFile, len(report)/1024)
 					pterm.Println()
 					pterm.Println()
 					return nil
@@ -273,8 +274,8 @@ func GetHTMLReportCommand() *cobra.Command {
 						return errors.New("unable to process specifications")
 					}
 
-					err = os.WriteFile("report.html", report, 0744)
-					pterm.Success.Printf("report written to file 'report.html' (%dkb)", len(report)/1024)
+					err = os.WriteFile(reportFile, report, 0744)
+					pterm.Success.Printf("report written to file '%s' (%dkb)", reportFile, len(report)/1024)
 					pterm.Println()
 					pterm.Println()
 					return nil
@@ -286,6 +287,7 @@ func GetHTMLReportCommand() *cobra.Command {
 	}
 	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
 	cmd.Flags().BoolP("use-cdn", "c", false, "Use CDN for CSS and JS delivery instead of bundling inline")
+	cmd.Flags().StringP("report-file", "", "report.html", "The name of the HTML report file (defaults to 'report.html')")
 
 	return cmd
 }
