@@ -337,7 +337,7 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 	commits := []*model.Commit{
 		{
 			Hash:       uuid.New().String()[:6],
-			Message:    fmt.Sprintf("New: %s, Original: %s", right, left),
+			Message:    fmt.Sprintf("Original: %s, Modified: %s, ", left, right),
 			CommitDate: time.Now(),
 			Data:       rightBytes,
 		},
