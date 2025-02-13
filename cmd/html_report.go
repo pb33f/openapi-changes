@@ -419,12 +419,14 @@ func RunLeftRightHTMLReport(left, right string, useCDN bool,
 			Message:    fmt.Sprintf("New: %s, Original: %s", right, left),
 			CommitDate: time.Now(),
 			Data:       rightBytes,
+			FilePath:   right,
 		},
 		{
 			Hash:       uuid.New().String()[:6],
 			Message:    fmt.Sprintf("Original file: %s", left),
 			CommitDate: time.Now(),
 			Data:       leftBytes,
+			FilePath:   left,
 		},
 	}
 

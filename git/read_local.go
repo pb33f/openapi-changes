@@ -233,7 +233,7 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 			oldDoc, err = libopenapi.NewDocumentWithConfiguration(oldBits, docConfig)
 
 			if err != nil {
-				model.SendFatalError("building models", fmt.Sprintf("unable to parse original document: %s", err.Error()), errorChan)
+				model.SendFatalError("building models", fmt.Sprintf("unable to parse original document '%s': %s", commitHistory[c].FilePath, err.Error()), errorChan)
 				changeErrors = append(changeErrors, err)
 				return nil, changeErrors
 			} else {
@@ -244,7 +244,7 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 			}
 			newDoc, err = libopenapi.NewDocumentWithConfiguration(newBits, docConfig)
 			if err != nil {
-				model.SendProgressError("building models", fmt.Sprintf("unable to parse modified document: %s", err.Error()), errorChan)
+				model.SendProgressError("building models", fmt.Sprintf("unable to parse modified document '%s': %s", commitHistory[c].FilePath, err.Error()), errorChan)
 				changeErrors = append(changeErrors, err)
 			}
 
