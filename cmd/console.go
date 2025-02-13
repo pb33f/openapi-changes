@@ -382,6 +382,11 @@ func runLeftRightCompare(left, right string, updateChan chan *model.ProgressUpda
 	}
 	close(updateChan)
 	close(errorChan)
+
+	if len(commits) == 1 && commits[0].Changes == nil {
+		pterm.Success.Println("No changes found between specifications")
+		return nil
+	}
 	app := tui.BuildApplication(commits, Version)
 	if err := app.Run(); err != nil {
 		return []error{err}
