@@ -432,6 +432,11 @@ func printSummaryDetails(commitHistory []*model.Commit, markdown bool) error {
 	pterm.Println()
 	errorStyle := pterm.NewStyle(pterm.FgLightRed, pterm.Italic)
 
+	if len(commitHistory) == 1 && commitHistory[0].Changes == nil {
+		pterm.Success.Println("No changes found between specifications")
+		return nil
+	}
+
 	for c := range commitHistory {
 		tableData := [][]string{{"Document Element", "Total Changes", "Breaking Changes"}}
 
