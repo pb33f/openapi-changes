@@ -17,6 +17,10 @@ export function ReportSummary(props: ReportSummaryProps) {
         breakingStat =  <Statistic title="Breaking" className="width-100 m-bottom-20"
                                    value={props.changeStats.totalBreaking}
                                    valueStyle={{fontWeight: 'bolder', color: 'var(--error-font-color)'}}/>
+    } else {
+        breakingStat =  <Statistic title="Breaking" className="width-100 m-bottom-20"
+                                   value='0'
+                                   valueStyle={{fontWeight: 'bolder', color: 'var(--terminal-green)'}}/>
     }
     return (
         <section className='report-summary'>
