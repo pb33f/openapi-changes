@@ -64,7 +64,7 @@ func PrintHowToUse(command string) {
 	cmd.Print(command)
 	title.Println(" . sample-specs/petstorev3.json")
 	fmt.Println()
-	title.Println(">> diff old / new files")
+	title.Println(">> diff old / modified files")
 	desc.Println("supply paths to the left (original) and right (modified) OpenAPI specs")
 	fmt.Println()
 	fmt.Print("openapi-changes ")
