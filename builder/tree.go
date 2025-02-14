@@ -303,12 +303,25 @@ func DigIntoTreeNode[T any](parent *model.TreeNode, field reflect.Value, label s
 	}
 }
 
+func transformLabel(in string) string {
+	switch in {
+	case "ONEOF":
+		return "OneOf"
+	case "ALLOF":
+		return "AllOf"
+	case "ANYOF":
+		return "AnyOf"
+	default:
+		return in
+	}
+}
+
 func DigIntoTreeNodeSlice[T any](parent *model.TreeNode, field reflect.Value, label string) {
 	if !field.IsZero() {
 		for k := 0; k < field.Len(); k++ {
 			f := field.Index(k)
 			e := &model.TreeNode{
-				TitleString: label,
+				TitleString: transformLabel(label),
 				Key:         uuid.New().String(),
 				IsLeaf:      false,
 				Selectable:  false,
