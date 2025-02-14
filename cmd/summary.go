@@ -143,8 +143,13 @@ func GetSummaryCommand() *cobra.Command {
 					case err := <-errorChan:
 						if err.Fatal {
 							if !noColorFlag {
-								spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
-								spinner.Stop()
+								if spinner != nil {
+									spinner.Fail(fmt.Sprintf("Stopped: %s", err.Message))
+									spinner.Stop()
+								} else {
+									pterm.Error.Printf("Stopped: %s", err.Message)
+								}
+
 							}
 						} else {
 							warnings = append(warnings, err.Message)
