@@ -192,6 +192,9 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 		docConfig.AllowFileReferences = true
 	}
 
+	// TODO: make this configurable for power users.
+	docConfig.ExcludeExtensionRefs = true
+
 	ptermLog := &pterm.Logger{
 		Formatter:  pterm.LogFormatterColorful,
 		Writer:     os.Stdout,
