@@ -157,7 +157,7 @@ func buildTreeNode(root *tview.TreeNode, object any) *tview.TreeNode {
 
 		case reflect.TypeOf(&whatChangedModel.ResponseChanges{}):
 			node := CreateNode("Response", object)
-			DigIntoObject[whatChangedModel.ExtensionChanges](root, node, field)
+			DigIntoObject[whatChangedModel.ResponseChanges](root, node, field)
 
 		case reflect.TypeOf(&whatChangedModel.SchemaChanges{}):
 			node := CreateNode("Schema", object)
