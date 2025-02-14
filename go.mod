@@ -6,7 +6,7 @@ require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/google/uuid v1.6.0
-	github.com/pb33f/libopenapi v0.21.3
+	github.com/pb33f/libopenapi v0.21.4
 	github.com/pterm/pterm v0.12.80
 	github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57
 	github.com/spf13/cobra v1.8.1
