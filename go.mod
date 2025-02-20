@@ -6,10 +6,10 @@ require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/google/uuid v1.6.0
-	github.com/pb33f/libopenapi v0.21.4
+	github.com/pb33f/libopenapi v0.21.6
 	github.com/pterm/pterm v0.12.80
 	github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57
-	github.com/spf13/cobra v1.8.1
+	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/text v0.22.0
 )
@@ -32,7 +32,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/speakeasy-api/jsonpath v0.6.1 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.9-0.20240815153524-6ea36470d1bd // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/exp v0.0.0-20241004190924-225e2abe05e6 // indirect
