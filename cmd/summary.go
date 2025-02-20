@@ -48,6 +48,7 @@ func GetSummaryCommand() *cobra.Command {
 			limitTimeFlag, _ := cmd.Flags().GetInt("limit-time")
 			remoteFlag, _ := cmd.Flags().GetBool("remote")
 			markdownFlag, _ := cmd.Flags().GetBool("markdown")
+			extRefs, _ := cmd.Flags().GetBool("ext-refs")
 
 			if noColorFlag {
 				pterm.DisableStyling()
@@ -181,7 +182,7 @@ func GetSummaryCommand() *cobra.Command {
 						}
 
 						er := runGithubHistorySummary(user, repo, filePath, latestFlag, limitFlag, limitTimeFlag, updateChan,
-							errorChan, baseFlag, remoteFlag, markdownFlag)
+							errorChan, baseFlag, remoteFlag, markdownFlag, extRefs)
 						// wait for things to be completed.
 						<-doneChan
 						if er != nil {
@@ -236,7 +237,7 @@ func GetSummaryCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					err = runGitHistorySummary(args[0], args[1], latestFlag, updateChan, errorChan,
-						baseFlag, remoteFlag, markdownFlag, globalRevisionsFlag, limitFlag, limitTimeFlag)
+						baseFlag, remoteFlag, extRefs, markdownFlag, globalRevisionsFlag, limitFlag, limitTimeFlag)
 
 					<-doneChan
 
@@ -263,7 +264,7 @@ func GetSummaryCommand() *cobra.Command {
 						return urlErr
 					}
 
-					errs := runLeftRightSummary(left, right, updateChan, errorChan, baseFlag, remoteFlag, markdownFlag)
+					errs := runLeftRightSummary(left, right, updateChan, errorChan, baseFlag, remoteFlag, markdownFlag, extRefs)
 					<-doneChan
 					if len(errs) > 0 {
 						for e := range errs {
@@ -321,7 +322,7 @@ func checkURL(urlString string, errorChan chan model.ProgressError) (string, err
 }
 
 func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpdate,
-	errorChan chan model.ProgressError, base string, remote, markdown bool) []error {
+	errorChan chan model.ProgressError, base string, remote, markdown, extRefs bool) []error {
 
 	var leftBytes, rightBytes []byte
 	// var errs []error
@@ -358,7 +359,7 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 	}
 
 	var errs []error
-	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan, base, remote)
+	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan, base, remote, extRefs)
 	if len(errs) > 0 {
 		close(updateChan)
 		return errs
@@ -383,9 +384,9 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 }
 
 func runGithubHistorySummary(username, repo, filePath string, latest bool, limit int, limitTime int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown bool) error {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown, extRefs bool) error {
 	commitHistory, _ := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan,
-		false, limit, limitTime, base, remote)
+		false, limit, limitTime, base, remote, extRefs)
 
 	if latest {
 		commitHistory = commitHistory[:1]
@@ -400,7 +401,9 @@ func runGithubHistorySummary(username, repo, filePath string, latest bool, limit
 }
 
 func runGitHistorySummary(gitPath, filePath string, latest bool,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown bool, globalRevisions bool, limit int, limitTime int) error {
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown, extRefs bool,
+	globalRevisions bool, limit int, limitTime int) error {
+
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
 		model.SendProgressError("git", err.Error(), errorChan)
@@ -420,7 +423,7 @@ func runGitHistorySummary(gitPath, filePath string, latest bool,
 	}
 
 	// populate history with changes and data
-	git.PopulateHistoryWithChanges(commitHistory, 0, limitTime, updateChan, errorChan, base, remote)
+	git.PopulateHistoryWithChanges(commitHistory, 0, limitTime, updateChan, errorChan, base, remote, extRefs)
 
 	if latest {
 		commitHistory = commitHistory[:1]

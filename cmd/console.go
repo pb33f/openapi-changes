@@ -42,6 +42,7 @@ func GetConsoleCommand() *cobra.Command {
 			limitTimeFlag, _ := cmd.Flags().GetInt("limit-time")
 			baseFlag, _ := cmd.Flags().GetString("base")
 			remoteFlag, _ := cmd.Flags().GetBool("remote")
+			extRefs, _ := cmd.Flags().GetBool("ext-refs")
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {
@@ -146,7 +147,7 @@ func GetConsoleCommand() *cobra.Command {
 							return err
 						}
 						commits, e := runGithubHistoryConsole(user, repo, filePath, latestFlag, limitFlag, limitTimeFlag, updateChan,
-							errorChan, baseFlag, remoteFlag)
+							errorChan, baseFlag, remoteFlag, extRefs)
 
 						// wait for things to be completed.
 						<-doneChan
@@ -211,7 +212,7 @@ func GetConsoleCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					commits, errs := runGitHistoryConsole(args[0], args[1], latestFlag, globalRevisionsFlag, limitFlag, limitTimeFlag,
-						updateChan, errorChan, baseFlag, remoteFlag)
+						updateChan, errorChan, baseFlag, remoteFlag, extRefs)
 
 					// wait.
 					<-doneChan
@@ -251,7 +252,7 @@ func GetConsoleCommand() *cobra.Command {
 						return urlErr
 					}
 
-					errs := runLeftRightCompare(left, right, updateChan, errorChan, baseFlag, remoteFlag)
+					errs := runLeftRightCompare(left, right, updateChan, errorChan, baseFlag, remoteFlag, extRefs)
 					// wait.
 					<-doneChan
 					if len(errs) > 0 {
@@ -271,10 +272,11 @@ func GetConsoleCommand() *cobra.Command {
 	return cmd
 }
 
+// TODO: we have got to clean up these methods and replace with a message based design.
 func runGithubHistoryConsole(username, repo, filePath string, latest bool, limit int, limitTime int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool) ([]*model.Commit, []error) {
 
-	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, true, limit, limitTime, base, remote)
+	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, true, limit, limitTime, base, remote, extRefs)
 
 	if latest && len(commitHistory) > 1 {
 		commitHistory = commitHistory[:1]
@@ -307,7 +309,7 @@ func runGithubHistoryConsole(username, repo, filePath string, latest bool, limit
 }
 
 func runGitHistoryConsole(gitPath, filePath string, latest bool, globalRevisions bool, limit int, limitTime int,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) ([]*model.Commit, []error) {
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool) ([]*model.Commit, []error) {
 
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
@@ -329,7 +331,7 @@ func runGitHistoryConsole(gitPath, filePath string, latest bool, globalRevisions
 	}
 
 	// populate history with changes and data
-	git.PopulateHistoryWithChanges(commitHistory, limit, limitTime, updateChan, errorChan, base, remote)
+	git.PopulateHistoryWithChanges(commitHistory, limit, limitTime, updateChan, errorChan, base, remote, extRefs)
 
 	if latest {
 		commitHistory = commitHistory[:1]
@@ -344,7 +346,7 @@ func runGitHistoryConsole(gitPath, filePath string, latest bool, globalRevisions
 }
 
 func runLeftRightCompare(left, right string, updateChan chan *model.ProgressUpdate,
-	errorChan chan model.ProgressError, base string, remote bool) []error {
+	errorChan chan model.ProgressError, base string, remote, extRefs bool) []error {
 
 	var leftBytes, rightBytes []byte
 	var errs []error
@@ -380,7 +382,7 @@ func runLeftRightCompare(left, right string, updateChan chan *model.ProgressUpda
 		},
 	}
 
-	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan, base, remote)
+	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan, base, remote, extRefs)
 	if len(errs) > 0 {
 		return errs
 	}

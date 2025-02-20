@@ -67,6 +67,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolP("no-logo", "b", false, "Don't print the big purple pb33f banner")
 	rootCmd.PersistentFlags().StringP("base", "p", "", "Base URL or path to use for resolving relative or remote references")
 	rootCmd.PersistentFlags().BoolP("remote", "r", true, "Allow remote reference (URLs and files) to be auto resolved, without a base URL or path (default is on)")
+	rootCmd.PersistentFlags().BoolP("ext-refs", "", false, "Turn on $ref lookups and resolving for extensions (x-) objects")
 }
 
 func initConfig() {

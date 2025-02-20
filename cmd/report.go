@@ -42,6 +42,7 @@ func GetReportCommand() *cobra.Command {
 			baseFlag, _ := cmd.Flags().GetString("base")
 			noColorFlag, _ := cmd.Flags().GetBool("no-color")
 			remoteFlag, _ := cmd.Flags().GetBool("remote")
+			extRefs, _ := cmd.Flags().GetBool("ext-refs")
 
 			if noColorFlag {
 				pterm.DisableStyling()
@@ -93,7 +94,7 @@ func GetReportCommand() *cobra.Command {
 							return err
 						}
 						report, er := runGithubHistoryReport(user, repo, filePath, latestFlag, limitFlag, limitTimeFlag, updateChan,
-							errorChan, baseFlag, remoteFlag)
+							errorChan, baseFlag, remoteFlag, extRefs)
 
 						// wait for things to be completed.
 						<-doneChan
@@ -158,7 +159,7 @@ func GetReportCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					report, er := runGitHistoryReport(repo, p, latestFlag, updateChan, errorChan, baseFlag,
-						remoteFlag, globalRevisionsFlag, limitFlag, limitTimeFlag)
+						remoteFlag, extRefs, globalRevisionsFlag, limitFlag, limitTimeFlag)
 
 					<-doneChan
 
@@ -198,7 +199,7 @@ func GetReportCommand() *cobra.Command {
 						return urlErr
 					}
 
-					report, errs := runLeftRightReport(left, right, updateChan, errorChan, baseFlag, remoteFlag)
+					report, errs := runLeftRightReport(left, right, updateChan, errorChan, baseFlag, remoteFlag, extRefs)
 					<-doneChan
 					if len(errs) > 0 {
 						for e := range errs {
@@ -229,7 +230,7 @@ func GetReportCommand() *cobra.Command {
 }
 
 func runGitHistoryReport(gitPath, filePath string, latest bool,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool, globalRevisions bool, limit int, limitTime int) (*model.HistoricalReport, []error) {
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool, globalRevisions bool, limit int, limitTime int) (*model.HistoricalReport, []error) {
 
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
@@ -251,7 +252,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 	}
 
 	// populate history with changes and data
-	commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, limitTime, updateChan, errorChan, base, remote)
+	commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, limitTime, updateChan, errorChan, base, remote, extRefs)
 	if err != nil {
 		model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(err)), errorChan)
 		close(updateChan)
@@ -284,10 +285,10 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 }
 
 func runGithubHistoryReport(username, repo, filePath string, latest bool, limit int, limitTime int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) (*model.HistoricalReport, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool) (*model.HistoricalReport, []error) {
 
 	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan,
-		false, limit, limitTime, base, remote)
+		false, limit, limitTime, base, remote, extRefs)
 	if errs != nil {
 		model.SendProgressError("git", errors.Join(errs...).Error(), errorChan)
 		close(progressChan)
@@ -320,7 +321,7 @@ func runGithubHistoryReport(username, repo, filePath string, latest bool, limit 
 }
 
 func runLeftRightReport(left, right string,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) (*model.Report, []error) {
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool) (*model.Report, []error) {
 
 	var leftBytes, rightBytes []byte
 	var errs []error
@@ -356,7 +357,7 @@ func runLeftRightReport(left, right string,
 		},
 	}
 
-	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan, base, remote)
+	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan, base, remote, extRefs)
 	close(updateChan)
 
 	if len(errs) > 0 {
