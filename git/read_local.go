@@ -129,7 +129,7 @@ func ExtractHistoryFromFile(repoDirectory, filePath string,
 }
 
 func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitTime int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool) ([]*model.Commit, []error) {
 
 	for c := range commitHistory {
 		var err error
@@ -147,7 +147,7 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitT
 		commitHistory = commitHistory[0 : limit+1]
 	}
 
-	cleaned, errs := BuildCommitChangelog(commitHistory, progressChan, errorChan, base, remote)
+	cleaned, errs := BuildCommitChangelog(commitHistory, progressChan, errorChan, base, remote, extRefs)
 	if len(errs) > 0 {
 		model.SendProgressError("git",
 			fmt.Sprintf("%d error(s) found building commit change log", len(errs)), errorChan)
@@ -159,8 +159,9 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitT
 	return cleaned, nil
 }
 
+// TODO: we have reached peak argument count, we have to fix this.
 func BuildCommitChangelog(commitHistory []*model.Commit,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote bool) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool) ([]*model.Commit, []error) {
 
 	var changeErrors []error
 	var cleaned []*model.Commit
@@ -191,6 +192,8 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 		docConfig.AllowRemoteReferences = true
 		docConfig.AllowFileReferences = true
 	}
+
+	docConfig.ExcludeExtensionRefs = !extRefs
 
 	// TODO: make this configurable for power users.
 	docConfig.ExcludeExtensionRefs = true
