@@ -237,7 +237,7 @@ func GetSummaryCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					err = runGitHistorySummary(args[0], args[1], latestFlag, updateChan, errorChan,
-						baseFlag, remoteFlag, extRefs, markdownFlag, globalRevisionsFlag, limitFlag, limitTimeFlag)
+						baseFlag, remoteFlag, markdownFlag, extRefs, globalRevisionsFlag, limitFlag, limitTimeFlag)
 
 					<-doneChan
 
