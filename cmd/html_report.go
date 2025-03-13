@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pb33f/libopenapi/index"
 	"github.com/pb33f/openapi-changes/git"
 	htmlReport "github.com/pb33f/openapi-changes/html-report"
 	"github.com/pb33f/openapi-changes/model"
@@ -180,18 +179,7 @@ func GetHTMLReportCommand() *cobra.Command {
 						if len(report) <= 0 && er != nil {
 							return er[0]
 						}
-						if len(report) > 0 {
-							err = os.WriteFile(reportFile, report, 0664)
-							if err != nil {
-								pterm.Error.Println(err.Error())
-								return err
-							}
-							pterm.Success.Printf("%s report written to file '%s' (%s)", reportFile, specUrl.String(),
-								index.HumanFileSize(float64(len(report))))
-							pterm.Println()
-							pterm.Println()
-						}
-						return nil
+						return writeReportFile(err, reportFile, report)
 					}
 
 				} else {
@@ -243,15 +231,9 @@ func GetHTMLReportCommand() *cobra.Command {
 						return er[0]
 					}
 
-					err = os.WriteFile(reportFile, report, 0744)
-					if err != nil {
-						pterm.Error.Println(err.Error())
-						return err
-					}
-					pterm.Success.Printf("report written to file '%s' (%dkb)", reportFile, len(report)/1024)
-					pterm.Println()
-					pterm.Println()
-					return nil
+					err1 := writeReportFile(err, reportFile, report)
+
+					return err1
 
 				} else {
 					go listenForUpdates(updateChan, errorChan)
@@ -279,11 +261,7 @@ func GetHTMLReportCommand() *cobra.Command {
 						return errors.New("unable to process specifications")
 					}
 
-					err = os.WriteFile(reportFile, report, 0744)
-					pterm.Success.Printf("report written to file '%s' (%dkb)", reportFile, len(report)/1024)
-					pterm.Println()
-					pterm.Println()
-					return nil
+					return writeReportFile(err, reportFile, report)
 				}
 			}
 			pterm.Error.Println("wrong number of arguments, expecting two (2)")
@@ -295,6 +273,18 @@ func GetHTMLReportCommand() *cobra.Command {
 	cmd.Flags().StringP("report-file", "", "report.html", "The name of the HTML report file (defaults to 'report.html')")
 
 	return cmd
+}
+
+func writeReportFile(err error, reportFile string, report []byte) error {
+	err = os.WriteFile(reportFile, report, 0744)
+	if err != nil {
+		pterm.Error.Println(err.Error())
+		return err
+	}
+	pterm.Success.Printf("report written to file '%s' (%dkb)", reportFile, len(report)/1024)
+	pterm.Println()
+	pterm.Println()
+	return nil
 }
 
 func ExtractGithubDetailsFromURL(url *url.URL) (string, string, string, error) {
