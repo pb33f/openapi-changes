@@ -49,6 +49,7 @@ func GetSummaryCommand() *cobra.Command {
 			remoteFlag, _ := cmd.Flags().GetBool("remote")
 			markdownFlag, _ := cmd.Flags().GetBool("markdown")
 			extRefs, _ := cmd.Flags().GetBool("ext-refs")
+			errOnDiff, _ := cmd.Flags().GetBool("error-on-diff")
 
 			if noColorFlag {
 				pterm.DisableStyling()
@@ -182,7 +183,7 @@ func GetSummaryCommand() *cobra.Command {
 						}
 
 						er := runGithubHistorySummary(user, repo, filePath, latestFlag, limitFlag, limitTimeFlag, updateChan,
-							errorChan, baseFlag, remoteFlag, markdownFlag, extRefs)
+							errorChan, baseFlag, remoteFlag, markdownFlag, extRefs, errOnDiff)
 						// wait for things to be completed.
 						<-doneChan
 						if er != nil {
@@ -237,7 +238,7 @@ func GetSummaryCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					err = runGitHistorySummary(args[0], args[1], latestFlag, updateChan, errorChan,
-						baseFlag, remoteFlag, markdownFlag, extRefs, globalRevisionsFlag, limitFlag, limitTimeFlag)
+						baseFlag, remoteFlag, markdownFlag, extRefs, errOnDiff, globalRevisionsFlag, limitFlag, limitTimeFlag)
 
 					<-doneChan
 
@@ -264,7 +265,7 @@ func GetSummaryCommand() *cobra.Command {
 						return urlErr
 					}
 
-					errs := runLeftRightSummary(left, right, updateChan, errorChan, baseFlag, remoteFlag, markdownFlag, extRefs)
+					errs := runLeftRightSummary(left, right, updateChan, errorChan, baseFlag, remoteFlag, markdownFlag, extRefs, errOnDiff)
 					<-doneChan
 					if len(errs) > 0 {
 						for e := range errs {
@@ -283,6 +284,7 @@ func GetSummaryCommand() *cobra.Command {
 	}
 	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
 	cmd.Flags().BoolP("markdown", "m", false, "Render output in markdown, using emojis")
+	cmd.Flags().BoolP("error-on-diff", "", false, "Treat any differences as errors")
 	return cmd
 }
 
@@ -322,7 +324,7 @@ func checkURL(urlString string, errorChan chan model.ProgressError) (string, err
 }
 
 func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpdate,
-	errorChan chan model.ProgressError, base string, remote, markdown, extRefs bool) []error {
+	errorChan chan model.ProgressError, base string, remote, markdown, extRefs, errOnDiff bool) []error {
 
 	var leftBytes, rightBytes []byte
 	// var errs []error
@@ -373,7 +375,7 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 	model.SendProgressUpdate("extraction",
 		fmt.Sprintf("extracted %d commits from history", len(commits)), true, updateChan)
 
-	e := printSummaryDetails(commits, markdown)
+	e := printSummaryDetails(commits, markdown, errOnDiff)
 	if e != nil {
 		model.SendProgressError("git", e.Error(), errorChan)
 		close(updateChan)
@@ -384,7 +386,7 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 }
 
 func runGithubHistorySummary(username, repo, filePath string, latest bool, limit int, limitTime int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown, extRefs bool) error {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown, extRefs, errOnDiff bool) error {
 	commitHistory, _ := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan,
 		false, limit, limitTime, base, remote, extRefs)
 
@@ -397,11 +399,11 @@ func runGithubHistorySummary(username, repo, filePath string, latest bool, limit
 
 	close(progressChan)
 
-	return printSummaryDetails(commitHistory, markdown)
+	return printSummaryDetails(commitHistory, markdown, errOnDiff)
 }
 
 func runGitHistorySummary(gitPath, filePath string, latest bool,
-	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown, extRefs bool,
+	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown, extRefs, errOnDiff bool,
 	globalRevisions bool, limit int, limitTime int) error {
 
 	if gitPath == "" || filePath == "" {
@@ -429,7 +431,7 @@ func runGitHistorySummary(gitPath, filePath string, latest bool,
 		commitHistory = commitHistory[:1]
 	}
 
-	err := printSummaryDetails(commitHistory, markdown)
+	err := printSummaryDetails(commitHistory, markdown, errOnDiff)
 
 	model.SendProgressUpdate("extraction",
 		fmt.Sprintf("extracted %d commits from history\n", len(commitHistory)), true, updateChan)
@@ -437,7 +439,7 @@ func runGitHistorySummary(gitPath, filePath string, latest bool,
 	return err
 }
 
-func printSummaryDetails(commitHistory []*model.Commit, markdown bool) error {
+func printSummaryDetails(commitHistory []*model.Commit, markdown, errOnDiff bool) error {
 	tt := 0
 	tb := 0
 	pterm.Println()
@@ -571,6 +573,8 @@ func printSummaryDetails(commitHistory []*model.Commit, markdown bool) error {
 
 	if tb > 0 {
 		return errors.New("breaking changes discovered")
+	} else if tt > 0 && errOnDiff {
+		return errors.New("differences discovered")
 	} else {
 		return nil
 	}
