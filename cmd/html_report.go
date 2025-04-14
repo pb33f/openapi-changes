@@ -231,9 +231,9 @@ func GetHTMLReportCommand() *cobra.Command {
 						return er[0]
 					}
 
-					err1 := writeReportFile(err, reportFile, report)
+					writeErr := writeReportFile(err, reportFile, report)
 
-					return err1
+					return writeErr
 
 				} else {
 					go listenForUpdates(updateChan, errorChan)
