@@ -18,7 +18,7 @@ type Commit struct {
 	Author            string                 `json:"author"`
 	AuthorEmail       string                 `gorm:"index" json:"authorEmail"`
 	CommitDate        time.Time              `json:"committed"`
-	Changes           *model.DocumentChanges `gorm:"-" json:"changeReport"`
+	Changes           *model.DocumentChanges `gorm:"-" json:"changeReport,omitempty"`
 	SerializedChanges []byte                 `gorm:"-" json:"-"`
 	Data              []byte                 `gorm:"-" json:"-"`
 	OldData           []byte                 `gorm:"-" json:"-"`
