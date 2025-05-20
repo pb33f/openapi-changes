@@ -30,7 +30,7 @@ const (
 	REVPARSE  = "rev-parse"
 	TOPLEVEL  = "--show-toplevel"
 	NOPAGER   = "--no-pager"
-	LOGFORMAT = "--pretty=%cD||%h||%s||%an||%ae"
+	LOGFORMAT = `--pretty="%cD|||%h|||%s|||%an|||%ae"`
 	NUMBER    = "-n"
 	DIV       = "--"
 )
@@ -98,7 +98,7 @@ func ExtractHistoryFromFile(repoDirectory, filePath string,
 		if k == limit && commitTimeCutoff == nil {
 			break
 		}
-		c := strings.Split(lines[k], "||")
+		c := strings.Split(lines[k], "|||")
 		if len(c) == 5 {
 			date, _ := dateparse.ParseAny(c[0])
 			commitHistory = append(commitHistory,
