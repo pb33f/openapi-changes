@@ -30,6 +30,7 @@ const (
 	REVPARSE  = "rev-parse"
 	TOPLEVEL  = "--show-toplevel"
 	NOPAGER   = "--no-pager"
+	FOLLOW    = "--follow"
 	LOGFORMAT = "--pretty=%cD||%h||%s||%an||%ae"
 	NUMBER    = "-n"
 	DIV       = "--"
@@ -39,10 +40,7 @@ func CheckLocalRepoAvailable(dir string) bool {
 	cmd := exec.Command(GIT, LOG)
 	cmd.Dir = dir
 	err := cmd.Run()
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func GetTopLevel(dir string) (string, error) {
@@ -55,16 +53,18 @@ func GetTopLevel(dir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	outStr, _ := string(stdout.Bytes()), string(stderr.Bytes())
+	outStr, _ := stdout.String(), stderr.String()
 	return outStr, nil
 }
 
-func ExtractHistoryFromFile(repoDirectory, filePath string,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, globalRevisions bool, limit int, limitTime int) ([]*model.Commit, []error) {
+func ExtractHistoryFromFile(repoDirectory, filePath, baseCommit string,
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, globalRevisions bool, limit int, limitTime int,
+) ([]*model.Commit, []error) {
+	args := []string{NOPAGER, LOG, LOGFORMAT, FOLLOW}
 
-	args := []string{NOPAGER, LOG, LOGFORMAT}
-
-	if limit > 0 && globalRevisions {
+	if baseCommit != "" {
+		args = append(args, fmt.Sprintf("%s..HEAD", baseCommit))
+	} else if limit > 0 && globalRevisions {
 		args = append(args, fmt.Sprintf("HEAD~%d..HEAD", limit))
 	} else if limit > 0 {
 		args = append(args, NUMBER, strconv.Itoa(limit))
@@ -80,7 +80,13 @@ func ExtractHistoryFromFile(repoDirectory, filePath string,
 	err := cmd.Run()
 	var commitHistory []*model.Commit
 	if err != nil {
-		errString := fmt.Sprintf("unable to read git repository '%s' (are you sure it's a git repo?): %s", repoDirectory, err.Error())
+		errString := fmt.Sprintf(
+			"received non-zero exit code from git for '%s' when running %q (are you sure it's a git repo?): %s -- stderr: %s",
+			repoDirectory,
+			cmd.String(),
+			err.Error(),
+			stderr.String(),
+		)
 		model.SendProgressError("git", errString, errorChan)
 		return nil, []error{errors.New(errString)}
 	}
@@ -92,7 +98,7 @@ func ExtractHistoryFromFile(repoDirectory, filePath string,
 		commitTimeCutoff = &temp
 	}
 
-	outStr, _ := string(stdout.Bytes()), string(stderr.Bytes())
+	outStr, _ := stdout.String(), stderr.String()
 	lines := strings.Split(outStr, "\n")
 	for k := range lines {
 		if k == limit && commitTimeCutoff == nil {
@@ -113,6 +119,10 @@ func ExtractHistoryFromFile(repoDirectory, filePath string,
 				})
 			model.SendProgressUpdate(c[1],
 				fmt.Sprintf("extacted commit '%s'", c[1]), false, progressChan)
+
+			if baseCommit != "" && (c[1] == baseCommit || strings.HasPrefix(c[1], baseCommit)) {
+				break
+			}
 		}
 
 		if commitTimeCutoff != nil {
@@ -129,8 +139,8 @@ func ExtractHistoryFromFile(repoDirectory, filePath string,
 }
 
 func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitTime int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool) ([]*model.Commit, []error) {
-
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+) ([]*model.Commit, []error) {
 	for c := range commitHistory {
 		var err error
 		commitHistory[c].Data, err = readFile(commitHistory[c].RepoDirectory, commitHistory[c].Hash, commitHistory[c].FilePath)
@@ -161,8 +171,8 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitT
 
 // TODO: we have reached peak argument count, we have to fix this.
 func BuildCommitChangelog(commitHistory []*model.Commit,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool) ([]*model.Commit, []error) {
-
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+) ([]*model.Commit, []error) {
 	var changeErrors []error
 	var cleaned []*model.Commit
 
@@ -243,10 +253,8 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 				changeErrors = append(changeErrors, err)
 				return nil, changeErrors
 			} else {
-
 				model.SendProgressUpdate("building models",
 					fmt.Sprintf("Building original model for commit %s", commitHistory[c].Hash[0:6]), false, progressChan)
-
 			}
 			newDoc, err = libopenapi.NewDocumentWithConfiguration(newBits, docConfig)
 			if err != nil {

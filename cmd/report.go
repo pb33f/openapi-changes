@@ -36,6 +36,7 @@ func GetReportCommand() *cobra.Command {
 			doneChan := make(chan bool)
 			failed := false
 			latestFlag, _ := cmd.Flags().GetBool("top")
+			baseCommitFlag, _ := cmd.Flags().GetString("base-commit")
 			globalRevisionsFlag, _ := cmd.Flags().GetBool("global-revisions")
 			limitFlag, _ := cmd.Flags().GetInt("limit")
 			limitTimeFlag, _ := cmd.Flags().GetInt("limit-time")
@@ -93,7 +94,7 @@ func GetReportCommand() *cobra.Command {
 							<-doneChan
 							return err
 						}
-						report, er := runGithubHistoryReport(user, repo, filePath, latestFlag, limitFlag, limitTimeFlag, updateChan,
+						report, er := runGithubHistoryReport(user, repo, filePath, baseCommitFlag, latestFlag, limitFlag, limitTimeFlag, updateChan,
 							errorChan, baseFlag, remoteFlag, extRefs)
 
 						// wait for things to be completed.
@@ -158,7 +159,7 @@ func GetReportCommand() *cobra.Command {
 
 					go listenForUpdates(updateChan, errorChan)
 
-					report, er := runGitHistoryReport(repo, p, latestFlag, updateChan, errorChan, baseFlag,
+					report, er := runGitHistoryReport(repo, p, baseCommitFlag, latestFlag, updateChan, errorChan, baseFlag,
 						remoteFlag, extRefs, globalRevisionsFlag, limitFlag, limitTimeFlag)
 
 					<-doneChan
@@ -229,7 +230,7 @@ func GetReportCommand() *cobra.Command {
 	return cmd
 }
 
-func runGitHistoryReport(gitPath, filePath string, latest bool,
+func runGitHistoryReport(gitPath, filePath, baseCommit string, latest bool,
 	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool, globalRevisions bool, limit int, limitTime int) (*model.HistoricalReport, []error) {
 
 	if gitPath == "" || filePath == "" {
@@ -244,7 +245,7 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 			filePath, gitPath), false, updateChan)
 
 	// build commit history.
-	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan, globalRevisions, limit, limitTime)
+	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, baseCommit, updateChan, errorChan, globalRevisions, limit, limitTime)
 	if err != nil {
 		model.SendProgressError("git", fmt.Sprintf("%d errors found building history", len(err)), errorChan)
 		close(updateChan)
@@ -284,10 +285,10 @@ func runGitHistoryReport(gitPath, filePath string, latest bool,
 
 }
 
-func runGithubHistoryReport(username, repo, filePath string, latest bool, limit int, limitTime int,
+func runGithubHistoryReport(username, repo, filePath, baseCommit string, latest bool, limit int, limitTime int,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool) (*model.HistoricalReport, []error) {
 
-	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan,
+	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, baseCommit, progressChan, errorChan,
 		false, limit, limitTime, base, remote, extRefs)
 	if errs != nil {
 		model.SendProgressError("git", errors.Join(errs...).Error(), errorChan)
