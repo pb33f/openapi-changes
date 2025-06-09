@@ -41,6 +41,7 @@ func GetSummaryCommand() *cobra.Command {
 			doneChan := make(chan bool)
 			failed := false
 			baseFlag, _ := cmd.Flags().GetString("base")
+			baseCommitFlag, _ := cmd.Flags().GetString("base-commit")
 			latestFlag, _ := cmd.Flags().GetBool("top")
 			noColorFlag, _ := cmd.Flags().GetBool("no-color")
 			globalRevisionsFlag, _ := cmd.Flags().GetBool("global-revisions")
@@ -182,7 +183,7 @@ func GetSummaryCommand() *cobra.Command {
 							return err
 						}
 
-						er := runGithubHistorySummary(user, repo, filePath, latestFlag, limitFlag, limitTimeFlag, updateChan,
+						er := runGithubHistorySummary(user, repo, filePath, baseCommitFlag, latestFlag, limitFlag, limitTimeFlag, updateChan,
 							errorChan, baseFlag, remoteFlag, markdownFlag, extRefs, errOnDiff)
 						// wait for things to be completed.
 						<-doneChan
@@ -237,7 +238,7 @@ func GetSummaryCommand() *cobra.Command {
 
 					go listenForUpdates(updateChan, errorChan)
 
-					err = runGitHistorySummary(args[0], args[1], latestFlag, updateChan, errorChan,
+					err = runGitHistorySummary(args[0], args[1], baseCommitFlag, latestFlag, updateChan, errorChan,
 						baseFlag, remoteFlag, markdownFlag, extRefs, errOnDiff, globalRevisionsFlag, limitFlag, limitTimeFlag)
 
 					<-doneChan
@@ -385,9 +386,9 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 	return nil
 }
 
-func runGithubHistorySummary(username, repo, filePath string, latest bool, limit int, limitTime int,
+func runGithubHistorySummary(username, repo, filePath, baseCommit string, latest bool, limit int, limitTime int,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown, extRefs, errOnDiff bool) error {
-	commitHistory, _ := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan,
+	commitHistory, _ := git.ProcessGithubRepo(username, repo, filePath, baseCommit, progressChan, errorChan,
 		false, limit, limitTime, base, remote, extRefs)
 
 	if latest {
@@ -402,7 +403,7 @@ func runGithubHistorySummary(username, repo, filePath string, latest bool, limit
 	return printSummaryDetails(commitHistory, markdown, errOnDiff)
 }
 
-func runGitHistorySummary(gitPath, filePath string, latest bool,
+func runGitHistorySummary(gitPath, filePath, baseCommit string, latest bool,
 	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown, extRefs, errOnDiff bool,
 	globalRevisions bool, limit int, limitTime int) error {
 
@@ -417,7 +418,7 @@ func runGitHistorySummary(gitPath, filePath string, latest bool,
 			filePath, gitPath), false, updateChan)
 
 	// build commit history.
-	commitHistory, errs := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan, globalRevisions, limit, limitTime)
+	commitHistory, errs := git.ExtractHistoryFromFile(gitPath, filePath, baseCommit, updateChan, errorChan, globalRevisions, limit, limitTime)
 	if errs != nil {
 		model.SendProgressError("git", fmt.Sprintf("%d errors found extracting history", len(errs)), errorChan)
 		close(updateChan)

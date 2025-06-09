@@ -41,6 +41,7 @@ func GetConsoleCommand() *cobra.Command {
 			limitFlag, _ := cmd.Flags().GetInt("limit")
 			limitTimeFlag, _ := cmd.Flags().GetInt("limit-time")
 			baseFlag, _ := cmd.Flags().GetString("base")
+			baseCommitFlag, _ := cmd.Flags().GetString("base-commit")
 			remoteFlag, _ := cmd.Flags().GetBool("remote")
 			extRefs, _ := cmd.Flags().GetBool("ext-refs")
 
@@ -146,7 +147,7 @@ func GetConsoleCommand() *cobra.Command {
 							<-doneChan
 							return err
 						}
-						commits, e := runGithubHistoryConsole(user, repo, filePath, latestFlag, limitFlag, limitTimeFlag, updateChan,
+						commits, e := runGithubHistoryConsole(user, repo, filePath, baseCommitFlag, latestFlag, limitFlag, limitTimeFlag, updateChan,
 							errorChan, baseFlag, remoteFlag, extRefs)
 
 						// wait for things to be completed.
@@ -211,7 +212,7 @@ func GetConsoleCommand() *cobra.Command {
 
 					go listenForUpdates(updateChan, errorChan)
 
-					commits, errs := runGitHistoryConsole(args[0], args[1], latestFlag, globalRevisionsFlag, limitFlag, limitTimeFlag,
+					commits, errs := runGitHistoryConsole(args[0], args[1], baseCommitFlag, latestFlag, globalRevisionsFlag, limitFlag, limitTimeFlag,
 						updateChan, errorChan, baseFlag, remoteFlag, extRefs)
 
 					// wait.
@@ -273,10 +274,10 @@ func GetConsoleCommand() *cobra.Command {
 }
 
 // TODO: we have got to clean up these methods and replace with a message based design.
-func runGithubHistoryConsole(username, repo, filePath string, latest bool, limit int, limitTime int,
+func runGithubHistoryConsole(username, repo, filePath, baseCommit string, latest bool, limit int, limitTime int,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool) ([]*model.Commit, []error) {
 
-	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, progressChan, errorChan, true, limit, limitTime, base, remote, extRefs)
+	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, baseCommit, progressChan, errorChan, true, limit, limitTime, base, remote, extRefs)
 
 	if latest && len(commitHistory) > 1 {
 		commitHistory = commitHistory[:1]
@@ -308,7 +309,7 @@ func runGithubHistoryConsole(username, repo, filePath string, latest bool, limit
 	return commitHistory, nil
 }
 
-func runGitHistoryConsole(gitPath, filePath string, latest bool, globalRevisions bool, limit int, limitTime int,
+func runGitHistoryConsole(gitPath, filePath, baseCommit string, latest bool, globalRevisions bool, limit int, limitTime int,
 	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool) ([]*model.Commit, []error) {
 
 	if gitPath == "" || filePath == "" {
@@ -322,7 +323,7 @@ func runGitHistoryConsole(gitPath, filePath string, latest bool, globalRevisions
 			filePath, gitPath), false, updateChan)
 
 	// build commit history.
-	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, updateChan, errorChan, globalRevisions, limit, limitTime)
+	commitHistory, err := git.ExtractHistoryFromFile(gitPath, filePath, baseCommit, updateChan, errorChan, globalRevisions, limit, limitTime)
 
 	if err != nil {
 		close(updateChan)

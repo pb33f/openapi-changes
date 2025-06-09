@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/araddon/dateparse"
-	"github.com/pb33f/openapi-changes/model"
 	"io"
 	"net"
 	"net/http"
@@ -17,6 +15,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/araddon/dateparse"
+	"github.com/pb33f/openapi-changes/model"
 )
 
 const GithubRepoAPI = "https://api.github.com/repos/"
@@ -49,7 +50,7 @@ type APIFile struct {
 	Bytes   []byte `json:"-"`
 }
 
-func GetCommitsForGithubFile(user, repo, path string,
+func GetCommitsForGithubFile(user, repo, path string, baseCommit string,
 	progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError,
 	forceCutoff bool, limit int, limitTime int) ([]*APICommit, error) {
 
@@ -121,7 +122,7 @@ func GetCommitsForGithubFile(user, repo, path string,
 			errString := fmt.Sprintf("HTTP error %d, cannot proceed: %s", res.StatusCode, string(b))
 			model.SendProgressError(fmt.Sprintf("fetching commit %s via API", commit.Hash),
 				err.Error(), progressErrorChan)
-			e <- fmt.Errorf(errString)
+			e <- errors.New(errString)
 			return
 		}
 		b, er := io.ReadAll(res.Body)
@@ -169,7 +170,7 @@ func GetCommitsForGithubFile(user, repo, path string,
 					errMsg := fmt.Sprintf("HTTP error %d, cannot proceed: %s", res.StatusCode, string(k))
 					model.SendProgressError(fmt.Sprintf("reading commit %s file at %s via API",
 						commit.Hash, commit.Files[x].RawURL), errMsg, progressErrorChan)
-					e <- fmt.Errorf(errMsg)
+					e <- errors.New(errMsg)
 					return
 				}
 				b, er = io.ReadAll(res.Body)
@@ -222,6 +223,10 @@ func GetCommitsForGithubFile(user, repo, path string,
 			fmt.Sprintf("commit %s being fetched from %s", commits[x].Hash[0:6], u), false, progressChan)
 		go extractFilesFromCommit(user, repo, path, commits[x], sigChan, errChan)
 		b++
+		if baseCommit != "" && (commits[x].Hash == baseCommit || strings.HasPrefix(commits[x].Hash, baseCommit)) {
+			totalCommits = b
+			break
+		}
 		if limit > 0 && b > limit {
 			break
 		}
@@ -292,7 +297,7 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
 	return normalized, errs
 }
 
-func ProcessGithubRepo(username string, repo string, filePath string,
+func ProcessGithubRepo(username, repo, filePath, baseCommit string,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
 	forceCutoff bool, limit int, limitTime int, base string, remote, extRefs bool) ([]*model.Commit, []error) {
 
@@ -302,7 +307,7 @@ func ProcessGithubRepo(username string, repo string, filePath string,
 		return nil, []error{err}
 	}
 
-	githubCommits, err := GetCommitsForGithubFile(username, repo, filePath, progressChan, errorChan, forceCutoff, limit, limitTime)
+	githubCommits, err := GetCommitsForGithubFile(username, repo, filePath, baseCommit, progressChan, errorChan, forceCutoff, limit, limitTime)
 
 	if err != nil {
 		return nil, []error{err}
