@@ -146,7 +146,7 @@ func (md *markdownReport) GenerateReport() []byte {
 
 	// General summary
 	if md.model.Summary != nil {
-		buffer.WriteString("## 📊 General Summary\n\n")
+		buffer.WriteString("## General Summary\n\n")
 		buffer.WriteString(fmt.Sprintf("- **Total changes:** %d\n", md.model.Summary.Total))
 		buffer.WriteString(fmt.Sprintf("- **Breaking changes:** %d\n", md.model.Summary.TotalBreaking))
 		buffer.WriteString(fmt.Sprintf("- **Additions:** %d\n", md.model.Summary.Added))
@@ -155,7 +155,7 @@ func (md *markdownReport) GenerateReport() []byte {
 	}
 
 	// Details by commit
-	buffer.WriteString("## 📝 Details by Commit\n\n")
+	buffer.WriteString("## Details by Commit\n\n")
 
 	for i, item := range md.model.ReportItems {
 		buffer.WriteString(fmt.Sprintf("### Commit %d: %s\n\n", i+1, item.CommitInfo.Message))
@@ -217,20 +217,6 @@ func (md *markdownReport) GenerateReport() []byte {
 					for _, property := range properties {
 						changes := changesByProperty[property]
 
-						// Check if all changes for this property are breaking
-						allBreaking := true
-						for _, change := range changes {
-							if !change.Breaking {
-								allBreaking = false
-								break
-							}
-						}
-
-						breakingIcon := ""
-						if allBreaking {
-							breakingIcon = "🚨 "
-						}
-
 						// Group by description to consolidate similar changes
 						changesByDescription := make(map[string][]*model.MarkdownChange)
 						for _, change := range changes {
@@ -241,7 +227,7 @@ func (md *markdownReport) GenerateReport() []byte {
 							if len(descChanges) == 1 {
 								// Single change - show as before
 								change := descChanges[0]
-								buffer.WriteString(fmt.Sprintf("- %s**%s** %s\n", breakingIcon, change.Property, change.Description))
+								buffer.WriteString(fmt.Sprintf("- **%s** %s\n", change.Property, change.Description))
 
 								if change.Original != "" && change.New != "" {
 									buffer.WriteString(fmt.Sprintf("  - **Before:** `%s`\n", change.Original))
@@ -254,7 +240,7 @@ func (md *markdownReport) GenerateReport() []byte {
 								buffer.WriteString("\n")
 							} else {
 								// Multiple changes - group them
-								buffer.WriteString(fmt.Sprintf("- %s**%s** %s (%d items)\n", breakingIcon, property, description, len(descChanges)))
+								buffer.WriteString(fmt.Sprintf("- **%s** %s (%d items)\n", property, description, len(descChanges)))
 
 								// Collect all values
 								var addedValues, removedValues, modifiedValues []string
