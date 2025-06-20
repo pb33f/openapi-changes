@@ -1,4 +1,4 @@
-// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
+// Copyright 2025 Princess B33f Heavy Industries / Dave Shanley
 // SPDX-License-Identifier: MIT
 
 package model
@@ -53,4 +53,31 @@ type CommitStatistics struct {
 	Author      string `json:"author,omitempty"`
 	AuthorEmail string `json:"authorEmail,omitempty"`
 	Hash        string `json:"hash,omitempty"`
+}
+
+// Estruturas para relatórios em Markdown
+type MarkdownChange struct {
+	Type        string `json:"type"`
+	Property    string `json:"property"`
+	Original    string `json:"original,omitempty"`
+	New         string `json:"new,omitempty"`
+	Breaking    bool   `json:"breaking"`
+	Description string `json:"description"`
+}
+
+type MarkdownReportItem struct {
+	CommitInfo    *CommitStatistics `json:"commitInfo"`
+	Statistics    *ChangeStatistics `json:"statistics"`
+	Changes       []*MarkdownChange `json:"changes,omitempty"`
+	Summary       string            `json:"summary"`
+	BreakingCount int               `json:"breakingCount"`
+	TotalCount    int               `json:"totalCount"`
+	Diff          string            `json:"diff,omitempty"`
+}
+
+type MarkdownReport struct {
+	Title         string                `json:"title"`
+	DateGenerated string                `json:"dateGenerated"`
+	ReportItems   []*MarkdownReportItem `json:"reportItems"`
+	Summary       *ChangeStatistics     `json:"summary"`
 }
