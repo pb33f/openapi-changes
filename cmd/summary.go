@@ -230,7 +230,7 @@ func GetSummaryCommand() *cobra.Command {
 						return err
 					}
 					p = args[1]
-					f, err = os.Stat(filepath.Join(repo, p))
+					_, err = os.Stat(filepath.Join(repo, p))
 					if err != nil {
 						pterm.Error.Printf("Cannot open file/repository: '%s'", args[1])
 						return err
