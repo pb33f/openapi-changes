@@ -154,7 +154,8 @@ func GetCommitsForGithubFile(user, repo, path string, baseCommit string,
 			dir = strings.ReplaceAll(dir, fmt.Sprintf("/%s/%s/raw/%s/", user, repo, commit.Hash), "")
 
 			if file == lookyLoo && dir == lookyDir {
-				r, _ = http.NewRequest(http.MethodGet, commit.Files[x].RawURL, nil)
+				u = fmt.Sprintf("%s%s/%s/contents/%s?ref=%s", GithubRepoAPI, user, repo, path, commit.Hash)
+				r, _ = http.NewRequest(http.MethodGet, u, nil)
 				if ghAuth != "" {
 					r.Header.Set(GithubAuthHeader, fmt.Sprintf("Bearer %s", ghAuth))
 				}
@@ -173,6 +174,35 @@ func GetCommitsForGithubFile(user, repo, path string, baseCommit string,
 					e <- errors.New(errMsg)
 					return
 				}
+
+				type Response struct {
+					DownloadURL string `json:"download_url"`
+				}
+
+				var resp Response
+				er = json.NewDecoder(res.Body).Decode(&resp)
+				if er != nil {
+					model.SendProgressError(fmt.Sprintf("decoding commit %s file at %s via API",
+						commit.Hash, commit.Files[x].RawURL), er.Error(), progressErrorChan)
+					e <- er
+					return
+				}
+
+				if resp.DownloadURL == "" {
+					model.SendProgressError(fmt.Sprintf("commit %s file at %s has no download URL (are you sure it's a file?)", commit.Hash, commit.Files[x].RawURL),
+						"no download URL found in response", progressErrorChan)
+					e <- errors.New("no download URL found in response")
+					return
+				}
+
+				res, er = cl.Get(resp.DownloadURL)
+				if er != nil {
+					model.SendProgressError(fmt.Sprintf("reading commit %s file at %s via API",
+						commit.Hash, commit.Files[x].RawURL), er.Error(), progressErrorChan)
+					e <- er
+					return
+				}
+
 				b, er = io.ReadAll(res.Body)
 				kbSize += (len(b) / 1024) * 2
 				if kbSize > threshold {

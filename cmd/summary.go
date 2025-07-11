@@ -71,7 +71,7 @@ func GetSummaryCommand() *cobra.Command {
 			listenForUpdates := func(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) {
 				var spinner *pterm.SpinnerPrinter
 				if !noColorFlag {
-					spinner, _ := pterm.DefaultSpinner.Start("starting work.")
+					spinner, _ = pterm.DefaultSpinner.Start("starting work.")
 
 					spinner.InfoPrinter = &pterm.PrefixPrinter{
 						MessageStyle: &pterm.Style{pterm.FgLightCyan},
@@ -230,7 +230,7 @@ func GetSummaryCommand() *cobra.Command {
 						return err
 					}
 					p = args[1]
-					f, err = os.Stat(filepath.Join(repo, p))
+					_, err = os.Stat(filepath.Join(repo, p))
 					if err != nil {
 						pterm.Error.Printf("Cannot open file/repository: '%s'", args[1])
 						return err

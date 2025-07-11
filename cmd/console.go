@@ -142,7 +142,7 @@ func GetConsoleCommand() *cobra.Command {
 						if er != nil {
 							errorChan <- model.ProgressError{
 								Job:     "github url",
-								Message: fmt.Sprintf("error extracting github details from url: %s", err.Error()),
+								Message: fmt.Sprintf("error extracting github details from url: %s", er.Error()),
 							}
 							<-doneChan
 							return err
@@ -153,7 +153,7 @@ func GetConsoleCommand() *cobra.Command {
 						// wait for things to be completed.
 						<-doneChan
 
-						if err != nil {
+						if e != nil {
 							return e[0]
 						}
 
@@ -204,7 +204,7 @@ func GetConsoleCommand() *cobra.Command {
 						return err
 					}
 					p = args[1]
-					f, err = os.Stat(filepath.Join(repo, p))
+					_, err = os.Stat(filepath.Join(repo, p))
 					if err != nil {
 						pterm.Error.Printf("Cannot open file/repository: '%s'\n", args[1])
 						return err
