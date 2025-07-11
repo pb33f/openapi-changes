@@ -155,7 +155,6 @@ func GetCommitsForGithubFile(user, repo, path string, baseCommit string,
 
 			if file == lookyLoo && dir == lookyDir {
 				u = fmt.Sprintf("%s%s/%s/contents/%s?ref=%s", GithubRepoAPI, user, repo, path, commit.Hash)
-				fmt.Println("Found matching file in commit:", commit.Files[x].RawURL, "at path:", u)
 				r, _ = http.NewRequest(http.MethodGet, u, nil)
 				if ghAuth != "" {
 					r.Header.Set(GithubAuthHeader, fmt.Sprintf("Bearer %s", ghAuth))
