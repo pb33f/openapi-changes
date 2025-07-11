@@ -71,7 +71,7 @@ func GetSummaryCommand() *cobra.Command {
 			listenForUpdates := func(updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError) {
 				var spinner *pterm.SpinnerPrinter
 				if !noColorFlag {
-					spinner, _ := pterm.DefaultSpinner.Start("starting work.")
+					spinner, _ = pterm.DefaultSpinner.Start("starting work.")
 
 					spinner.InfoPrinter = &pterm.PrefixPrinter{
 						MessageStyle: &pterm.Style{pterm.FgLightCyan},
