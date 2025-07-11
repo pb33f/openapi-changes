@@ -142,7 +142,7 @@ func GetConsoleCommand() *cobra.Command {
 						if er != nil {
 							errorChan <- model.ProgressError{
 								Job:     "github url",
-								Message: fmt.Sprintf("error extracting github details from url: %s", err.Error()),
+								Message: fmt.Sprintf("error extracting github details from url: %s", er.Error()),
 							}
 							<-doneChan
 							return err
@@ -153,7 +153,7 @@ func GetConsoleCommand() *cobra.Command {
 						// wait for things to be completed.
 						<-doneChan
 
-						if err != nil {
+						if e != nil {
 							return e[0]
 						}
 
