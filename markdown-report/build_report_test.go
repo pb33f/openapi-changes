@@ -77,8 +77,8 @@ func TestGenerateReport(t *testing.T) {
 	// Check if it contains expected elements
 	expectedElements := []string{
 		"# OpenAPI Changes Report",
-		"## 📊 General Summary",
-		"## 📝 Details by Commit",
+		"## General Summary",
+		"## Details by Commit",
 		"### Commit 1:",
 		"Test commit",
 		"Test Author",
