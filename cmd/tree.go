@@ -225,15 +225,17 @@ func BuildSliceTreeNode[T any](list *[]pterm.LeveledListItem, field reflect.Valu
 	if !field.IsZero() {
 		for k := 0; k < field.Len(); k++ {
 			f := field.Index(k)
-			ob := f.Elem().Interface().(T)
-			*list = append(*list, pterm.LeveledListItem{Level: level, Text: label})
-			buildConsoleTreeNode(list, &ob, level+1, markdown)
+			if f.Elem().IsValid() && !f.Elem().IsZero() {
+				ob := f.Elem().Interface().(T)
+				*list = append(*list, pterm.LeveledListItem{Level: level, Text: label})
+				buildConsoleTreeNode(list, &ob, level+1, markdown)
+			}
 		}
 	}
 }
 
 func DigIntoObject[T any](list *[]pterm.LeveledListItem, field reflect.Value, level int, label string, markdown bool) {
-	if !field.IsZero() {
+	if !field.IsZero() && field.Elem().IsValid() && !field.Elem().IsZero() {
 		*list = append(*list, pterm.LeveledListItem{Level: level, Text: label})
 		level++
 		obj := field.Elem().Interface().(T)

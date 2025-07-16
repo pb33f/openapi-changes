@@ -287,7 +287,7 @@ func extractChangeCount(change reports.HasChanges) (int, int) {
 }
 
 func DigIntoTreeNode[T any](parent *model.TreeNode, field reflect.Value, label string, tc, br int) {
-	if !field.IsZero() {
+	if !field.IsZero() && field.Elem().IsValid() && !field.Elem().IsZero() {
 		e := &model.TreeNode{
 			TitleString:     label,
 			Key:             uuid.New().String(),
@@ -320,23 +320,25 @@ func DigIntoTreeNodeSlice[T any](parent *model.TreeNode, field reflect.Value, la
 	if !field.IsZero() {
 		for k := 0; k < field.Len(); k++ {
 			f := field.Index(k)
-			e := &model.TreeNode{
-				TitleString: transformLabel(label),
-				Key:         uuid.New().String(),
-				IsLeaf:      false,
-				Selectable:  false,
-				Disabled:    false,
+			if f.Elem().IsValid() && !f.Elem().IsZero() {
+				e := &model.TreeNode{
+					TitleString: transformLabel(label),
+					Key:         uuid.New().String(),
+					IsLeaf:      false,
+					Selectable:  false,
+					Disabled:    false,
+				}
+				obj := f.Elem().Interface().(T)
+				ch, br := countChanges(obj)
+				if ch > -1 {
+					e.TotalChanges = ch
+				}
+				if br > -1 {
+					e.BreakingChanges = br
+				}
+				parent.Children = append(parent.Children, e)
+				exploreTreeObject(e, &obj)
 			}
-			obj := f.Elem().Interface().(T)
-			ch, br := countChanges(obj)
-			if ch > -1 {
-				e.TotalChanges = ch
-			}
-			if br > -1 {
-				e.BreakingChanges = br
-			}
-			parent.Children = append(parent.Children, e)
-			exploreTreeObject(e, &obj)
 		}
 	}
 }
