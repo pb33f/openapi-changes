@@ -279,8 +279,10 @@ func BuildSliceTreeNode[T any](field reflect.Value, root *tview.TreeNode, obj an
 		root.AddChild(node)
 		for k := 0; k < field.Len(); k++ {
 			f := field.Index(k)
-			ob := f.Elem().Interface().(T)
-			buildTreeNode(node, &ob)
+			if f.Elem().IsValid() && !f.Elem().IsZero() {
+				ob := f.Elem().Interface().(T)
+				buildTreeNode(node, &ob)
+			}
 		}
 	}
 }
@@ -310,7 +312,7 @@ func CreateNode(name string, object any) *tview.TreeNode {
 }
 
 func DigIntoObject[T any](root, node *tview.TreeNode, field reflect.Value) {
-	if !field.IsZero() {
+	if !field.IsZero() && field.Elem().IsValid() && !field.Elem().IsZero() {
 		obj := field.Elem().Interface().(T)
 		buildTreeNode(node, &obj)
 		root.AddChild(node)
