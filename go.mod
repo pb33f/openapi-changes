@@ -7,11 +7,11 @@ require (
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/google/uuid v1.6.0
 	github.com/pb33f/libopenapi v0.23.0
-	github.com/pterm/pterm v0.12.80
+	github.com/pterm/pterm v0.12.81
 	github.com/rivo/tview v0.0.0-20250501113434-0c592cd31026
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/text v0.25.0
+	golang.org/x/text v0.27.0
 )
 
 require (
@@ -20,7 +20,7 @@ require (
 	atomicgo.dev/schedule v0.1.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
-	github.com/containerd/console v1.0.4 // indirect
+	github.com/containerd/console v1.0.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/gookit/color v1.5.4 // indirect
