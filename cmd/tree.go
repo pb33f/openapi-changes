@@ -179,22 +179,37 @@ func generateTreeState(change *wcModel.Change, markdown bool) string {
 	if change.Breaking {
 		breaking = "❌ "
 	}
+	
+	// Helper function to safely dereference int pointers
+	safeDeref := func(ptr *int) int {
+		if ptr == nil {
+			return 0
+		}
+		return *ptr
+	}
+	
 	switch change.ChangeType {
 	case wcModel.Modified:
 		if markdown {
-			return fmt.Sprintf("[🔀] %s (%d:%d)%s", change.Property, *change.Context.NewLine, *change.Context.NewColumn, breaking)
+			return fmt.Sprintf("[🔀] %s (%d:%d)%s", change.Property, 
+				safeDeref(change.Context.NewLine), safeDeref(change.Context.NewColumn), breaking)
 		}
-		return fmt.Sprintf("[M] %s (%d:%d)%s", change.Property, *change.Context.NewLine, *change.Context.NewColumn, breaking)
+		return fmt.Sprintf("[M] %s (%d:%d)%s", change.Property, 
+			safeDeref(change.Context.NewLine), safeDeref(change.Context.NewColumn), breaking)
 	case wcModel.ObjectAdded, wcModel.PropertyAdded:
 		if markdown {
-			return fmt.Sprintf("[➕] %s (%d:%d)%s", change.Property, *change.Context.NewLine, *change.Context.NewColumn, breaking)
+			return fmt.Sprintf("[➕] %s (%d:%d)%s", change.Property, 
+				safeDeref(change.Context.NewLine), safeDeref(change.Context.NewColumn), breaking)
 		}
-		return fmt.Sprintf("[+] %s (%d:%d)%s", change.Property, *change.Context.NewLine, *change.Context.NewColumn, breaking)
+		return fmt.Sprintf("[+] %s (%d:%d)%s", change.Property, 
+			safeDeref(change.Context.NewLine), safeDeref(change.Context.NewColumn), breaking)
 	case wcModel.ObjectRemoved, wcModel.PropertyRemoved:
 		if markdown {
-			return fmt.Sprintf("[➖] %s (%d:%d)%s", change.Property, *change.Context.OriginalLine, *change.Context.OriginalColumn, breaking)
+			return fmt.Sprintf("[➖] %s (%d:%d)%s", change.Property, 
+				safeDeref(change.Context.OriginalLine), safeDeref(change.Context.OriginalColumn), breaking)
 		}
-		return fmt.Sprintf("[-] %s (%d:%d)%s", change.Property, *change.Context.OriginalLine, *change.Context.OriginalColumn, breaking)
+		return fmt.Sprintf("[-] %s (%d:%d)%s", change.Property, 
+			safeDeref(change.Context.OriginalLine), safeDeref(change.Context.OriginalColumn), breaking)
 	}
 	return ""
 }
