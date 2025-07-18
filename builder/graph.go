@@ -264,7 +264,7 @@ func disableNode(node *model.NodeData[any]) {
 func DigIntoObject[T any](parent *model.NodeData[any], field reflect.Value, nodes *[]*model.NodeData[any],
 	label string, edges *[]*model.EdgeData[any]) {
 
-	if !field.IsZero() {
+	if !field.IsZero() && field.Elem().IsValid() && !field.Elem().IsZero() {
 		lowerLabel := strings.ToLower(label)
 		n := buildNode(lowerLabel, calcWidth(lowerLabel), DefaultHeight, nil)
 		if parent != nil {
@@ -289,20 +289,22 @@ func BuildSliceGraphNode[T any](parent *model.NodeData[any], field reflect.Value
 	if !field.IsZero() {
 		for k := 0; k < field.Len(); k++ {
 			f := field.Index(k)
-			lowerLabel := strings.ToLower(label)
-			n := buildNode(lowerLabel, calcWidth(lowerLabel), DefaultHeight, nil)
-			if parent != nil {
-				e := &model.EdgeData[any]{
-					Id:   fmt.Sprintf("%s-to-%s", parent.Id, n.Id),
-					From: parent.Id,
-					To:   n.Id,
+			if f.Elem().IsValid() && !f.Elem().IsZero() {
+				lowerLabel := strings.ToLower(label)
+				n := buildNode(lowerLabel, calcWidth(lowerLabel), DefaultHeight, nil)
+				if parent != nil {
+					e := &model.EdgeData[any]{
+						Id:   fmt.Sprintf("%s-to-%s", parent.Id, n.Id),
+						From: parent.Id,
+						To:   n.Id,
+					}
+					*edges = append(*edges, e)
 				}
-				*edges = append(*edges, e)
+				disableNode(n)
+				*nodes = append(*nodes, n)
+				obj := f.Elem().Interface().(T)
+				exploreGraphObject(n, &obj, nodes, edges)
 			}
-			disableNode(n)
-			*nodes = append(*nodes, n)
-			obj := f.Elem().Interface().(T)
-			exploreGraphObject(n, &obj, nodes, edges)
 		}
 	}
 }

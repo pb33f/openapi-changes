@@ -180,7 +180,7 @@ func GetHTMLReportCommand() *cobra.Command {
 						if len(report) <= 0 && er != nil {
 							return er[0]
 						}
-						return writeReportFile(err, reportFile, report)
+						return writeReportFile(reportFile, report)
 					}
 
 				} else {
@@ -215,7 +215,7 @@ func GetHTMLReportCommand() *cobra.Command {
 						return err
 					}
 					p = args[1]
-					f, err = os.Stat(filepath.Join(repo, p))
+					_, err = os.Stat(filepath.Join(repo, p))
 					if err != nil {
 						pterm.Error.Printf("Cannot open file/repository: '%s'\n\n", args[1])
 						return err
@@ -232,7 +232,7 @@ func GetHTMLReportCommand() *cobra.Command {
 						return er[0]
 					}
 
-					writeErr := writeReportFile(err, reportFile, report)
+					writeErr := writeReportFile(reportFile, report)
 
 					return writeErr
 
@@ -262,7 +262,7 @@ func GetHTMLReportCommand() *cobra.Command {
 						return errors.New("unable to process specifications")
 					}
 
-					return writeReportFile(err, reportFile, report)
+					return writeReportFile(reportFile, report)
 				}
 			}
 			pterm.Error.Println("wrong number of arguments, expecting two (2)")
@@ -276,8 +276,8 @@ func GetHTMLReportCommand() *cobra.Command {
 	return cmd
 }
 
-func writeReportFile(err error, reportFile string, report []byte) error {
-	err = os.WriteFile(reportFile, report, 0744)
+func writeReportFile(reportFile string, report []byte) error {
+	err := os.WriteFile(reportFile, report, 0744)
 	if err != nil {
 		pterm.Error.Println(err.Error())
 		return err

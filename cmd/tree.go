@@ -179,22 +179,37 @@ func generateTreeState(change *wcModel.Change, markdown bool) string {
 	if change.Breaking {
 		breaking = "❌ "
 	}
+	
+	// Helper function to safely dereference int pointers
+	safeDeref := func(ptr *int) int {
+		if ptr == nil {
+			return 0
+		}
+		return *ptr
+	}
+	
 	switch change.ChangeType {
 	case wcModel.Modified:
 		if markdown {
-			return fmt.Sprintf("[🔀] %s (%d:%d)%s", change.Property, *change.Context.NewLine, *change.Context.NewColumn, breaking)
+			return fmt.Sprintf("[🔀] %s (%d:%d)%s", change.Property, 
+				safeDeref(change.Context.NewLine), safeDeref(change.Context.NewColumn), breaking)
 		}
-		return fmt.Sprintf("[M] %s (%d:%d)%s", change.Property, *change.Context.NewLine, *change.Context.NewColumn, breaking)
+		return fmt.Sprintf("[M] %s (%d:%d)%s", change.Property, 
+			safeDeref(change.Context.NewLine), safeDeref(change.Context.NewColumn), breaking)
 	case wcModel.ObjectAdded, wcModel.PropertyAdded:
 		if markdown {
-			return fmt.Sprintf("[➕] %s (%d:%d)%s", change.Property, *change.Context.NewLine, *change.Context.NewColumn, breaking)
+			return fmt.Sprintf("[➕] %s (%d:%d)%s", change.Property, 
+				safeDeref(change.Context.NewLine), safeDeref(change.Context.NewColumn), breaking)
 		}
-		return fmt.Sprintf("[+] %s (%d:%d)%s", change.Property, *change.Context.NewLine, *change.Context.NewColumn, breaking)
+		return fmt.Sprintf("[+] %s (%d:%d)%s", change.Property, 
+			safeDeref(change.Context.NewLine), safeDeref(change.Context.NewColumn), breaking)
 	case wcModel.ObjectRemoved, wcModel.PropertyRemoved:
 		if markdown {
-			return fmt.Sprintf("[➖] %s (%d:%d)%s", change.Property, *change.Context.OriginalLine, *change.Context.OriginalColumn, breaking)
+			return fmt.Sprintf("[➖] %s (%d:%d)%s", change.Property, 
+				safeDeref(change.Context.OriginalLine), safeDeref(change.Context.OriginalColumn), breaking)
 		}
-		return fmt.Sprintf("[-] %s (%d:%d)%s", change.Property, *change.Context.OriginalLine, *change.Context.OriginalColumn, breaking)
+		return fmt.Sprintf("[-] %s (%d:%d)%s", change.Property, 
+			safeDeref(change.Context.OriginalLine), safeDeref(change.Context.OriginalColumn), breaking)
 	}
 	return ""
 }
@@ -225,15 +240,17 @@ func BuildSliceTreeNode[T any](list *[]pterm.LeveledListItem, field reflect.Valu
 	if !field.IsZero() {
 		for k := 0; k < field.Len(); k++ {
 			f := field.Index(k)
-			ob := f.Elem().Interface().(T)
-			*list = append(*list, pterm.LeveledListItem{Level: level, Text: label})
-			buildConsoleTreeNode(list, &ob, level+1, markdown)
+			if f.Elem().IsValid() && !f.Elem().IsZero() {
+				ob := f.Elem().Interface().(T)
+				*list = append(*list, pterm.LeveledListItem{Level: level, Text: label})
+				buildConsoleTreeNode(list, &ob, level+1, markdown)
+			}
 		}
 	}
 }
 
 func DigIntoObject[T any](list *[]pterm.LeveledListItem, field reflect.Value, level int, label string, markdown bool) {
-	if !field.IsZero() {
+	if !field.IsZero() && field.Elem().IsValid() && !field.Elem().IsZero() {
 		*list = append(*list, pterm.LeveledListItem{Level: level, Text: label})
 		level++
 		obj := field.Elem().Interface().(T)
