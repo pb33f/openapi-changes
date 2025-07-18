@@ -180,7 +180,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 						if len(report) <= 0 && er != nil {
 							return er[0]
 						}
-						return writeReportFile(err, reportFile, report)
+						return writeReportFile(reportFile, report)
 					}
 
 				} else {
@@ -232,7 +232,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 						return er[0]
 					}
 
-					writeErr := writeReportFile(err, reportFile, report)
+					writeErr := writeReportFile(reportFile, report)
 
 					return writeErr
 
@@ -262,7 +262,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 						return errors.New("unable to process specifications")
 					}
 
-					return writeReportFile(err, reportFile, report)
+					return writeReportFile(reportFile, report)
 				}
 			}
 			pterm.Error.Println("wrong number of arguments, expecting two (2)")
