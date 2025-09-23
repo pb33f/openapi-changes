@@ -46,7 +46,7 @@ func TestExtractHistoryFromFile(t *testing.T) {
 
 	case <-d:
 		assert.NotNil(t, history)
-		assert.Equal(t, "Adding in support for corectly processing git.", history[len(history)-1].Message)
+		assert.Equal(t, "A lot of clean up, after consuming the tool as a library.", history[len(history)-1].Message)
 		return
 	case <-ctx.Done():
 		return
