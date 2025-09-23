@@ -266,8 +266,8 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 				changes, errs := libopenapi.CompareDocuments(oldDoc, newDoc)
 
 				if errs != nil {
-					model.SendProgressError("building models", fmt.Sprintf("Error thrown when comparing: %s", errs[0].Error()), errorChan)
-					changeErrors = append(changeErrors, errs...)
+					model.SendProgressError("building models", fmt.Sprintf("Error thrown when comparing: %s", errs.Error()), errorChan)
+					changeErrors = append(changeErrors, errs)
 				}
 				commitHistory[c].Changes = changes
 			} else {
