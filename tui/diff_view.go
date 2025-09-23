@@ -5,10 +5,11 @@ package tui
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/gdamore/tcell/v2"
 	whatChanged "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/rivo/tview"
-	"strings"
 )
 
 const (
@@ -174,8 +175,7 @@ func RenderDiff(left, right *tview.TextView, diffView *tview.Flex, change *whatC
 					currentLine++
 				}
 			}
-
-			fmt.Fprintf(left, strings.Join(clipped, "\n"))
+			_, _ = fmt.Fprintf(left, "%s", strings.Join(clipped, "\n"))
 		}
 	}
 	if change.NewObject == nil {
@@ -274,7 +274,7 @@ func RenderDiff(left, right *tview.TextView, diffView *tview.Flex, change *whatC
 			currentLine++
 		}
 
-		fmt.Fprintf(right, strings.Join(clipped, "\n"))
+		_, _ = fmt.Fprintf(right, "%s", strings.Join(clipped, "\n"))
 	}
 
 }
