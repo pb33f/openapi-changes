@@ -88,6 +88,8 @@ curl -fsSL https://pb33f.io/openapi-changes/install.sh | sh
 docker pull pb33f/openapi-changes
 ```
 
+Docker images are available for both `linux/amd64` and `linux/arm64` architectures.
+
 To run, mount the current working dir to the container like so:
 
 ```
