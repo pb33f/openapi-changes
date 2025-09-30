@@ -1,6 +1,5 @@
 import { createWriteStream } from "fs";
 import * as fs from "fs/promises";
-import fetch from "node-fetch";
 import { pipeline } from "stream/promises";
 import tar from "tar";
 import { execSync } from "child_process";
