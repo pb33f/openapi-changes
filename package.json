@@ -24,7 +24,7 @@
   ],
   "dependencies": {
     "adm-zip": "^0.5.10",
-    "tar": "^6.1.11"
+    "modern-tar": "^0.3.4"
   },
   "bugs": {
     "url": "https://github.com/pb33f/openapi-changes/issues"
