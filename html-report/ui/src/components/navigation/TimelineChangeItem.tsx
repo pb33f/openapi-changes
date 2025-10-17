@@ -6,9 +6,10 @@ import {Statistic} from "antd";
 import {EditOutlined, MinusSquareOutlined, PlusSquareOutlined, WarningOutlined} from "@ant-design/icons";
 import React from "react";
 import {TimelineChangeItemTitle} from "@/components/navigation/TimelineChangeItemTitle";
+import {CommitStatistics} from "@/model/change";
 
 export interface TimelineChangeItemProps {
-    time: string;
+    commit: CommitStatistics;
     totalChanges: number;
     breakingChanges: number;
     addedChanges: number;
@@ -94,7 +95,13 @@ export function TimelineChangeItem(props: TimelineChangeItemProps) {
                 setSelectedReport(report.reportItems[props.index])
                 setCurrentChange(null);
             }}>
-            <span className='nav-change-date'>{new Date(props.time).toLocaleString()}</span>
+            <span className='commit-changed'>
+                Commit: {props.commit.hash.substring(0, 6)} |&nbsp;
+                <span className='commit-date'>{props.commit.date}</span> by&nbsp;
+                <span className='commit-author'>
+                    <a href={`mailto:${props.commit.authorEmail}`}>{props.commit.author}</a>
+                </span>
+            </span>
             {changeStats}
         </div>
     )

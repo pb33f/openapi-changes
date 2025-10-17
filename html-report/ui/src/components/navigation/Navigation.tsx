@@ -49,7 +49,7 @@ export function Navigation() {
     report.reportItems.map((item: ReportItem) => {
         const n = (
             <TimelineChangeItem
-                time={item.statistics.commit.date}
+                commit={item.statistics.commit}
                 totalChanges={item.statistics.total}
                 breakingChanges={item.statistics.totalBreaking}
                 addedChanges={item.statistics.added}

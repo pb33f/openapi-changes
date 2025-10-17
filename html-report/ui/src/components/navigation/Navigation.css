@@ -67,6 +67,11 @@
     color: var(--secondary-color)
 }
 
+.nav-change-container .commit-author a,
+.nav-change-container-selected .commit-author a {
+    text-decoration: underline;
+}
+
 .potato-pete .ant-drawer-body {
     background-color: orange;
 }
