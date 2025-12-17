@@ -19,6 +19,7 @@ import (
 	"github.com/araddon/dateparse"
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel"
+	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/pterm/pterm"
 )
@@ -140,6 +141,7 @@ func ExtractHistoryFromFile(repoDirectory, filePath, baseCommit string,
 
 func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitTime int,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
 ) ([]*model.Commit, []error) {
 	for c := range commitHistory {
 		var err error
@@ -157,7 +159,7 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitT
 		commitHistory = commitHistory[0 : limit+1]
 	}
 
-	cleaned, errs := BuildCommitChangelog(commitHistory, progressChan, errorChan, base, remote, extRefs)
+	cleaned, errs := BuildCommitChangelog(commitHistory, progressChan, errorChan, base, remote, extRefs, breakingConfig)
 	if len(errs) > 0 {
 		model.SendProgressError("git",
 			fmt.Sprintf("%d error(s) found building commit change log", len(errs)), errorChan)
@@ -172,9 +174,18 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitT
 // TODO: we have reached peak argument count, we have to fix this.
 func BuildCommitChangelog(commitHistory []*model.Commit,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
 ) ([]*model.Commit, []error) {
 	var changeErrors []error
 	var cleaned []*model.Commit
+
+	// apply breaking rules configuration before comparisons
+	if breakingConfig != nil {
+		defaults := whatChangedModel.GenerateDefaultBreakingRules()
+		defaults.Merge(breakingConfig)
+		whatChangedModel.SetActiveBreakingRulesConfig(defaults)
+		defer whatChangedModel.ResetActiveBreakingRulesConfig()
+	}
 
 	// create a new document config and set to default closed state,
 	// enable it if the user has specified a base url or a path.

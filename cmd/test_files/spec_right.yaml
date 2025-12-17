@@ -1,0 +1,19 @@
+openapi: 3.2.3
+$self: there
+jsonSchemaDialect: https://fishyfiddly.com/wimley
+info:
+  title: a lovely horse.
+  summary: what a nice sunday morning.
+  description: testing changes on a sunday morning
+  termsOfService: https://pb33f.com/tos/and-a-cake
+  version: 1.2.3.4.5.6.7
+  contact:
+    name: James
+    url: https://pb33f.io/nice-shoes
+    email: goodbye@pb33f.io
+  license:
+    name: ApacheWare
+    identifier: APACHE
+    url: https://somewhereoutthere.com/in-time-and-space
+  servers:
+    - url: https://api.pb33f.io

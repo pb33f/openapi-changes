@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/git"
 	htmlReport "github.com/pb33f/openapi-changes/html-report"
 	"github.com/pb33f/openapi-changes/model"
@@ -48,6 +49,14 @@ func GetHTMLReportCommand() *cobra.Command {
 			remoteFlag, _ := cmd.Flags().GetBool("remote")
 			reportFile, _ := cmd.Flags().GetString("report-file")
 			extRefs, _ := cmd.Flags().GetBool("ext-refs")
+			configFlag, _ := cmd.Flags().GetString("config")
+
+			// load breaking rules configuration
+			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
+			if err != nil {
+				PrintConfigError(err)
+				return err
+			}
 
 			if noColorFlag {
 				pterm.DisableStyling()
@@ -172,7 +181,7 @@ func GetHTMLReportCommand() *cobra.Command {
 							return err
 						}
 						report, _, er := RunGithubHistoryHTMLReport(user, repo, filePath, baseCommitFlag, latestFlag, cdnFlag,
-							false, updateChan, errorChan, limitFlag, limitTimeFlag, baseFlag, remoteFlag, extRefs)
+							false, updateChan, errorChan, limitFlag, limitTimeFlag, baseFlag, remoteFlag, extRefs, breakingConfig)
 
 						// wait for things to be completed.
 						<-doneChan
@@ -223,7 +232,7 @@ func GetHTMLReportCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					report, _, er := RunGitHistoryHTMLReport(args[0], args[1], baseCommitFlag, latestFlag, cdnFlag,
-						updateChan, errorChan, baseFlag, remoteFlag, extRefs, globalRevisionsFlag, limitFlag, limitTimeFlag)
+						updateChan, errorChan, baseFlag, remoteFlag, extRefs, globalRevisionsFlag, limitFlag, limitTimeFlag, breakingConfig)
 					<-doneChan
 					if er != nil {
 						for x := range er {
@@ -253,7 +262,7 @@ func GetHTMLReportCommand() *cobra.Command {
 						return urlErr
 					}
 
-					report, errs := RunLeftRightHTMLReport(left, right, cdnFlag, updateChan, errorChan, baseFlag, remoteFlag, extRefs)
+					report, errs := RunLeftRightHTMLReport(left, right, cdnFlag, updateChan, errorChan, baseFlag, remoteFlag, extRefs, breakingConfig)
 					<-doneChan
 					if len(errs) > 0 {
 						for e := range errs {
@@ -303,7 +312,9 @@ func ExtractGithubDetailsFromURL(url *url.URL) (string, string, string, error) {
 }
 
 func RunGitHistoryHTMLReport(gitPath, filePath, baseCommit string, latest, useCDN bool,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool, globalRevisions bool, limit int, limitTime int) ([]byte, []*model.Report, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool, globalRevisions bool, limit int, limitTime int,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
+) ([]byte, []*model.Report, []error) {
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
 		model.SendProgressError("reading paths",
@@ -322,7 +333,7 @@ func RunGitHistoryHTMLReport(gitPath, filePath, baseCommit string, latest, useCD
 	}
 
 	// populate history with changes and data
-	commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, limitTime, progressChan, errorChan, base, remote, extRefs)
+	commitHistory, err = git.PopulateHistoryWithChanges(commitHistory, 0, limitTime, progressChan, errorChan, base, remote, extRefs, breakingConfig)
 	if err != nil {
 		model.SendFatalError("extraction",
 			fmt.Sprintf("cannot extract history %s", errors.Join(err...)), errorChan)
@@ -353,9 +364,11 @@ func RunGitHistoryHTMLReport(gitPath, filePath, baseCommit string, latest, useCD
 }
 
 func RunGithubHistoryHTMLReport(username, repo, filePath, baseCommit string, latest, useCDN, embeddedMode bool,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, limit int, limitTime int, base string, remote, extRefs bool) ([]byte, []*model.Report, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, limit int, limitTime int, base string, remote, extRefs bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
+) ([]byte, []*model.Report, []error) {
 
-	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, baseCommit, progressChan, errorChan, true, limit, limitTime, base, remote, extRefs)
+	commitHistory, errs := git.ProcessGithubRepo(username, repo, filePath, baseCommit, progressChan, errorChan, true, limit, limitTime, base, remote, extRefs, breakingConfig)
 	if latest && len(commitHistory) > 1 {
 		commitHistory = commitHistory[:1]
 	}
@@ -388,7 +401,9 @@ func RunGithubHistoryHTMLReport(username, repo, filePath, baseCommit string, lat
 }
 
 func RunLeftRightHTMLReport(left, right string, useCDN bool,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool) ([]byte, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
+) ([]byte, []error) {
 
 	var leftBytes, rightBytes []byte
 	var errs []error
@@ -425,7 +440,7 @@ func RunLeftRightHTMLReport(left, right string, useCDN bool,
 		},
 	}
 
-	commits, errs = git.BuildCommitChangelog(commits, progressChan, errorChan, base, remote, extRefs)
+	commits, errs = git.BuildCommitChangelog(commits, progressChan, errorChan, base, remote, extRefs, breakingConfig)
 	if len(errs) > 0 {
 		close(progressChan)
 		return nil, errs
@@ -438,7 +453,9 @@ func RunLeftRightHTMLReport(left, right string, useCDN bool,
 }
 
 func RunLeftRightHTMLReportViaString(left, right string, useCDN, embedded bool,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool) ([]byte, []error) {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
+) ([]byte, []error) {
 
 	var errs []error
 
@@ -457,7 +474,7 @@ func RunLeftRightHTMLReportViaString(left, right string, useCDN, embedded bool,
 		},
 	}
 
-	commits, errs = git.BuildCommitChangelog(commits, progressChan, errorChan, base, remote, extRefs)
+	commits, errs = git.BuildCommitChangelog(commits, progressChan, errorChan, base, remote, extRefs, breakingConfig)
 	if len(errs) > 0 {
 		close(progressChan)
 		return nil, errs

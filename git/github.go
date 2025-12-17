@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/araddon/dateparse"
+	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 )
 
@@ -280,7 +281,9 @@ func GetCommitsForGithubFile(user, repo, path string, baseCommit string,
 }
 
 func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
-	progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError, base string, remote, extRefs bool) ([]*model.Commit, []error) {
+	progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError, base string, remote, extRefs bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
+) ([]*model.Commit, []error) {
 	var normalized []*model.Commit
 
 	if len(ghCommits) > 0 {
@@ -310,7 +313,7 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
 		model.SendProgressUpdate("converting commits", "building data models...", false, progressChan)
 	}
 
-	normalized, errs = BuildCommitChangelog(normalized, progressChan, progressErrorChan, base, remote, extRefs)
+	normalized, errs = BuildCommitChangelog(normalized, progressChan, progressErrorChan, base, remote, extRefs, breakingConfig)
 
 	if len(errs) > 0 {
 		model.SendProgressError("converting commits",
@@ -329,7 +332,9 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
 
 func ProcessGithubRepo(username, repo, filePath, baseCommit string,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
-	forceCutoff bool, limit int, limitTime int, base string, remote, extRefs bool) ([]*model.Commit, []error) {
+	forceCutoff bool, limit int, limitTime int, base string, remote, extRefs bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
+) ([]*model.Commit, []error) {
 
 	if username == "" || repo == "" || filePath == "" {
 		err := errors.New("please supply valid github username/repo and filepath")
@@ -343,7 +348,7 @@ func ProcessGithubRepo(username, repo, filePath, baseCommit string,
 		return nil, []error{err}
 	}
 
-	commitHistory, errs := ConvertGithubCommitsIntoModel(githubCommits, progressChan, errorChan, base, remote, extRefs)
+	commitHistory, errs := ConvertGithubCommitsIntoModel(githubCommits, progressChan, errorChan, base, remote, extRefs, breakingConfig)
 	if errs != nil {
 		for x := range errs {
 			model.SendProgressError("git", errs[x].Error(), errorChan)

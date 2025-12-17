@@ -1,0 +1,19 @@
+openapi: 3.2
+$self: hello
+jsonSchemaDialect: https://fish-and-fiddle.com
+info:
+  title: a nice cup of tea
+  summary: a lovely test
+  description: testing code on a sunday morning.
+  termsOfService: https://pb33f.com/tos
+  version: 1.2.3.4
+  contact:
+    name: Jim
+    url: https://pb33f.io
+    email: hello@pb33f.io
+  license:
+    name: MIT
+    identifier: MIT
+    url: https://somewhereoutthere.com
+  servers:
+    - url: https://api.pb33f.io

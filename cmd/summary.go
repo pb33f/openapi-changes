@@ -19,6 +19,7 @@ import (
 	"github.com/pb33f/openapi-changes/builder"
 
 	"github.com/google/uuid"
+	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/libopenapi/what-changed/reports"
 	"github.com/pb33f/openapi-changes/git"
 	"github.com/pb33f/openapi-changes/model"
@@ -51,6 +52,14 @@ func GetSummaryCommand() *cobra.Command {
 			markdownFlag, _ := cmd.Flags().GetBool("markdown")
 			extRefs, _ := cmd.Flags().GetBool("ext-refs")
 			errOnDiff, _ := cmd.Flags().GetBool("error-on-diff")
+			configFlag, _ := cmd.Flags().GetString("config")
+
+			// load breaking rules configuration
+			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
+			if err != nil {
+				PrintConfigError(err)
+				return err
+			}
 
 			if noColorFlag {
 				pterm.DisableStyling()
@@ -184,7 +193,7 @@ func GetSummaryCommand() *cobra.Command {
 						}
 
 						er := runGithubHistorySummary(user, repo, filePath, baseCommitFlag, latestFlag, limitFlag, limitTimeFlag, updateChan,
-							errorChan, baseFlag, remoteFlag, markdownFlag, extRefs, errOnDiff)
+							errorChan, baseFlag, remoteFlag, markdownFlag, extRefs, errOnDiff, breakingConfig)
 						// wait for things to be completed.
 						<-doneChan
 						if er != nil {
@@ -239,7 +248,7 @@ func GetSummaryCommand() *cobra.Command {
 					go listenForUpdates(updateChan, errorChan)
 
 					err = runGitHistorySummary(args[0], args[1], baseCommitFlag, latestFlag, updateChan, errorChan,
-						baseFlag, remoteFlag, markdownFlag, extRefs, errOnDiff, globalRevisionsFlag, limitFlag, limitTimeFlag)
+						baseFlag, remoteFlag, markdownFlag, extRefs, errOnDiff, globalRevisionsFlag, limitFlag, limitTimeFlag, breakingConfig)
 
 					<-doneChan
 
@@ -266,7 +275,7 @@ func GetSummaryCommand() *cobra.Command {
 						return urlErr
 					}
 
-					errs := runLeftRightSummary(left, right, updateChan, errorChan, baseFlag, remoteFlag, markdownFlag, extRefs, errOnDiff)
+					errs := runLeftRightSummary(left, right, updateChan, errorChan, baseFlag, remoteFlag, markdownFlag, extRefs, errOnDiff, breakingConfig)
 					<-doneChan
 					if len(errs) > 0 {
 						for e := range errs {
@@ -325,7 +334,9 @@ func checkURL(urlString string, errorChan chan model.ProgressError) (string, err
 }
 
 func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpdate,
-	errorChan chan model.ProgressError, base string, remote, markdown, extRefs, errOnDiff bool) []error {
+	errorChan chan model.ProgressError, base string, remote, markdown, extRefs, errOnDiff bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
+) []error {
 
 	var leftBytes, rightBytes []byte
 	// var errs []error
@@ -362,7 +373,7 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 	}
 
 	var errs []error
-	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan, base, remote, extRefs)
+	commits, errs = git.BuildCommitChangelog(commits, updateChan, errorChan, base, remote, extRefs, breakingConfig)
 	if len(errs) > 0 {
 		close(updateChan)
 		return errs
@@ -387,9 +398,11 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 }
 
 func runGithubHistorySummary(username, repo, filePath, baseCommit string, latest bool, limit int, limitTime int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown, extRefs, errOnDiff bool) error {
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown, extRefs, errOnDiff bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
+) error {
 	commitHistory, _ := git.ProcessGithubRepo(username, repo, filePath, baseCommit, progressChan, errorChan,
-		false, limit, limitTime, base, remote, extRefs)
+		false, limit, limitTime, base, remote, extRefs, breakingConfig)
 
 	if latest {
 		commitHistory = commitHistory[:1]
@@ -405,7 +418,9 @@ func runGithubHistorySummary(username, repo, filePath, baseCommit string, latest
 
 func runGitHistorySummary(gitPath, filePath, baseCommit string, latest bool,
 	updateChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, markdown, extRefs, errOnDiff bool,
-	globalRevisions bool, limit int, limitTime int) error {
+	globalRevisions bool, limit int, limitTime int,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
+) error {
 
 	if gitPath == "" || filePath == "" {
 		err := errors.New("please supply a path to a git repo via -r, and a path to a file via -f")
@@ -426,7 +441,7 @@ func runGitHistorySummary(gitPath, filePath, baseCommit string, latest bool,
 	}
 
 	// populate history with changes and data
-	git.PopulateHistoryWithChanges(commitHistory, 0, limitTime, updateChan, errorChan, base, remote, extRefs)
+	git.PopulateHistoryWithChanges(commitHistory, 0, limitTime, updateChan, errorChan, base, remote, extRefs, breakingConfig)
 
 	if latest {
 		commitHistory = commitHistory[:1]
