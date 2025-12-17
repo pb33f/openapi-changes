@@ -2,8 +2,6 @@ module github.com/pb33f/openapi-changes
 
 go 1.25
 
-replace github.com/pb33f/libopenapi => ../libopenapi
-
 require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/gdamore/tcell/v2 v2.13.4
