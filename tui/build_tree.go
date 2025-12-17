@@ -240,31 +240,96 @@ func buildTreeNode(root *tview.TreeNode, object any) *tview.TreeNode {
 	}
 
 	caser := cases.Title(language.AmericanEnglish)
-	for i := range topChanges {
 
+	// Separate tag changes from other changes so we can group them
+	var tagChanges []*whatChangedModel.Change
+	var otherChanges []*whatChangedModel.Change
+	for i := range topChanges {
+		if strings.ToLower(topChanges[i].Property) == "tags" {
+			tagChanges = append(tagChanges, topChanges[i])
+		} else {
+			otherChanges = append(otherChanges, topChanges[i])
+		}
+	}
+
+	// Create Tags node if there are tag changes
+	if len(tagChanges) > 0 {
+		tagsNode := CreateNode("Tags", object)
+		root.AddChild(tagsNode)
+		for _, change := range tagChanges {
+			msg := ""
+			var color RGB
+			title := change.New
+			if change.Original != "" && change.New == "" {
+				title = change.Original
+			}
+			if change.ChangeType == whatChangedModel.PropertyRemoved || change.ChangeType == whatChangedModel.ObjectRemoved {
+				br := ""
+				color = CYAN_RGB
+				if change.Breaking {
+					br = "{X}"
+					color = RGB{255, 0, 0}
+				}
+				msg = fmt.Sprintf(" - %s Removed %s", title, br)
+			}
+			if change.ChangeType == whatChangedModel.PropertyAdded || change.ChangeType == whatChangedModel.ObjectAdded {
+				msg = fmt.Sprintf(" + %s Added", title)
+				color = CYAN_RGB
+			}
+			if change.ChangeType == whatChangedModel.Modified {
+				msg = fmt.Sprintf(" %s Changed", title)
+				color = MAGENTA_RGB
+			}
+			node := tview.NewTreeNode(msg).
+				SetReference(change).
+				SetSelectable(true)
+			node.SetColor(tcell.NewRGBColor(color.R(), color.G(), color.B()))
+			tagsNode.AddChild(node)
+		}
+	}
+
+	// Process other changes normally
+	for i := range otherChanges {
 		msg := ""
 		var color RGB
-		if topChanges[i].ChangeType == whatChangedModel.PropertyRemoved || topChanges[i].ChangeType == whatChangedModel.ObjectRemoved {
+
+		// For "codes" properties, use the actual value instead of the generic label
+		title := otherChanges[i].Property
+		lowerProp := strings.ToLower(otherChanges[i].Property)
+		if lowerProp == "codes" {
+			switch otherChanges[i].ChangeType {
+			case whatChangedModel.Modified, whatChangedModel.PropertyRemoved, whatChangedModel.ObjectRemoved:
+				if otherChanges[i].Original != "" {
+					title = otherChanges[i].Original
+				}
+			case whatChangedModel.ObjectAdded, whatChangedModel.PropertyAdded:
+				if otherChanges[i].New != "" {
+					title = otherChanges[i].New
+				}
+			}
+		}
+
+		if otherChanges[i].ChangeType == whatChangedModel.PropertyRemoved || otherChanges[i].ChangeType == whatChangedModel.ObjectRemoved {
 			var br = ""
 			color = CYAN_RGB
-			if topChanges[i].Breaking {
+			if otherChanges[i].Breaking {
 				br = "{X}"
 				color = RGB{255, 0, 0}
 			}
-			msg = fmt.Sprintf(" - %s Removed %s", caser.String(topChanges[i].Property), br)
+			msg = fmt.Sprintf(" - %s Removed %s", caser.String(title), br)
 		}
-		if topChanges[i].ChangeType == whatChangedModel.PropertyAdded || topChanges[i].ChangeType == whatChangedModel.ObjectAdded {
-			msg = fmt.Sprintf(" + %s Added", caser.String(topChanges[i].Property))
+		if otherChanges[i].ChangeType == whatChangedModel.PropertyAdded || otherChanges[i].ChangeType == whatChangedModel.ObjectAdded {
+			msg = fmt.Sprintf(" + %s Added", caser.String(title))
 			color = CYAN_RGB
 		}
 
-		if topChanges[i].ChangeType == whatChangedModel.Modified {
-			msg = fmt.Sprintf(" %s Changed", caser.String(topChanges[i].Property))
+		if otherChanges[i].ChangeType == whatChangedModel.Modified {
+			msg = fmt.Sprintf(" %s Changed", caser.String(title))
 			color = MAGENTA_RGB
 		}
 
 		node := tview.NewTreeNode(msg).
-			SetReference(topChanges[i]).
+			SetReference(otherChanges[i]).
 			SetSelectable(true)
 
 		node.SetColor(tcell.NewRGBColor(color.R(), color.G(), color.B()))

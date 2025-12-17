@@ -4,15 +4,17 @@
 package builder
 
 import (
+	"reflect"
+	"strings"
+
 	"github.com/google/uuid"
 	v3 "github.com/pb33f/libopenapi/datamodel/low/v3"
 	wcModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/libopenapi/what-changed/reports"
+	"github.com/pb33f/openapi-changes/internal/security"
 	"github.com/pb33f/openapi-changes/model"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"reflect"
-	"strings"
 )
 
 var upper cases.Caser
@@ -50,13 +52,23 @@ func exploreTreeObject(parent *model.TreeNode, object any) {
 					topChanges := field.Elem().Interface().(wcModel.PropertyChanges).Changes
 					for x := range topChanges {
 						title := topChanges[x].Property
-						if strings.ToLower(topChanges[x].Property) == "codes" {
-							switch topChanges[x].ChangeType {
-							case wcModel.Modified, wcModel.PropertyRemoved, wcModel.ObjectRemoved:
-								title = topChanges[x].Original
-								break
-							case wcModel.ObjectAdded, wcModel.PropertyAdded:
-								title = topChanges[x].New
+
+						// Special handling for security scope changes (scheme/scope format)
+						if security.IsSecurityScopeChange(topChanges[x]) {
+							title = security.FormatSecurityScopeTitle(topChanges[x])
+						} else {
+							lowerProp := strings.ToLower(topChanges[x].Property)
+							if lowerProp == "codes" || lowerProp == "tags" {
+								switch topChanges[x].ChangeType {
+								case wcModel.Modified, wcModel.PropertyRemoved, wcModel.ObjectRemoved:
+									if topChanges[x].Original != "" {
+										title = topChanges[x].Original
+									}
+								case wcModel.ObjectAdded, wcModel.PropertyAdded:
+									if topChanges[x].New != "" {
+										title = topChanges[x].New
+									}
+								}
 							}
 						}
 
@@ -239,7 +251,7 @@ func exploreTreeObject(parent *model.TreeNode, object any) {
 
 				case reflect.TypeOf(map[string]*wcModel.CallbackChanges{}):
 					if !field.IsZero() && len(field.MapKeys()) > 0 {
-						BuildTreeMapNode(parent, field)
+						BuildTreeMapNodeWithLabel(parent, field, "Callbacks")
 					}
 
 				case reflect.TypeOf(map[string]*wcModel.ExampleChanges{}):
@@ -317,29 +329,37 @@ func transformLabel(in string) string {
 }
 
 func DigIntoTreeNodeSlice[T any](parent *model.TreeNode, field reflect.Value, label string) {
-	if !field.IsZero() {
+	if !field.IsZero() && field.Len() > 0 {
+		// Create ONE parent node for all elements
+		parentNode := &model.TreeNode{
+			TitleString: transformLabel(label),
+			Key:         uuid.New().String(),
+			IsLeaf:      false,
+			Selectable:  false,
+			Disabled:    false,
+		}
+
+		totalChanges := 0
+		breakingChanges := 0
+
 		for k := 0; k < field.Len(); k++ {
 			f := field.Index(k)
 			if f.Elem().IsValid() && !f.Elem().IsZero() {
-				e := &model.TreeNode{
-					TitleString: transformLabel(label),
-					Key:         uuid.New().String(),
-					IsLeaf:      false,
-					Selectable:  false,
-					Disabled:    false,
-				}
 				obj := f.Elem().Interface().(T)
 				ch, br := countChanges(obj)
 				if ch > -1 {
-					e.TotalChanges = ch
+					totalChanges += ch
 				}
 				if br > -1 {
-					e.BreakingChanges = br
+					breakingChanges += br
 				}
-				parent.Children = append(parent.Children, e)
-				exploreTreeObject(e, &obj)
+				exploreTreeObject(parentNode, &obj)
 			}
 		}
+
+		parentNode.TotalChanges = totalChanges
+		parentNode.BreakingChanges = breakingChanges
+		parent.Children = append(parent.Children, parentNode)
 	}
 }
 
@@ -367,6 +387,40 @@ func BuildTreeMapNode(parent *model.TreeNode, field reflect.Value) {
 				exploreTreeObject(tn, t)
 			}
 		}
+	}
+}
+
+// BuildTreeMapNodeWithLabel creates a labeled parent node and adds map children under it.
+// Use this for map fields that should appear as a named section (e.g., "Callbacks").
+func BuildTreeMapNodeWithLabel(parent *model.TreeNode, field reflect.Value, label string) {
+	if !field.IsZero() && len(field.MapKeys()) > 0 {
+		// Calculate total changes for the label node
+		totalChanges := 0
+		breakingChanges := 0
+		for _, e := range field.MapKeys() {
+			v := field.MapIndex(e)
+			if ch, br := countChanges(v.Interface()); ch > -1 {
+				totalChanges += ch
+				if br > -1 {
+					breakingChanges += br
+				}
+			}
+		}
+
+		// Create the labeled parent node
+		labelNode := &model.TreeNode{
+			TitleString:     label,
+			Key:             uuid.New().String(),
+			IsLeaf:          false,
+			Selectable:      false,
+			Disabled:        false,
+			TotalChanges:    totalChanges,
+			BreakingChanges: breakingChanges,
+		}
+		parent.Children = append(parent.Children, labelNode)
+
+		// Add map entries as children of the label node
+		BuildTreeMapNode(labelNode, field)
 	}
 }
 

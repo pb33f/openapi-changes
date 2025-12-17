@@ -1,0 +1,17 @@
+# Partial Breaking Rules Configuration
+# =====================================
+# You don't need to specify every rule - just the ones you want to override.
+# All unspecified rules will use the default values from libopenapi.
+#
+# This is useful when you only need to tweak a few specific behaviors
+# without having to maintain a complete configuration file.
+#
+# Example: Your team has decided that removing enum values is acceptable
+# because you use a deprecation process that gives clients time to migrate.
+
+schema:
+  enum:
+    removed: false    # Allow enum value removal without flagging as breaking
+
+# That's it! All other rules (hundreds of them) use sensible defaults.
+# See valid-config.yaml for a more comprehensive example.

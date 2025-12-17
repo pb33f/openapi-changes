@@ -1,0 +1,12 @@
+# INVALID CONFIG - For Testing Only
+# ==================================
+# This file contains intentionally malformed YAML to test error handling.
+# DO NOT use this as a reference for your own configuration!
+#
+# openapi-changes will report a clear error message when attempting
+# to load this file, demonstrating the config validation behavior.
+
+pathItem:
+  get:
+    removed: [not a boolean
+    this is broken yaml

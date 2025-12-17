@@ -71,6 +71,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("base-commit", "", "", "Base commit to compare against (will check until commit is found or limit is reached -- make sure to not shallow clone)")
 	rootCmd.PersistentFlags().BoolP("remote", "r", true, "Allow remote reference (URLs and files) to be auto resolved, without a base URL or path (default is on)")
 	rootCmd.PersistentFlags().BoolP("ext-refs", "", false, "Turn on $ref lookups and resolving for extensions (x-) objects")
+	rootCmd.PersistentFlags().StringP("config", "c", "", "Path to breaking rules config file (default: ./changes-rules.yaml or ~/.config/changes-rules.yaml)")
 }
 
 func initConfig() {

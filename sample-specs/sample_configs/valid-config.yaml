@@ -1,0 +1,104 @@
+# Breaking Rules Configuration for openapi-changes
+# ================================================
+# This file customizes which OpenAPI changes are considered "breaking".
+# Only specify overrides - unspecified rules inherit defaults from libopenapi.
+#
+# Each rule has three options:
+#   added: true/false    - Is adding this element a breaking change?
+#   modified: true/false - Is modifying this element a breaking change?
+#   removed: true/false  - Is removing this element a breaking change?
+#
+# Documentation: https://pb33f.io/openapi-changes/configuring/
+
+# Path Item Rules
+# ---------------
+# Controls breaking detection for HTTP operations on paths.
+# Common use case: Allow operation removal during deprecation workflows.
+pathItem:
+  get:
+    removed: false      # Removing GET operations is not breaking
+  post:
+    removed: false      # Removing POST operations is not breaking
+  put:
+    removed: false
+  delete:
+    removed: false
+  patch:
+    removed: false
+
+# Operation Rules
+# ---------------
+# Controls breaking detection for operation-level changes.
+operation:
+  operationId:
+    modified: false     # Changing operationId is not breaking (client codegen may differ)
+  tags:
+    added: false        # Adding tags is not breaking
+    removed: false      # Removing tags is not breaking
+  requestBody:
+    added: true         # Adding a request body IS breaking (clients need to send data)
+    removed: false      # Removing request body is not breaking
+  callbacks:
+    added: false        # Adding callbacks is not breaking
+
+# Parameter Rules
+# ---------------
+# Controls breaking detection for parameter changes.
+parameter:
+  required:
+    modified: true      # Changing required status IS breaking
+  in:
+    modified: true      # Changing parameter location IS breaking
+  allowEmptyValue:
+    modified: false     # Changing allowEmptyValue is not breaking
+
+# Schema Rules
+# ------------
+# Controls breaking detection for schema/model changes.
+# These rules apply to all schemas (request bodies, responses, parameters).
+schema:
+  type:
+    modified: true      # Changing type IS breaking
+  format:
+    modified: false     # Changing format is not breaking (e.g., int32 -> int64)
+  enum:
+    added: false        # Adding enum values is not breaking
+    removed: false      # Removing enum values is not breaking (if using deprecation workflow)
+  required:
+    added: true         # Adding required properties IS breaking
+    removed: false      # Removing required properties is not breaking
+  properties:
+    removed: true       # Removing properties IS breaking
+  minLength:
+    modified: true      # Tightening constraints IS breaking
+  maxLength:
+    modified: true
+  minimum:
+    modified: true
+  maximum:
+    modified: true
+
+# Response Rules
+# --------------
+# Controls breaking detection for response changes.
+response:
+  description:
+    modified: false     # Changing descriptions is not breaking
+  headers:
+    removed: false      # Removing response headers is not breaking
+
+# Security Scheme Rules
+# ---------------------
+# Controls breaking detection for security-related changes.
+securityScheme:
+  type:
+    modified: true      # Changing auth type IS breaking
+  scheme:
+    modified: true      # Changing auth scheme IS breaking
+
+# Security Requirement Rules
+# --------------------------
+securityRequirement:
+  scopes:
+    added: true         # Requiring new scopes IS breaking
+    removed: false      # Removing scope requirements is not breaking

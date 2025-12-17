@@ -1,0 +1,34 @@
+openapi:
+  modified: false
+$self:
+  modified: false
+jsonSchemaDialect:
+  modified: false
+
+info:
+  title:
+    modified: true
+  summary:
+    modified: true
+  description:
+    modified: true
+  termsOfService:
+    modified: true
+  version:
+    modified: true
+
+contact:
+  name:
+    modified: true
+  url:
+    modified: true
+  email:
+    modified: true
+
+license:
+  name:
+    modified: true
+  identifier:
+    modified: true
+  url:
+    modified: true
