@@ -64,6 +64,8 @@ github.com/mattn/go-runewidth v0.0.16 h1:E5ScNMtiwvlvB5paMFdw9p4kSQzbXFikJ5SQO6T
 github.com/mattn/go-runewidth v0.0.16/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
 github.com/pb33f/jsonpath v0.7.0 h1:3oG6yu1RqNoMZpqnRjBMqi8fSIXWoDAKDrsB0QGTcoU=
 github.com/pb33f/jsonpath v0.7.0/go.mod h1:/+JlSIjWA2ijMVYGJ3IQPF4Q1nLMYbUTYNdk0exCDPQ=
+github.com/pb33f/libopenapi v0.30.0 h1:F5VmLZH/pJ7Cybe48Ya/5CA3TWE6XusR4KxrlrHA4R8=
+github.com/pb33f/libopenapi v0.30.0/go.mod h1:4MP76dnaTMY+DM+bRhKBneAIhVISEEZM6G6sd7A9pus=
 github.com/pb33f/ordered-map/v2 v2.3.0 h1:k2OhVEQkhTCQMhAicQ3Z6iInzoZNQ7L9MVomwKBZ5WQ=
 github.com/pb33f/ordered-map/v2 v2.3.0/go.mod h1:oe5ue+6ZNhy7QN9cPZvPA23Hx0vMHnNVeMg4fGdCANw=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
