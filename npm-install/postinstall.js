@@ -1,9 +1,9 @@
-import { createWriteStream } from "fs";
-import * as fs from "fs/promises";
-import fetch from "node-fetch";
-import { pipeline } from "stream/promises";
-import tar from "tar";
-import { execSync } from "child_process";
+import { createReadStream, createWriteStream } from "node:fs";
+import * as fs from "node:fs/promises";
+import { pipeline } from "node:stream/promises";
+import { execSync } from "node:child_process";
+import { createGunzip } from "node:zlib";
+import { unpackTar } from "modern-tar/fs";
 
 import { ARCH_MAPPING, CONFIG, PLATFORM_MAPPING } from "./config.js";
 
@@ -35,7 +35,7 @@ async function install() {
 
     console.log('fetching from URL', url)
     const response = await fetch(url);
-    if (!response.ok) {
+    if (!response.ok || !response.body) {
         throw new Error("Failed fetching the binary: " + response.statusText);
     }
 
@@ -43,7 +43,10 @@ async function install() {
 
     await fs.mkdir(binPath, { recursive: true });
     await pipeline(response.body, createWriteStream(tarFile));
-    await tar.x({ file: tarFile, cwd: binPath });
+
+    const readStream = createReadStream(tarFile);
+    await pipeline(readStream, createGunzip(), unpackTar(binPath));
+
     await fs.rm(tarFile);
 }
 
