@@ -279,7 +279,7 @@ func GetHTMLReportCommand() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
-	cmd.Flags().BoolP("use-cdn", "c", false, "Use CDN for CSS and JS delivery instead of bundling inline")
+	cmd.Flags().Bool("use-cdn", false, "Use CDN for CSS and JS delivery instead of bundling inline")
 	cmd.Flags().StringP("report-file", "", "report.html", "The name of the HTML report file (defaults to 'report.html')")
 
 	return cmd

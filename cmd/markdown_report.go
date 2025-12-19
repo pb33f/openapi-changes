@@ -279,7 +279,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
-	cmd.Flags().BoolP("use-cdn", "c", false, "Use CDN for CSS and JS delivery instead of bundling inline")
+	cmd.Flags().Bool("use-cdn", false, "Use CDN for CSS and JS delivery instead of bundling inline")
 	cmd.Flags().StringP("report-file", "", "report.md", "The name of the Markdown report file (defaults to 'report.md')")
 
 	return cmd
