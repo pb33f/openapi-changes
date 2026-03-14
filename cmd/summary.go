@@ -201,7 +201,7 @@ func GetSummaryCommand() *cobra.Command {
 						}
 						return nil
 					} else {
-						pterm.Error.Println("When using a single argument (URL), only github.com is supported at this time. Please provide a github url")
+						pterm.Error.Println("A single argument requires a github.com URL. For local comparison, provide two arguments: a git repository path and a file path within it.")
 						return nil
 					}
 
@@ -286,7 +286,7 @@ func GetSummaryCommand() *cobra.Command {
 					return nil
 				}
 			}
-			pterm.Error.Println("Invalid arguments")
+			pterm.Error.Println("Too many arguments provided, expecting two (2)")
 			pterm.Println()
 			PrintHowToUse("summary")
 			return nil
@@ -404,7 +404,7 @@ func runGithubHistorySummary(username, repo, filePath, baseCommit string, latest
 	commitHistory, _ := git.ProcessGithubRepo(username, repo, filePath, baseCommit, progressChan, errorChan,
 		false, limit, limitTime, base, remote, extRefs, breakingConfig)
 
-	if latest {
+	if latest && len(commitHistory) > 1 {
 		commitHistory = commitHistory[:1]
 	}
 
@@ -441,9 +441,17 @@ func runGitHistorySummary(gitPath, filePath, baseCommit string, latest bool,
 	}
 
 	// populate history with changes and data
-	git.PopulateHistoryWithChanges(commitHistory, 0, limitTime, updateChan, errorChan, base, remote, extRefs, breakingConfig)
+	commitHistory, _ = git.PopulateHistoryWithChanges(commitHistory, 0, limitTime, updateChan, errorChan, base, remote, extRefs, breakingConfig)
 
-	if latest {
+	if len(commitHistory) == 0 {
+		model.SendProgressUpdate("extraction",
+			"no comparable changes found in history", true, updateChan)
+		close(updateChan)
+		pterm.Warning.Println("The file has no prior version to compare against — nothing to report")
+		return nil
+	}
+
+	if latest && len(commitHistory) > 0 {
 		commitHistory = commitHistory[:1]
 	}
 
@@ -461,6 +469,10 @@ func printSummaryDetails(commitHistory []*model.Commit, markdown, errOnDiff bool
 	pterm.Println()
 	errorStyle := pterm.NewStyle(pterm.FgLightRed, pterm.Italic)
 
+	if len(commitHistory) == 0 {
+		pterm.Info.Println("Nothing to report")
+		return nil
+	}
 	if len(commitHistory) == 1 && commitHistory[0].Changes == nil {
 		pterm.Success.Println("No changes found between specifications")
 		return nil
