@@ -287,6 +287,9 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 			}
 		}
 		if len(oldBits) == 0 && len(newBits) > 0 {
+			model.SendProgressWarning("building models",
+				fmt.Sprintf("Commit %s is the first version of '%s' — no prior version to compare against, skipping",
+					commitHistory[c].Hash, commitHistory[c].FilePath), progressChan)
 			newDoc, err = libopenapi.NewDocumentWithConfiguration(newBits, docConfig)
 			if err != nil {
 				model.SendFatalError("building models", fmt.Sprintf("unable to create OpenAPI modified document: %s", err.Error()), errorChan)
@@ -300,7 +303,7 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 		if oldDoc != nil {
 			commitHistory[c].OldDocument = oldDoc
 		}
-		if (c == len(commitHistory)-1) || commitHistory[c].Changes != nil {
+		if commitHistory[c].Changes != nil {
 			cleaned = append(cleaned, commitHistory[c])
 		}
 	}

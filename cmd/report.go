@@ -126,6 +126,11 @@ func GetReportCommand() *cobra.Command {
 						jsonBytes, _ := json.MarshalIndent(flat, "", "  ")
 						fmt.Println(string(jsonBytes))
 						return nil
+					} else {
+						pterm.Error.Println("A single argument requires a github.com URL. For local comparison, provide two arguments: a git repository path and a file path within it.")
+						pterm.Println()
+						PrintHowToUse("report")
+						return nil
 					}
 
 				} else {
@@ -231,7 +236,9 @@ func GetReportCommand() *cobra.Command {
 					return nil
 				}
 			}
-			pterm.Error.Println("wrong number of arguments, expecting two (2)")
+			pterm.Error.Println("Too many arguments provided, expecting two (2)")
+			pterm.Println()
+			PrintHowToUse("report")
 			return nil
 		},
 	}
@@ -271,7 +278,7 @@ func runGitHistoryReport(gitPath, filePath, baseCommit string, latest bool,
 		return nil, err
 	}
 
-	if latest {
+	if latest && len(commitHistory) > 0 {
 		commitHistory = commitHistory[:1]
 	}
 
@@ -309,7 +316,7 @@ func runGithubHistoryReport(username, repo, filePath, baseCommit string, latest 
 		return nil, errs
 	}
 
-	if latest {
+	if latest && len(commitHistory) > 1 {
 		commitHistory = commitHistory[:1]
 	}
 

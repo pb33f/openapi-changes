@@ -4,12 +4,11 @@
 package git
 
 import (
-	"context"
 	"testing"
-	"time"
 
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckLocalRepoAvailable(t *testing.T) {
@@ -18,40 +17,19 @@ func TestCheckLocalRepoAvailable(t *testing.T) {
 }
 
 func TestExtractHistoryFromFile(t *testing.T) {
+	c := make(chan *model.ProgressUpdate, 32)
+	e := make(chan model.ProgressError, 32)
 
-	c := make(chan *model.ProgressUpdate)
-	e := make(chan model.ProgressError)
-	d := make(chan bool)
-	go func() {
-		iterations := 0
-		for iterations < 26 {
-			select {
-			case <-c:
+	history, errs := ExtractHistoryFromFile("./", "read_local.go", "", c, e, false, 25, -1)
+	require.Empty(t, errs)
+	require.NotEmpty(t, history)
 
-				iterations++
-			case <-e:
-
-				iterations++
-			}
-		}
-		d <- true
-	}()
-
-	// this shit times out in the pipeline (damn you github runners)
-	ctx, cncl := context.WithTimeout(context.Background(), 5*time.Second)
-	history, _ := ExtractHistoryFromFile("./", "read_local.go", "", c, e, false, 25, -1)
-	defer cncl()
-
-	select {
-
-	case <-d:
-		assert.NotNil(t, history)
-		assert.Equal(t, "A lot of clean up, after consuming the tool as a library.", history[len(history)-1].Message)
-		return
-	case <-ctx.Done():
-		return
-	}
-
+	oldest := history[len(history)-1]
+	assert.Equal(t, "./", oldest.RepoDirectory)
+	assert.Equal(t, "read_local.go", oldest.FilePath)
+	assert.NotEmpty(t, oldest.Hash)
+	assert.NotEmpty(t, oldest.Message)
+	assert.False(t, oldest.CommitDate.IsZero())
 }
 
 func TestExtractHistoryFromFile_Fail(t *testing.T) {

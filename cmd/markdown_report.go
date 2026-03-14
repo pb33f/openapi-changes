@@ -190,6 +190,11 @@ func GetMarkdownReportCommand() *cobra.Command {
 							return er[0]
 						}
 						return writeReportFile(reportFile, report)
+					} else {
+						pterm.Error.Println("A single argument requires a github.com URL. For local comparison, provide two arguments: a git repository path and a file path within it.")
+						pterm.Println()
+						PrintHowToUse("markdown-report")
+						return nil
 					}
 
 				} else {
@@ -274,7 +279,9 @@ func GetMarkdownReportCommand() *cobra.Command {
 					return writeReportFile(reportFile, report)
 				}
 			}
-			pterm.Error.Println("wrong number of arguments, expecting two (2)")
+			pterm.Error.Println("Too many arguments provided, expecting two (2)")
+			pterm.Println()
+			PrintHowToUse("markdown-report")
 			return nil
 		},
 	}
@@ -315,7 +322,7 @@ func RunGitHistoryMarkdownReport(gitPath, filePath, baseCommit string, latest, u
 		return nil, nil, err
 	}
 
-	if latest {
+	if latest && len(commitHistory) > 0 {
 		commitHistory = commitHistory[:1]
 	}
 

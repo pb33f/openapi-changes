@@ -178,6 +178,11 @@ func GetConsoleCommand() *cobra.Command {
 						}
 
 						return nil
+					} else {
+						pterm.Error.Println("A single argument requires a github.com URL. For local comparison, provide two arguments: a git repository path and a file path within it.")
+						pterm.Println()
+						PrintHowToUse("console")
+						return nil
 					}
 
 				} else {
@@ -231,6 +236,11 @@ func GetConsoleCommand() *cobra.Command {
 						return errs[0]
 					}
 
+					if len(commits) == 0 {
+						pterm.Warning.Println("The file has no prior version to compare against — nothing to display")
+						return nil
+					}
+
 					// boot.
 					app := tui.BuildApplication(commits, Version)
 					if app == nil {
@@ -274,7 +284,9 @@ func GetConsoleCommand() *cobra.Command {
 					return nil
 				}
 			}
-			pterm.Error.Println("too many arguments, expecting two (2)")
+			pterm.Error.Println("Too many arguments provided, expecting two (2)")
+			pterm.Println()
+			PrintHowToUse("console")
 			return nil
 		},
 	}
@@ -345,9 +357,16 @@ func runGitHistoryConsole(gitPath, filePath, baseCommit string, latest bool, glo
 	}
 
 	// populate history with changes and data
-	git.PopulateHistoryWithChanges(commitHistory, limit, limitTime, updateChan, errorChan, base, remote, extRefs, breakingConfig)
+	commitHistory, _ = git.PopulateHistoryWithChanges(commitHistory, limit, limitTime, updateChan, errorChan, base, remote, extRefs, breakingConfig)
 
-	if latest {
+	if len(commitHistory) == 0 {
+		model.SendProgressUpdate("extraction",
+			"no comparable changes found in history", true, updateChan)
+		close(updateChan)
+		return nil, nil
+	}
+
+	if latest && len(commitHistory) > 0 {
 		commitHistory = commitHistory[:1]
 	}
 

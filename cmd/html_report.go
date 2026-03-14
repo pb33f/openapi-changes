@@ -190,6 +190,11 @@ func GetHTMLReportCommand() *cobra.Command {
 							return er[0]
 						}
 						return writeReportFile(reportFile, report)
+					} else {
+						pterm.Error.Println("A single argument requires a github.com URL. For local comparison, provide two arguments: a git repository path and a file path within it.")
+						pterm.Println()
+						PrintHowToUse("html-report")
+						return nil
 					}
 
 				} else {
@@ -274,7 +279,9 @@ func GetHTMLReportCommand() *cobra.Command {
 					return writeReportFile(reportFile, report)
 				}
 			}
-			pterm.Error.Println("wrong number of arguments, expecting two (2)")
+			pterm.Error.Println("Too many arguments provided, expecting two (2)")
+			pterm.Println()
+			PrintHowToUse("html-report")
 			return nil
 		},
 	}
@@ -341,7 +348,7 @@ func RunGitHistoryHTMLReport(gitPath, filePath, baseCommit string, latest, useCD
 		return nil, nil, err
 	}
 
-	if latest {
+	if latest && len(commitHistory) > 0 {
 		commitHistory = commitHistory[:1]
 	}
 
