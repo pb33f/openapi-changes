@@ -23,9 +23,9 @@
     "npm-install"
   ],
   "dependencies": {
-    "adm-zip": "^0.5.10",
-    "node-fetch": "^3.2.10",
-    "tar": "^6.1.11"
+    "https-proxy-agent": "^7.0.6",
+    "node-fetch": "^3.3.2",
+    "tar": "^7.5.11"
   },
   "bugs": {
     "url": "https://github.com/pb33f/openapi-changes/issues"
