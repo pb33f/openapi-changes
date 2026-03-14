@@ -4,283 +4,279 @@
 package git
 
 import (
-	"encoding/json"
+	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
-	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
-	"github.com/araddon/dateparse"
+	"github.com/pb33f/doctor/github"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 )
 
-const GithubRepoAPI = "https://api.github.com/repos/"
-const GithubAuthHeader = "Authorization"
 const GithubToken = "GH_TOKEN"
 
-type APICommitAuthor struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Date  string `json:"date"`
+const (
+	maxConcurrentWorkers = 10
+	// sizeThresholdKB is the cumulative file size limit (in KB) before truncating results.
+	// The * 2 factor in the original code accounted for the fact that each commit's file
+	// content is held in memory twice during diff processing (current + previous).
+	sizeThresholdKB = 50000
+	// maxDownloadSize caps the large-file download fallback to prevent unbounded memory usage.
+	maxDownloadSize = 100 * 1024 * 1024 // 100MB
+)
+
+// githubAPI is the narrow interface we need from doctor's GitHubService.
+// Defined locally for testability — avoids mocking the entire GitHubService.
+type githubAPI interface {
+	GetCommitList(ctx context.Context, session *github.GitHubSession, owner, repo, path string, options *github.CommitListOptions) ([]github.Commit, error)
+	GetCommit(ctx context.Context, session *github.GitHubSession, owner, repo, sha string) (*github.Commit, error)
+	GetFileContent(ctx context.Context, session *github.GitHubSession, owner, repo, path, ref string) (*github.FileContent, error)
 }
 
-type APICommitDetails struct {
-	Author  *APICommitAuthor `json:"author"`
-	Message string           `json:"message"`
-	URL     string           `json:"url"`
+// fetchedCommit pairs a doctor Commit with the raw file bytes for the target path.
+type fetchedCommit struct {
+	Commit    github.Commit
+	FileBytes []byte
 }
 
-type APICommit struct {
-	Hash          string            `json:"sha"`
-	CommitDetails *APICommitDetails `json:"commit"`
-	URL           string            `json:"url"`
-	Files         []*APIFile        `json:"files"`
+type commitResult struct {
+	index  int
+	commit *fetchedCommit
+	err    error
 }
 
-type APIFile struct {
-	RawURL  string `json:"raw_url"`
-	BlobURL string `json:"blob_url"`
-	Hash    string `json:"sha"`
-	Bytes   []byte `json:"-"`
+func createGitHubSession() (*github.GitHubSession, githubAPI, error) {
+	token := os.Getenv(GithubToken)
+	if token == "" {
+		return nil, nil, fmt.Errorf("GH_TOKEN environment variable is required for GitHub API access")
+	}
+	svc := github.NewGitHubService()
+	config := github.DefaultSessionConfig()
+	config.Timeout = 60 * time.Second
+	session := svc.CreateSession(token, config)
+	if session == nil {
+		return nil, nil, fmt.Errorf("failed to create GitHub session — check that GH_TOKEN is a valid GitHub token (PAT or fine-grained)")
+	}
+	return session, svc, nil
+}
+
+// getFileBytes retrieves the raw content of a file at a specific commit SHA.
+func getFileBytes(ctx context.Context, svc githubAPI, session *github.GitHubSession,
+	owner, repo, path, sha string) ([]byte, error) {
+	fc, err := svc.GetFileContent(ctx, session, owner, repo, path, sha)
+	if err != nil {
+		return nil, err
+	}
+	if fc.Content != "" {
+		// GitHub base64 includes newlines — strip them before decoding
+		clean := strings.ReplaceAll(fc.Content, "\n", "")
+		return base64.StdEncoding.DecodeString(clean)
+	}
+	// Large files (>1MB): Content is empty, only DownloadURL available.
+	// This fallback bypasses doctor's retry/rate-limit path — acceptable since
+	// OpenAPI specs >1MB are extremely rare.
+	if fc.DownloadURL != "" {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fc.DownloadURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("creating download request for %s: %w", fc.DownloadURL, err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("downloading file from %s: %w", fc.DownloadURL, err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("downloading file from %s: HTTP %d", fc.DownloadURL, resp.StatusCode)
+		}
+		return io.ReadAll(io.LimitReader(resp.Body, maxDownloadSize))
+	}
+	return nil, fmt.Errorf("no content available for %s at %s", path, sha)
+}
+
+// isNotFoundError uses string matching because doctor wraps go-github errors
+// without exposing a typed error. This works reliably because go-github formats
+// errors as "GET ...: 404 Not Found [...]". TODO: add IsNotFound(error) bool
+// to the doctor module for proper typed error checking.
+func isNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, "404") || strings.Contains(errStr, "Not Found")
 }
 
 func GetCommitsForGithubFile(user, repo, path string, baseCommit string,
 	progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError,
-	forceCutoff bool, limit int, limitTime int) ([]*APICommit, error) {
+	forceCutoff bool, limit int, limitTime int,
+	session *github.GitHubSession, svc githubAPI) ([]*fetchedCommit, error) {
 
-	// we can make a lot of http calls, very quickly - so ensure we give the client enough
-	// breathing space to cope with lots of TLS handshakes.
-	t := &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   60 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		TLSHandshakeTimeout: 60 * time.Second,
+	ctx := context.Background()
+
+	// Determine MaxResults for the commit list fetch.
+	maxResults := 100 // hard default, prevents unbounded fetch
+	if limit > 0 {
+		maxResults = limit + 1
 	}
 
-	u := fmt.Sprintf("%s%s/%s/commits?path=%s", GithubRepoAPI, user, repo, path)
-	client := &http.Client{
-		Transport: t,
+	opts := &github.CommitListOptions{
+		MaxResults: maxResults,
 	}
-	req, _ := http.NewRequest(http.MethodGet, u, nil)
-	ghAuth := os.Getenv(GithubToken)
-	if ghAuth != "" {
-		req.Header.Set(GithubAuthHeader, fmt.Sprintf("Bearer %s", ghAuth))
-	}
-	resp, err := client.Do(req)
+
+	commits, err := svc.GetCommitList(ctx, session, user, repo, path, opts)
 	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
-		errMsg := fmt.Sprintf("HTTP error %d, cannot proceed: %s", resp.StatusCode, string(body))
+		errMsg := fmt.Sprintf("failed to list commits: %s", err.Error())
 		model.SendProgressError("read commit history", errMsg, progressErrorChan)
 		return nil, errors.New(errMsg)
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		model.SendProgressError("read commit API response", err.Error(), progressErrorChan)
-		return nil, err
+	if len(commits) == 0 {
+		return nil, nil
 	}
-	var commits []*APICommit
-	err = json.Unmarshal(body, &commits)
-	if err != nil {
-		model.SendProgressError("unmarshal commit history API response", err.Error(), progressErrorChan)
-		return nil, err
-	}
-
-	kbSize := 0
-	threshold := 50000
-	cutoffIndex := 0
-	count := 0
-	var extractFilesFromCommit = func(user, repo, path string, commit *APICommit, d chan bool, e chan error) {
-		u = fmt.Sprintf("%s%s/%s/commits/%s", GithubRepoAPI, user, repo, commit.Hash)
-		cl := &http.Client{
-			Transport: t,
-		}
-		r, _ := http.NewRequest(http.MethodGet, u, nil)
-		if ghAuth != "" {
-			r.Header.Set(GithubAuthHeader, fmt.Sprintf("Bearer %s", ghAuth))
-		}
-		res, er := cl.Do(r)
-
-		if er != nil {
-			model.SendProgressError(fmt.Sprintf("fetching commit %s via API", commit.Hash),
-				err.Error(), progressErrorChan)
-			e <- er
-			return
-		}
-		if res.StatusCode != 200 {
-			b, _ := io.ReadAll(res.Body)
-			errString := fmt.Sprintf("HTTP error %d, cannot proceed: %s", res.StatusCode, string(b))
-			model.SendProgressError(fmt.Sprintf("fetching commit %s via API", commit.Hash),
-				err.Error(), progressErrorChan)
-			e <- errors.New(errString)
-			return
-		}
-		b, er := io.ReadAll(res.Body)
-		if er != nil {
-			model.SendProgressError(fmt.Sprintf("reading commit body %s via API", commit.Hash),
-				err.Error(), progressErrorChan)
-			e <- er
-			return
-		}
-		var f *APICommit
-		err = json.Unmarshal(b, &f)
-		if err != nil {
-			model.SendProgressError(fmt.Sprintf("unmarshalling commit %s via API", commit.Hash),
-				err.Error(), progressErrorChan)
-			e <- err
-			return
-		}
-		commit.Files = f.Files
-
-		model.SendProgressUpdate(commit.Hash,
-			fmt.Sprintf("Commit %s contains %d files, scanning for matching path",
-				commit.Hash, len(commit.Files)), false, progressChan)
-
-		for x := range commit.Files {
-			// make sure we extract the one we want.
-			rawURL, _ := url.Parse(commit.Files[x].RawURL)
-			dir, file := filepath.Split(rawURL.Path)
-			lookyDir, lookyLoo := filepath.Split(path)
-			dir = strings.ReplaceAll(dir, fmt.Sprintf("/%s/%s/raw/%s/", user, repo, commit.Hash), "")
-
-			if file == lookyLoo && dir == lookyDir {
-				u = fmt.Sprintf("%s%s/%s/contents/%s?ref=%s", GithubRepoAPI, user, repo, path, commit.Hash)
-				r, _ = http.NewRequest(http.MethodGet, u, nil)
-				if ghAuth != "" {
-					r.Header.Set(GithubAuthHeader, fmt.Sprintf("Bearer %s", ghAuth))
-				}
-				res, er = cl.Do(r)
-				if er != nil {
-					model.SendProgressError(fmt.Sprintf("reading commit %s file at %s via API",
-						commit.Hash, commit.Files[x].RawURL), er.Error(), progressErrorChan)
-					e <- er
-					return
-				}
-				if res.StatusCode != 200 {
-					k, _ := io.ReadAll(res.Body)
-					errMsg := fmt.Sprintf("HTTP error %d, cannot proceed: %s", res.StatusCode, string(k))
-					model.SendProgressError(fmt.Sprintf("reading commit %s file at %s via API",
-						commit.Hash, commit.Files[x].RawURL), errMsg, progressErrorChan)
-					e <- errors.New(errMsg)
-					return
-				}
-
-				type Response struct {
-					DownloadURL string `json:"download_url"`
-				}
-
-				var resp Response
-				er = json.NewDecoder(res.Body).Decode(&resp)
-				if er != nil {
-					model.SendProgressError(fmt.Sprintf("decoding commit %s file at %s via API",
-						commit.Hash, commit.Files[x].RawURL), er.Error(), progressErrorChan)
-					e <- er
-					return
-				}
-
-				if resp.DownloadURL == "" {
-					model.SendProgressError(fmt.Sprintf("commit %s file at %s has no download URL (are you sure it's a file?)", commit.Hash, commit.Files[x].RawURL),
-						"no download URL found in response", progressErrorChan)
-					e <- errors.New("no download URL found in response")
-					return
-				}
-
-				res, er = cl.Get(resp.DownloadURL)
-				if er != nil {
-					model.SendProgressError(fmt.Sprintf("reading commit %s file at %s via API",
-						commit.Hash, commit.Files[x].RawURL), er.Error(), progressErrorChan)
-					e <- er
-					return
-				}
-
-				b, er = io.ReadAll(res.Body)
-				kbSize += (len(b) / 1024) * 2
-				if kbSize > threshold {
-					cutoffIndex = count
-				} else {
-					count++
-				}
-				if er != nil {
-					model.SendProgressError(fmt.Sprintf("reading commit body %s file at %s via API",
-						commit.Hash, commit.Files[x].RawURL), er.Error(), progressErrorChan)
-					e <- er
-					return
-				}
-				p, _ := url.PathUnescape(commit.Files[x].RawURL)
-				model.SendProgressUpdate(commit.Hash,
-					fmt.Sprintf("%dkb read for file %s", len(b)/1024, p), false, progressChan)
-				commit.Files[x].Bytes = b
-			}
-		}
-		model.SendProgressUpdate(commit.Hash,
-			fmt.Sprintf("commit %s processed", commit.Hash), true, progressChan)
-		d <- true
-	}
-
-	sigChan := make(chan bool)
-	errChan := make(chan error)
 
 	totalCommits := len(commits)
 
 	if limitTime != -1 {
 		newLimit := getCommitTimeLimit(limitTime, commits)
-
 		if newLimit == 0 {
-			return []*APICommit{}, nil
+			return []*fetchedCommit{}, nil
 		}
-
 		limit = newLimit
 	}
 
+	// Process limit+1 commits: the extra commit provides the "before" state
+	// for diffing the oldest commit in the requested range.
 	if limit > 0 && totalCommits > limit {
 		totalCommits = limit + 1
 	}
-	completedCommits := 0
 
-	b := 0
-	for x := range commits {
-		model.SendProgressUpdate(fmt.Sprintf("commit: %s", commits[x].Hash),
-			fmt.Sprintf("commit %s being fetched from %s", commits[x].Hash[0:6], u), false, progressChan)
-		go extractFilesFromCommit(user, repo, path, commits[x], sigChan, errChan)
-		b++
-		if baseCommit != "" && (commits[x].Hash == baseCommit || strings.HasPrefix(commits[x].Hash, baseCommit)) {
-			totalCommits = b
-			break
+	// Apply baseCommit cutoff — determine the actual set of commits to process.
+	processCommits := commits[:totalCommits]
+	if baseCommit != "" {
+		for i, c := range processCommits {
+			if c.SHA == baseCommit || strings.HasPrefix(c.SHA, baseCommit) {
+				processCommits = processCommits[:i+1]
+				break
+			}
 		}
-		if limit > 0 && b > limit {
-			break
+	}
+	totalCommits = len(processCommits)
+
+	results := make([]*fetchedCommit, totalCommits)
+	resultChan := make(chan commitResult, totalCommits)
+	sem := make(chan struct{}, maxConcurrentWorkers)
+
+	var kbSize atomic.Int64
+	var cutoffIndex atomic.Int64
+
+	for i, commit := range processCommits {
+		model.SendProgressUpdate(fmt.Sprintf("commit: %s", commit.SHA),
+			fmt.Sprintf("commit %s being fetched", commit.SHA[:min(6, len(commit.SHA))]), false, progressChan)
+
+		sem <- struct{}{}
+		go func(idx int, c github.Commit) {
+			defer func() { <-sem }()
+
+			// Get commit details (includes file list)
+			detail, err := svc.GetCommit(ctx, session, user, repo, c.SHA)
+			if err != nil {
+				resultChan <- commitResult{index: idx, err: fmt.Errorf("fetching commit %s: %w", c.SHA, err)}
+				return
+			}
+
+			model.SendProgressUpdate(c.SHA,
+				fmt.Sprintf("Commit %s contains %d files, scanning for matching path",
+					c.SHA, len(detail.Files)), false, progressChan)
+
+			// Find the matching file by repo-relative path.
+			var fileBytes []byte
+			for _, file := range detail.Files {
+				if file.Filename == path {
+					fileBytes, err = getFileBytes(ctx, svc, session, user, repo, path, c.SHA)
+					if err != nil {
+						if isNotFoundError(err) {
+							// File doesn't exist at this ref (deleted/renamed) — skip.
+							model.SendProgressUpdate(c.SHA,
+								fmt.Sprintf("file %s not found at commit %s, skipping", path, c.SHA), false, progressChan)
+							resultChan <- commitResult{index: idx, commit: nil}
+							return
+						}
+						resultChan <- commitResult{index: idx, err: fmt.Errorf("reading file at commit %s: %w", c.SHA, err)}
+						return
+					}
+
+					// Track cumulative size for cutoff. The * 2 accounts for each
+					// commit's data being held in memory alongside its predecessor
+					// during diff processing in BuildCommitChangelog.
+					fileSizeKB := int64(len(fileBytes) / 1024 * 2)
+					newSize := kbSize.Add(fileSizeKB)
+					if newSize > sizeThresholdKB {
+						cutoffIndex.CompareAndSwap(0, int64(idx))
+					}
+
+					model.SendProgressUpdate(c.SHA,
+						fmt.Sprintf("%dkb read for file %s", len(fileBytes)/1024, path), false, progressChan)
+					break
+				}
+			}
+
+			fc := &fetchedCommit{
+				Commit:    *detail,
+				FileBytes: fileBytes,
+			}
+
+			model.SendProgressUpdate(c.SHA,
+				fmt.Sprintf("commit %s processed", c.SHA), true, progressChan)
+			resultChan <- commitResult{index: idx, commit: fc}
+		}(i, commit)
+	}
+
+	// Collect results preserving order.
+	var firstErr error
+	for i := 0; i < totalCommits; i++ {
+		r := <-resultChan
+		if r.err != nil {
+			if firstErr == nil {
+				firstErr = r.err
+			}
+			continue
+		}
+		results[r.index] = r.commit
+	}
+
+	if firstErr != nil {
+		return nil, firstErr
+	}
+
+	if forceCutoff {
+		ci := int(cutoffIndex.Load())
+		if ci > 0 {
+			totalKB := int(kbSize.Load())
+			msg := fmt.Sprintf("report exceeds %dMB in size (%dMB), results limited to %d changes in the timeline",
+				sizeThresholdKB/1024, totalKB/1024, ci-1)
+			model.SendProgressWarning("large report", msg, progressChan)
+			results = results[:ci]
 		}
 	}
 
-	for completedCommits < totalCommits {
-		select {
-		case <-sigChan:
-			completedCommits++
-		case e := <-errChan:
-			return nil, e
+	// Filter out nil results (skipped commits where file was deleted).
+	var filtered []*fetchedCommit
+	for _, r := range results {
+		if r != nil {
+			filtered = append(filtered, r)
 		}
 	}
-	if forceCutoff && cutoffIndex > 0 {
-		msg := fmt.Sprintf("report exceeds %dMB in size (%dMB), results limited to %d changes in the timeline",
-			threshold/1024, kbSize/1024, cutoffIndex-1)
-		model.SendProgressWarning("large report", msg, progressChan)
-		commits = commits[:cutoffIndex]
-	}
-	return commits, nil
+
+	return filtered, nil
 }
 
-func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
+func ConvertGithubCommitsIntoModel(ghCommits []*fetchedCommit,
 	progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError, base string, remote, extRefs bool,
 	breakingConfig *whatChangedModel.BreakingRulesConfig,
 ) ([]*model.Commit, []error) {
@@ -290,22 +286,19 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
 		model.SendProgressUpdate("converting commits",
 			fmt.Sprintf("converting %d github commits into data model", len(ghCommits)), false, progressChan)
 	}
-	for x := range ghCommits {
-		for y := range ghCommits[x].Files {
-			if len(ghCommits[x].Files[y].Bytes) > 0 {
-				t, _ := time.Parse("2006-01-02T15:04:05Z", ghCommits[x].CommitDetails.Author.Date)
-				nc := &model.Commit{
-					Hash:        ghCommits[x].Hash,
-					Message:     ghCommits[x].CommitDetails.Message,
-					Author:      ghCommits[x].CommitDetails.Author.Name,
-					AuthorEmail: ghCommits[x].CommitDetails.Author.Email,
-					CommitDate:  t,
-					Data:        ghCommits[x].Files[y].Bytes,
-				}
-				model.SendProgressUpdate("converting commits",
-					fmt.Sprintf("Converted commit %s into data model", nc.Hash), false, progressChan)
-				normalized = append(normalized, nc)
+	for _, fc := range ghCommits {
+		if len(fc.FileBytes) > 0 {
+			nc := &model.Commit{
+				Hash:        fc.Commit.SHA,
+				Message:     fc.Commit.Message,
+				Author:      fc.Commit.Author.Name,
+				AuthorEmail: fc.Commit.Author.Email,
+				CommitDate:  fc.Commit.Author.Date,
+				Data:        fc.FileBytes,
 			}
+			model.SendProgressUpdate("converting commits",
+				fmt.Sprintf("Converted commit %s into data model", nc.Hash), false, progressChan)
+			normalized = append(normalized, nc)
 		}
 	}
 	var errs []error
@@ -319,7 +312,6 @@ func ConvertGithubCommitsIntoModel(ghCommits []*APICommit,
 		model.SendProgressError("converting commits",
 			fmt.Sprintf("%d errors detected when normalizing", len(normalized)), progressErrorChan)
 	} else {
-
 		if len(normalized) > 0 {
 			model.SendProgressUpdate("converting commits",
 				fmt.Sprintf("Success: %d commits normalized", len(normalized)), true, progressChan)
@@ -342,8 +334,15 @@ func ProcessGithubRepo(username, repo, filePath, baseCommit string,
 		return nil, []error{err}
 	}
 
-	githubCommits, err := GetCommitsForGithubFile(username, repo, filePath, baseCommit, progressChan, errorChan, forceCutoff, limit, limitTime)
+	session, svc, err := createGitHubSession()
+	if err != nil {
+		model.SendProgressError("git", err.Error(), errorChan)
+		return nil, []error{err}
+	}
+	defer session.Close()
 
+	githubCommits, err := GetCommitsForGithubFile(username, repo, filePath, baseCommit,
+		progressChan, errorChan, forceCutoff, limit, limitTime, session, svc)
 	if err != nil {
 		return nil, []error{err}
 	}
@@ -358,27 +357,20 @@ func ProcessGithubRepo(username, repo, filePath, baseCommit string,
 	return commitHistory, nil
 }
 
-func getCommitTimeLimit(limitTime int, commits []*APICommit) int {
-	var commitTimeCutoff *time.Time
-	newLimit := 0
-
+func getCommitTimeLimit(limitTime int, commits []github.Commit) int {
 	if limitTime <= 0 {
 		return 0
 	}
 
-	temp := time.Now().Add(time.Duration(-limitTime) * time.Hour * 24)
-	commitTimeCutoff = &temp
+	commitTimeCutoff := time.Now().Add(time.Duration(-limitTime) * time.Hour * 24)
+	newLimit := 0
 
-	for x := range commits {
-		commitTime, _ := dateparse.ParseAny(commits[x].CommitDetails.Author.Date)
-
-		if commitTimeCutoff.After(commitTime) {
+	for _, c := range commits {
+		if commitTimeCutoff.After(c.Author.Date) {
 			break
 		}
-
 		newLimit++
 	}
-
 	return newLimit
-
 }
+
