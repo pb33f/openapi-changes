@@ -82,6 +82,7 @@ type progressDrainer struct {
 	ErrorChan    chan model.ProgressError
 	errors       []model.ProgressError
 	wg           sync.WaitGroup
+	closeOnce    sync.Once
 }
 
 func newProgressDrainer() *progressDrainer {
@@ -105,9 +106,11 @@ func newProgressDrainer() *progressDrainer {
 }
 
 func (d *progressDrainer) close() []model.ProgressError {
-	close(d.ProgressChan)
-	close(d.ErrorChan)
-	d.wg.Wait()
+	d.closeOnce.Do(func() {
+		close(d.ProgressChan)
+		close(d.ErrorChan)
+		d.wg.Wait()
+	})
 	return d.errors
 }
 
