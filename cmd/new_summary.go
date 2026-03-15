@@ -15,9 +15,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/google/uuid"
-	"github.com/pb33f/doctor/changerator"
 	"github.com/pb33f/doctor/changerator/renderer"
-	drModel "github.com/pb33f/doctor/model"
 	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/git"
@@ -77,10 +75,12 @@ func (l lipglossColorScheme) Statistics(s string) string   { return l.styles.sta
 
 // progressDrainer creates channels and goroutines to drain progress/error channels
 // required by the git layer functions (which use unbuffered synchronous sends).
+// Warnings from the progress channel are collected and can be printed via printWarnings().
 type progressDrainer struct {
 	ProgressChan chan *model.ProgressUpdate
 	ErrorChan    chan model.ProgressError
 	errors       []model.ProgressError
+	warnings     []string
 	wg           sync.WaitGroup
 	closeOnce    sync.Once
 }
@@ -93,7 +93,10 @@ func newProgressDrainer() *progressDrainer {
 	d.wg.Add(2)
 	go func() {
 		defer d.wg.Done()
-		for range d.ProgressChan {
+		for update := range d.ProgressChan {
+			if update.Warning {
+				d.warnings = append(d.warnings, update.Message)
+			}
 		}
 	}()
 	go func() {
@@ -114,6 +117,15 @@ func (d *progressDrainer) close() []model.ProgressError {
 	return d.errors
 }
 
+// printWarnings writes any collected warnings to stderr.
+// Must be called after close() to ensure all goroutines have finished writing.
+func (d *progressDrainer) printWarnings() {
+	d.close()
+	for _, w := range d.warnings {
+		fmt.Fprintf(os.Stderr, "warning: %s\n", w)
+	}
+}
+
 func loadGitHubCommits(rawURL string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
 	specURL, err := url.Parse(rawURL)
 	if err != nil {
@@ -129,6 +141,7 @@ func loadGitHubCommits(rawURL string, opts newSummaryOpts, breakingConfig *whatC
 		d.ProgressChan, d.ErrorChan, false, opts.limit, opts.limitTime,
 		opts.base, opts.remote, opts.extRefs, breakingConfig)
 	drainErrors := d.close()
+	d.printWarnings()
 
 	if len(drainErrors) > 0 {
 		for _, e := range drainErrors {
@@ -163,12 +176,14 @@ func loadGitHistoryCommits(gitPath, filePath string, opts newSummaryOpts, breaki
 		d.ProgressChan, d.ErrorChan, opts.globalRevisions, opts.limit, opts.limitTime)
 	if errs != nil {
 		d.close()
+		d.printWarnings()
 		return nil, errs[0]
 	}
 
 	commits, _ = git.PopulateHistoryWithChanges(commits, 0, opts.limitTime,
 		d.ProgressChan, d.ErrorChan, opts.base, opts.remote, opts.extRefs, breakingConfig)
 	d.close()
+	d.printWarnings()
 
 	if len(commits) == 0 {
 		return nil, nil
@@ -181,7 +196,10 @@ func loadGitHistoryCommits(gitPath, filePath string, opts newSummaryOpts, breaki
 
 func loadLeftRightCommits(left, right string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
 	d := newProgressDrainer()
-	defer d.close()
+	defer func() {
+		d.close()
+		d.printWarnings()
+	}()
 
 	var err error
 	left, err = checkURL(left, d.ErrorChan)
@@ -254,58 +272,12 @@ func renderNewSummary(
 			continue
 		}
 
-		if commit.Document == nil || commit.OldDocument == nil {
-			continue
-		}
-
-		// Build DrDocuments from existing libopenapi Documents
-		rightModel, err := commit.Document.BuildV3Model()
+		result, err := runChangerator(commit, breakingConfig)
 		if err != nil {
-			sb.WriteString(fmt.Sprintf("Error building right model: %s\n", err))
+			sb.WriteString(fmt.Sprintf("Error: %s\n", err))
 			continue
 		}
-		leftModel, err := commit.OldDocument.BuildV3Model()
-		if err != nil {
-			sb.WriteString(fmt.Sprintf("Error building left model: %s\n", err))
-			continue
-		}
-
-		rightDrDoc := drModel.NewDrDocumentAndGraph(rightModel)
-		leftDrDoc := drModel.NewDrDocumentAndGraph(leftModel)
-
-		if rightDrDoc == nil || leftDrDoc == nil {
-			if rightDrDoc != nil {
-				rightDrDoc.Release()
-			}
-			if leftDrDoc != nil {
-				leftDrDoc.Release()
-			}
-			continue
-		}
-
-		// Apply breaking rules config
-		if breakingConfig != nil {
-			ApplyBreakingRulesConfig(breakingConfig)
-		}
-
-		// Create Changerator and run
-		ctr := changerator.NewChangerator(&changerator.ChangeratorConfig{
-			LeftDrDoc:       leftDrDoc.V3Document,
-			RightDrDoc:      rightDrDoc.V3Document,
-			Doctor:          rightDrDoc,
-			RightDocContent: commit.Data,
-		})
-
-		docChanges := ctr.Changerate()
-
-		// Reset breaking rules after changerate
-		if breakingConfig != nil {
-			ResetBreakingRulesConfig()
-		}
-
-		if docChanges == nil {
-			rightDrDoc.Release()
-			leftDrDoc.Release()
+		if result == nil {
 			if totalChanges == 0 && c+1 < len(commits) {
 				sb.WriteString(fmt.Sprintf("No changes detected between %s and %s\n",
 					commit.Hash, commits[c+1].Hash))
@@ -315,7 +287,7 @@ func renderNewSummary(
 
 		// Build node change tree and render tree for first commit only
 		if c == 0 {
-			ctr.BuildNodeChangeTree(rightDrDoc.V3Document.Node)
+			result.Changerator.BuildNodeChangeTree(result.RightDrDoc.V3Document.Node)
 
 			var colorScheme terminal.ColorScheme
 			if noColor || markdown {
@@ -324,7 +296,7 @@ func renderNewSummary(
 				colorScheme = lipglossColorScheme{styles: styles}
 			}
 
-			treeRenderer := renderer.NewTreeRenderer(rightDrDoc.V3Document.Node, &renderer.TreeConfig{
+			treeRenderer := renderer.NewTreeRenderer(result.RightDrDoc.V3Document.Node, &renderer.TreeConfig{
 				UseEmojis:       markdown,
 				ShowLineNumbers: true,
 				ShowStatistics:  true,
@@ -342,12 +314,10 @@ func renderNewSummary(
 			}
 		}
 
-		// Get statistics
-		stats := ctr.Calculatoratron()
+		stats := result.Changerator.Calculatoratron()
 
-		// Count breaking changes from docChanges
 		var breakingAdded, breakingModified, breakingRemoved int
-		for _, ch := range docChanges.GetAllChanges() {
+		for _, ch := range result.DocChanges.GetAllChanges() {
 			if ch.Breaking {
 				switch ch.ChangeType {
 				case whatChangedModel.PropertyAdded, whatChangedModel.ObjectAdded:
@@ -439,9 +409,7 @@ func renderNewSummary(
 
 		sb.WriteString("\n")
 
-		// Cleanup
-		rightDrDoc.Release()
-		leftDrDoc.Release()
+		result.Release()
 	}
 
 	hasBreaking := totalBreaking > 0
@@ -473,7 +441,7 @@ func GetNewSummaryCommand() *cobra.Command {
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {
-				PrintBanner()
+				PrintNewBanner(noColorFlag)
 			}
 
 			if len(args) == 0 {
@@ -528,15 +496,19 @@ func GetNewSummaryCommand() *cobra.Command {
 			case len(args) == 1:
 				commits, err = loadGitHubCommits(args[0], opts, breakingConfig)
 			case len(args) == 2:
-				p := args[0]
-				f, statErr := os.Stat(p)
-				if statErr != nil {
-					return fmt.Errorf("cannot open file/repository: '%s'", p)
-				}
-				if f.IsDir() {
-					commits, err = loadGitHistoryCommits(args[0], args[1], opts, breakingConfig)
-				} else {
+				firstURL, _ := url.Parse(args[0])
+				if firstURL != nil && strings.HasPrefix(firstURL.Scheme, "http") {
 					commits, err = loadLeftRightCommits(args[0], args[1], opts, breakingConfig)
+				} else {
+					f, statErr := os.Stat(args[0])
+					if statErr != nil {
+						return fmt.Errorf("cannot open file/repository: '%s'", args[0])
+					}
+					if f.IsDir() {
+						commits, err = loadGitHistoryCommits(args[0], args[1], opts, breakingConfig)
+					} else {
+						commits, err = loadLeftRightCommits(args[0], args[1], opts, breakingConfig)
+					}
 				}
 			}
 			if err != nil {
@@ -568,7 +540,8 @@ func GetNewSummaryCommand() *cobra.Command {
 	return cmd
 }
 
-func printNewSummaryUsage(noColor bool) {
+// printNewCommandUsage prints lipgloss-styled usage for any new-* command.
+func printNewCommandUsage(commandName, description string, noColor bool) {
 	title := lipgloss.NewStyle().Foreground(lipgloss.Color("#96E1FF")).Bold(true)
 	desc := lipgloss.NewStyle().Faint(true)
 	cmdStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF77FF")).Bold(true)
@@ -580,34 +553,39 @@ func printNewSummaryUsage(noColor bool) {
 	}
 
 	fmt.Print(title.Render("How to use the "))
-	fmt.Print(cmdStyle.Render("new-summary"))
+	fmt.Print(cmdStyle.Render(commandName))
 	fmt.Println(title.Render(" command:"))
 	fmt.Println("-------------------------------")
 	fmt.Println()
-	fmt.Println("The new-summary command prints out a simplified, reduced summary of a change report")
-	fmt.Println("using the doctor changerator engine with tree visualization.")
+	fmt.Println(description)
 	fmt.Println()
 	fmt.Println(title.Render(">> diff local git history"))
 	fmt.Println(desc.Render("supply a path to the git repository root and the path to the OpenAPI spec from the root."))
 	fmt.Println()
 	fmt.Print("openapi-changes ")
-	fmt.Print(cmdStyle.Render("new-summary"))
+	fmt.Print(cmdStyle.Render(commandName))
 	fmt.Println(title.Render(" . sample-specs/petstorev3.json"))
 	fmt.Println()
 	fmt.Println(title.Render(">> diff old / modified files"))
 	fmt.Println(desc.Render("supply paths to the left (original) and right (modified) OpenAPI specs"))
 	fmt.Println()
 	fmt.Print("openapi-changes ")
-	fmt.Print(cmdStyle.Render("new-summary"))
+	fmt.Print(cmdStyle.Render(commandName))
 	fmt.Println(title.Render(" sample-specs/petstorev3-original.json sample-specs/petstorev3.json"))
 	fmt.Println()
 	fmt.Println(title.Render(">> diff an OpenAPI spec on github"))
 	fmt.Println(desc.Render("supply the URL to the file on github"))
 	fmt.Println()
 	fmt.Print("openapi-changes ")
-	fmt.Print(cmdStyle.Render("new-summary"))
+	fmt.Print(cmdStyle.Render(commandName))
 	fmt.Println(title.Render(" https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/petstore.yaml"))
 	fmt.Println()
-	fmt.Printf("For more help, use the %s flag (openapi-changes new-summary --help)\n", cmdStyle.Render("--help"))
+	fmt.Printf("For more help, use the %s flag (openapi-changes %s --help)\n", cmdStyle.Render("--help"), commandName)
 	fmt.Println()
+}
+
+func printNewSummaryUsage(noColor bool) {
+	printNewCommandUsage("new-summary",
+		"The new-summary command prints out a simplified, reduced summary of a change report\nusing the doctor changerator engine with tree visualization.",
+		noColor)
 }

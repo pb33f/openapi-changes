@@ -5,6 +5,8 @@ package cmd
 
 import (
 	"fmt"
+
+	"charm.land/lipgloss/v2"
 	"github.com/pterm/pterm"
 )
 
@@ -28,6 +30,37 @@ func PrintBanner() {
 	pterm.Println(pterm.LightMagenta(fmt.Sprintf(" | compiled: %s", Date)))
 	pterm.Println()
 
+}
+
+// PrintNewBanner prints the pb33f banner using lipgloss (no pterm).
+// When noColor is true, all styling is disabled.
+func PrintNewBanner(noColor bool) {
+	art := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF77FF")).Bold(true)
+	info := lipgloss.NewStyle().Foreground(lipgloss.Color("#96E1FF")).Bold(true)
+
+	if noColor {
+		art = lipgloss.NewStyle()
+		info = lipgloss.NewStyle()
+	}
+
+	text := `
+@@@@@@@   @@@@@@@   @@@@@@   @@@@@@   @@@@@@@@
+@@@@@@@@  @@@@@@@@  @@@@@@@  @@@@@@@  @@@@@@@@
+@@!  @@@  @@!  @@@      @@@      @@@  @@!
+!@!  @!@  !@   @!@      @!@      @!@  !@!
+@!@@!@!   @!@!@!@   @!@!!@   @!@!!@   @!!!:!
+!!@!!!    !!!@!!!!  !!@!@!   !!@!@!   !!!!!:
+!!:       !!:  !!!      !!:      !!:  !!:
+:!:       :!:  !:!      :!:      :!:  :!:
+ ::        :: ::::  :: ::::  :: ::::   ::
+ :        :: : ::    : : :    : : :    :
+`
+	fmt.Println(art.Render(text))
+	fmt.Println(info.Render("https://pb33f.io/openapi-changes/"))
+	fmt.Println("------------------------------------")
+	fmt.Print(info.Render(fmt.Sprintf("openapi-changes version: %s", Version)))
+	fmt.Println(art.Render(fmt.Sprintf(" | compiled: %s", Date)))
+	fmt.Println()
 }
 
 func PrintHowToUse(command string) {

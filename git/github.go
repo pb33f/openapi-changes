@@ -57,6 +57,7 @@ func createGitHubSession() (*github.GitHubSession, githubAPI, error) {
 	if token == "" {
 		return nil, nil, fmt.Errorf("GH_TOKEN environment variable is required for GitHub API access")
 	}
+	github.SetGlobalLogger(github.NewProductionLogger(github.LogLevelError))
 	svc := github.NewGitHubService()
 	config := github.DefaultSessionConfig()
 	config.Timeout = 60 * time.Second

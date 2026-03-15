@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/pb33f/doctor/changerator"
@@ -18,21 +19,41 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// changerateCommit runs the doctor changerator on a single commit to populate
-// commit.Changes. Returns true if changes were found.
+// changeratorResult holds the output of runChangerator.
+// Caller must call Release() when done.
+type changeratorResult struct {
+	Changerator *changerator.Changerator
+	DocChanges  *whatChangedModel.DocumentChanges
+	RightDrDoc  *drModel.DrDocument
+	LeftDrDoc   *drModel.DrDocument
+}
+
+func (r *changeratorResult) Release() {
+	if r.RightDrDoc != nil {
+		r.RightDrDoc.Release()
+	}
+	if r.LeftDrDoc != nil {
+		r.LeftDrDoc.Release()
+	}
+}
+
+// runChangerator builds DrDocuments, runs the changerator, and returns the results.
+// Returns (nil, nil) if Documents are nil or no changes found.
+// Returns (nil, err) if model building fails.
+// Returns (result, nil) on success — caller must call result.Release().
 // Not safe for concurrent use due to global ApplyBreakingRulesConfig/ResetBreakingRulesConfig state.
-func changerateCommit(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) bool {
+func runChangerator(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*changeratorResult, error) {
 	if commit.Document == nil || commit.OldDocument == nil {
-		return false
+		return nil, nil
 	}
 
 	rightModel, err := commit.Document.BuildV3Model()
 	if err != nil {
-		return false
+		return nil, fmt.Errorf("building right model: %w", err)
 	}
 	leftModel, err := commit.OldDocument.BuildV3Model()
 	if err != nil {
-		return false
+		return nil, fmt.Errorf("building left model: %w", err)
 	}
 
 	rightDrDoc := drModel.NewDrDocumentAndGraph(rightModel)
@@ -45,10 +66,8 @@ func changerateCommit(commit *model.Commit, breakingConfig *whatChangedModel.Bre
 		if leftDrDoc != nil {
 			leftDrDoc.Release()
 		}
-		return false
+		return nil, fmt.Errorf("failed to create DrDocument models")
 	}
-	defer rightDrDoc.Release()
-	defer leftDrDoc.Release()
 
 	if breakingConfig != nil {
 		ApplyBreakingRulesConfig(breakingConfig)
@@ -68,10 +87,28 @@ func changerateCommit(commit *model.Commit, breakingConfig *whatChangedModel.Bre
 	}
 
 	if docChanges == nil {
-		return false
+		rightDrDoc.Release()
+		leftDrDoc.Release()
+		return nil, nil
 	}
 
-	commit.Changes = docChanges
+	return &changeratorResult{
+		Changerator: ctr,
+		DocChanges:  docChanges,
+		RightDrDoc:  rightDrDoc,
+		LeftDrDoc:   leftDrDoc,
+	}, nil
+}
+
+// changerateCommit runs the doctor changerator on a single commit to populate
+// commit.Changes. Returns true if changes were found.
+func changerateCommit(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) bool {
+	result, err := runChangerator(commit, breakingConfig)
+	if err != nil || result == nil {
+		return false
+	}
+	defer result.Release()
+	commit.Changes = result.DocChanges
 	return true
 }
 
@@ -168,7 +205,7 @@ func GetNewReportCommand() *cobra.Command {
 			if len(args) == 0 {
 				noBanner, _ := cmd.Flags().GetBool("no-logo")
 				if !noBanner {
-					PrintBanner()
+					PrintNewBanner(false)
 				}
 				PrintHowToUse("new-report")
 				return nil
@@ -210,17 +247,20 @@ func GetNewReportCommand() *cobra.Command {
 				return printReportJSON(flat)
 			}
 
-			f, statErr := os.Stat(args[0])
-			if statErr == nil && f.IsDir() {
-				flat, reportErr := runNewGitHistoryReport(args[0], args[1], opts, breakingConfig)
-				if reportErr != nil {
-					return reportErr
+			firstURL, _ := url.Parse(args[0])
+			if firstURL == nil || !strings.HasPrefix(firstURL.Scheme, "http") {
+				f, statErr := os.Stat(args[0])
+				if statErr == nil && f.IsDir() {
+					flat, reportErr := runNewGitHistoryReport(args[0], args[1], opts, breakingConfig)
+					if reportErr != nil {
+						return reportErr
+					}
+					if flat == nil {
+						fmt.Println(`{"message": "No changes found between specifications"}`)
+						return nil
+					}
+					return printReportJSON(flat)
 				}
-				if flat == nil {
-					fmt.Println(`{"message": "No changes found between specifications"}`)
-					return nil
-				}
-				return printReportJSON(flat)
 			}
 
 			flat, reportErr := runNewLeftRightReport(args[0], args[1], opts, breakingConfig)
