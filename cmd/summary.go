@@ -363,12 +363,14 @@ func runLeftRightSummary(left, right string, updateChan chan *model.ProgressUpda
 			Message:    fmt.Sprintf("Original: %s, Modified: %s, ", left, right),
 			CommitDate: time.Now(),
 			Data:       rightBytes,
+			FilePath:   right,
 		},
 		{
 			Hash:       uuid.New().String()[:6],
 			Message:    fmt.Sprintf("Original file: %s", left),
 			CommitDate: time.Now(),
 			Data:       leftBytes,
+			FilePath:   left,
 		},
 	}
 

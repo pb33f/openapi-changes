@@ -4,7 +4,10 @@
 package git
 
 import (
+	"fmt"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
@@ -71,4 +74,41 @@ func TestReadFile(t *testing.T) {
 	contentRaw, err := readFile("../", "HEAD", "./git/read_local.go")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, contentRaw)
+}
+
+func TestBuildCommitChangelog_IdenticalLeftRightPreservesSentinelCommit(t *testing.T) {
+	specBytes := mustReadTestFile(t, "../sample-specs/petstorev3.json")
+	progressChan := make(chan *model.ProgressUpdate, 32)
+	errorChan := make(chan model.ProgressError, 32)
+
+	commits := []*model.Commit{
+		{
+			Hash:       "right1",
+			Message:    "right",
+			CommitDate: time.Now(),
+			Data:       specBytes,
+			FilePath:   "../sample-specs/petstorev3.json",
+		},
+		{
+			Hash:       "left01",
+			Message:    "left",
+			CommitDate: time.Now(),
+			Data:       specBytes,
+			FilePath:   "../sample-specs/petstorev3.json",
+		},
+	}
+
+	cleaned, errs := BuildCommitChangelog(commits, progressChan, errorChan, "", true, false, nil)
+	require.Empty(t, errs)
+	require.Len(t, cleaned, 1)
+	assert.Nil(t, cleaned[0].Changes)
+	assert.NotNil(t, cleaned[0].Document)
+}
+
+func mustReadTestFile(t *testing.T, path string) []byte {
+	t.Helper()
+
+	bits, err := os.ReadFile(path)
+	require.NoError(t, err, fmt.Sprintf("read test file %s", path))
+	return bits
 }

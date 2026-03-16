@@ -371,12 +371,14 @@ func runLeftRightReport(left, right string,
 			Message:    fmt.Sprintf("Original: %s, Modified: %s, ", left, right),
 			CommitDate: time.Now(),
 			Data:       rightBytes,
+			FilePath:   right,
 		},
 		{
 			Hash:       uuid.New().String()[:6],
 			Message:    fmt.Sprintf("Original file: %s", left),
 			CommitDate: time.Now(),
 			Data:       leftBytes,
+			FilePath:   left,
 		},
 	}
 
@@ -385,6 +387,9 @@ func runLeftRightReport(left, right string,
 
 	if len(errs) > 0 {
 		return nil, errs
+	}
+	if len(commits) == 0 {
+		return nil, nil
 	}
 	if commits[0].Changes == nil {
 		return nil, nil
