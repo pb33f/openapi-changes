@@ -3,6 +3,8 @@ module github.com/pb33f/openapi-changes
 go 1.25.0
 
 require (
+	charm.land/bubbles/v2 v2.0.0
+	charm.land/bubbletea/v2 v2.0.2
 	charm.land/lipgloss/v2 v2.0.2
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/gdamore/tcell/v2 v2.13.4

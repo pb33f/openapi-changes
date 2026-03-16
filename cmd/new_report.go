@@ -207,7 +207,9 @@ func GetNewReportCommand() *cobra.Command {
 				if !noBanner {
 					PrintNewBanner(false)
 				}
-				PrintHowToUse("new-report")
+				printNewCommandUsage("new-report",
+					"The new-report command generates a machine-readable JSON report of all API changes\nusing the doctor changerator engine.",
+					false)
 				return nil
 			}
 
@@ -228,7 +230,7 @@ func GetNewReportCommand() *cobra.Command {
 
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
 			if err != nil {
-				PrintConfigError(err)
+				PrintNewConfigError(err)
 				return err
 			}
 

@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"charm.land/lipgloss/v2"
+	"github.com/pb33f/doctor/terminal"
 	"github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pterm/pterm"
 	"go.yaml.in/yaml/v4"
@@ -213,4 +215,46 @@ func PrintConfigError(err error) {
 	}
 
 	fmt.Println() // space below
+}
+
+// PrintNewConfigError prints a config error with nice formatting using lipgloss (no pterm).
+func PrintNewConfigError(err error) {
+	red := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true)
+	yellow := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossYellow))
+	info := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue))
+
+	fmt.Println()
+
+	if validationErr, ok := err.(*ConfigValidationError); ok {
+		fmt.Println(red.Render(fmt.Sprintf("ERROR: Breaking rules config has %d error(s)", len(validationErr.Result.Errors))))
+		fmt.Println()
+		fmt.Println(red.Render(fmt.Sprintf("  File: %s", validationErr.FilePath)))
+		fmt.Println()
+
+		for _, e := range validationErr.Result.Errors {
+			if e.Line > 0 {
+				fmt.Println(red.Render(fmt.Sprintf("  ✗ Line %d: %s", e.Line, e.Message)))
+			} else {
+				fmt.Println(red.Render(fmt.Sprintf("  ✗ %s", e.Message)))
+			}
+			fmt.Println(yellow.Render(fmt.Sprintf("    → Move '%s' to the top level of your config", e.FoundKey)))
+			fmt.Println()
+		}
+
+		fmt.Println(info.Render("  Components like 'discriminator', 'xml', 'contact', 'license', etc."))
+		fmt.Println(info.Render("  must be defined at the top level, not nested under other components."))
+		fmt.Println(info.Render("  See: https://pb33f.io/libopenapi/what-changed/"))
+	} else if parseErr, ok := err.(*ConfigParseError); ok {
+		fmt.Println(red.Render("ERROR: Failed to parse breaking rules config file"))
+		fmt.Println()
+		fmt.Println(red.Render(fmt.Sprintf("  File: %s", parseErr.FilePath)))
+		fmt.Println(red.Render(fmt.Sprintf("  Error: %s", parseErr.Err.Error())))
+		fmt.Println()
+		fmt.Println(yellow.Render("  Ensure the YAML structure matches libopenapi's BreakingRulesConfig format."))
+		fmt.Println(yellow.Render("  See: https://pb33f.io/libopenapi/what-changed/"))
+	} else {
+		fmt.Println(red.Render(fmt.Sprintf("ERROR: Config error: %s", err.Error())))
+	}
+
+	fmt.Println()
 }

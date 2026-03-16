@@ -38,6 +38,7 @@ it can compare between two files, or a single file, over time.`,
 				{Level: 0, Text: "new-summary", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
 				{Level: 0, Text: "new-report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
 				{Level: 0, Text: "new-markdown-report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
+			{Level: 0, Text: "new-console", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
 			}).Render()
 
 			pterm.Printf("For more help, use the %s flag with any command.", pterm.LightMagenta("--help"))
@@ -68,6 +69,7 @@ func init() {
 	rootCmd.AddCommand(GetNewSummaryCommand())
 	rootCmd.AddCommand(GetNewReportCommand())
 	rootCmd.AddCommand(GetNewMarkdownReportCommand())
+	rootCmd.AddCommand(GetNewConsoleCommand())
 	rootCmd.PersistentFlags().BoolP("top", "t", false, "Only show latest changes (last git revision against HEAD)")
 	rootCmd.PersistentFlags().IntP("limit", "l", 5, "Limit history to number of revisions (default is 5)")
 	rootCmd.PersistentFlags().BoolP("global-revisions", "R", false, "Consider all revisions in limit, not just the ones for the file")

@@ -51,12 +51,12 @@ type summaryStyles struct {
 
 func newSummaryStyles() summaryStyles {
 	return summaryStyles{
-		title:        lipgloss.NewStyle().Foreground(lipgloss.Color("#96E1FF")).Bold(true),
-		breaking:     lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Bold(true),
-		addition:     lipgloss.NewStyle().Foreground(lipgloss.Color("#69FF94")),
-		modification: lipgloss.NewStyle().Foreground(lipgloss.Color("#FFDD57")),
-		removal:      lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")),
-		stat:         lipgloss.NewStyle().Faint(true),
+		title:        lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)).Bold(true),
+		breaking:     lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),
+		addition:     lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGreen)),
+		modification: lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossYellow)),
+		removal:      lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)),
+		stat:         lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGrey)),
 	}
 }
 
@@ -486,7 +486,7 @@ func GetNewSummaryCommand() *cobra.Command {
 			// Load breaking rules config
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
 			if err != nil {
-				PrintConfigError(err)
+				PrintNewConfigError(err)
 				return err
 			}
 
@@ -542,9 +542,9 @@ func GetNewSummaryCommand() *cobra.Command {
 
 // printNewCommandUsage prints lipgloss-styled usage for any new-* command.
 func printNewCommandUsage(commandName, description string, noColor bool) {
-	title := lipgloss.NewStyle().Foreground(lipgloss.Color("#96E1FF")).Bold(true)
-	desc := lipgloss.NewStyle().Faint(true)
-	cmdStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF77FF")).Bold(true)
+	title := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)).Bold(true)
+	desc := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGrey))
+	cmdStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)).Bold(true)
 
 	if noColor {
 		title = lipgloss.NewStyle()

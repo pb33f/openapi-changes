@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"charm.land/lipgloss/v2"
+	"github.com/pb33f/doctor/terminal"
 	"github.com/pterm/pterm"
 )
 
@@ -35,8 +36,8 @@ func PrintBanner() {
 // PrintNewBanner prints the pb33f banner using lipgloss (no pterm).
 // When noColor is true, all styling is disabled.
 func PrintNewBanner(noColor bool) {
-	art := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF77FF")).Bold(true)
-	info := lipgloss.NewStyle().Foreground(lipgloss.Color("#96E1FF")).Bold(true)
+	art := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)).Bold(true)
+	info := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)).Bold(true)
 
 	if noColor {
 		art = lipgloss.NewStyle()

@@ -12,6 +12,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/pb33f/doctor/changerator/renderer"
+	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/pmezard/go-difflib/difflib"
@@ -26,9 +27,9 @@ type markdownReportStyles struct {
 
 func newMarkdownReportStyles() markdownReportStyles {
 	return markdownReportStyles{
-		title:   lipgloss.NewStyle().Foreground(lipgloss.Color("#96E1FF")).Bold(true),
-		success: lipgloss.NewStyle().Foreground(lipgloss.Color("#69FF94")).Bold(true),
-		warn:    lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Bold(true),
+		title:   lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)).Bold(true),
+		success: lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGreen)).Bold(true),
+		warn:    lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),
 	}
 }
 
