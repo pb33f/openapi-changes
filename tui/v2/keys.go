@@ -8,6 +8,9 @@ import (
 )
 
 // handleCommitTableKeys handles key events when the commit table has focus.
+// Arrow keys load the changerator for the highlighted commit immediately
+// (matching the old console's selection-changed behavior).
+// Enter jumps focus to the tree.
 func (m ConsoleModel) handleCommitTableKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "ctrl+c":
@@ -17,22 +20,16 @@ func (m ConsoleModel) handleCommitTableKeys(msg tea.KeyPressMsg) (tea.Model, tea
 		m.cache.releaseAll()
 		return m, tea.Quit
 	case "enter":
-		row := m.commitTable.Cursor()
-		if row >= 0 && row < len(m.commits) {
-			m.activeIdx = row
-			m.activeHash = m.commits[row].Hash
-			m.loadActiveCommit()
-			m.focus = FocusTree
-			m.commitTable.Blur()
-		}
+		m.focus = FocusTree
+		m.commitTable.Blur()
 		return m, nil
 	case "up", "k":
 		m.commitTable.MoveUp(1)
-		m.highlightedIdx = m.commitTable.Cursor()
+		m.selectHighlightedCommit()
 		return m, nil
 	case "down", "j":
 		m.commitTable.MoveDown(1)
-		m.highlightedIdx = m.commitTable.Cursor()
+		m.selectHighlightedCommit()
 		return m, nil
 	case "tab":
 		m.focus = FocusTree
@@ -105,6 +102,7 @@ func (m ConsoleModel) handleTreeKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 }
 
 // handleDiffKeys handles key events when the diff view has focus.
+// Up/down navigate between changes (moving the tree cursor), not scrolling the diff.
 func (m ConsoleModel) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "ctrl+c":
@@ -114,24 +112,15 @@ func (m ConsoleModel) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.focus = FocusTree
 		m.showDiff = false
 		m.activeChange = nil
+		m.recalculateLayout()
 		return m, nil
 	case "up", "k":
-		m.diffViewport.ScrollUp(1)
+		m.tree.moveUp(1)
+		m.syncDiffToTreeCursor()
 		return m, nil
 	case "down", "j":
-		m.diffViewport.ScrollDown(1)
-		return m, nil
-	case "pgup":
-		m.diffViewport.PageUp()
-		return m, nil
-	case "pgdown":
-		m.diffViewport.PageDown()
-		return m, nil
-	case "home":
-		m.diffViewport.GotoTop()
-		return m, nil
-	case "end":
-		m.diffViewport.GotoBottom()
+		m.tree.moveDown(1)
+		m.syncDiffToTreeCursor()
 		return m, nil
 	case "tab":
 		m.focus = FocusTree

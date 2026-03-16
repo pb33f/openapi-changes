@@ -189,7 +189,8 @@ func (m ConsoleModel) View() tea.View {
 	// Tree panel
 	treeH := m.treeHeight()
 	treePanelStyle := m.panelBorder(FocusTree)
-	treeContent := m.tree.View(iw, m.focus == FocusTree, m.styles)
+	treeShowCursor := m.focus == FocusTree || m.focus == FocusDiff
+	treeContent := m.tree.View(iw, treeShowCursor, m.styles)
 	if m.emptyState != "" {
 		treeContent = m.styles.grey.Render("  " + m.emptyState)
 	}
@@ -213,57 +214,64 @@ func (m ConsoleModel) View() tea.View {
 }
 
 // recalculateLayout updates all component dimensions based on terminal size.
+// Height functions return the total height (for lipgloss Height()).
+// Internal components need the content height = total - 2 (border top + bottom).
 func (m *ConsoleModel) recalculateLayout() {
-	tableH := m.tableHeight()
-	treeH := m.treeHeight()
-	diffH := m.diffHeight()
-
 	if !m.singleCommit {
-		m.commitTable.SetHeight(tableH - 1) // -1 for header
+		tableContent := m.tableHeight() - 2
+		m.commitTable.SetHeight(tableContent - 1) // -1 more for header row
 		resizeCommitTable(&m.commitTable, m.width)
 	}
 
-	m.tree.setHeight(treeH)
+	m.tree.setHeight(m.treeHeight() - 2)
 
 	if m.showDiff {
-		m.diffViewport.SetHeight(diffH)
+		m.diffViewport.SetHeight(m.diffHeight() - 2)
 		m.diffViewport.SetWidth(innerWidth(m.width))
 	}
 }
+
+// Layout: all height functions return the value passed to lipgloss Height(),
+// which is the TOTAL height including top+bottom border (2 lines).
+// Content area inside is Height() - 2.
+const navBarHeight = 1
 
 func (m ConsoleModel) tableHeight() int {
 	if m.singleCommit {
 		return 0
 	}
-	if m.showDiff {
-		return max(4, m.height*25/100)
+	// Fixed: content = header + rows + padding, plus 2 for border.
+	h := len(m.commits) + 4 + 2
+	if h < 10 {
+		h = 10
 	}
-	return max(4, m.height*30/100)
+	if h > 18 {
+		h = 18
+	}
+	return h
 }
 
 func (m ConsoleModel) treeHeight() int {
-	if m.singleCommit {
-		if m.showDiff {
-			return max(5, m.height*50/100)
-		}
-		return m.height - 2 // nav bar
-	}
-	tableH := m.tableHeight()
+	// Tree gets all remaining vertical space.
+	remaining := m.height - navBarHeight - m.tableHeight()
 	if m.showDiff {
-		return max(5, m.height*35/100)
+		remaining -= m.diffHeight()
 	}
-	return m.height - tableH - 4 // borders + nav
+	if remaining < 7 {
+		remaining = 7
+	}
+	return remaining
 }
 
 func (m ConsoleModel) diffHeight() int {
 	if !m.showDiff {
 		return 0
 	}
-	tableH := m.tableHeight()
-	treeH := m.treeHeight()
-	h := m.height - tableH - treeH - 6 // borders + nav
-	if h < 5 {
-		h = 5
+	// Diff gets 40% of space below the table.
+	below := m.height - navBarHeight - m.tableHeight()
+	h := below * 40 / 100
+	if h < 10 {
+		h = 10
 	}
 	return h
 }
@@ -382,6 +390,32 @@ func (m *ConsoleModel) applyCache(entry *cacheEntry) {
 	}
 	m.showDiff = false
 	m.activeChange = nil
+}
+
+// selectHighlightedCommit syncs activeIdx to the table cursor and loads the commit.
+func (m *ConsoleModel) selectHighlightedCommit() {
+	row := m.commitTable.Cursor()
+	if row < 0 || row >= len(m.commits) {
+		return
+	}
+	m.highlightedIdx = row
+	if row == m.activeIdx {
+		return // already loaded
+	}
+	m.activeIdx = row
+	m.activeHash = m.commits[row].Hash
+	m.loadActiveCommit()
+	m.recalculateLayout()
+}
+
+// syncDiffToTreeCursor updates the diff to show whichever change the tree cursor is on.
+func (m *ConsoleModel) syncDiffToTreeCursor() {
+	entry := m.tree.selectedEntry()
+	if entry == nil || entry.change == nil {
+		return
+	}
+	m.activeChange = entry.change
+	m.updateDiffContent()
 }
 
 // updateDiffContent renders the diff for the active change into the diff viewport.
@@ -518,7 +552,7 @@ func commitTableStyles(iw int) table.Styles {
 		Selected: lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)).
-			Background(lipgloss.Color("236")).
+			Background(lipgloss.Color("#4a1a4e")).
 			Width(iw),
 	}
 }

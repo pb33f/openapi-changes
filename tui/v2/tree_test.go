@@ -201,11 +201,17 @@ func TestComputeStats(t *testing.T) {
 	assert.Equal(t, 1, stats.additions)
 	assert.Equal(t, 2, stats.modifications)
 	assert.Equal(t, 1, stats.deletions)
-	assert.Equal(t, 1, stats.breaking)
+	assert.Equal(t, 1, stats.totalBreaking)
+	assert.Equal(t, 0, stats.directBreaking) // breaking is in grandchild, not shown on root
 
 	pathsStats := cache[root.Children[0]]
 	assert.Equal(t, 3, pathsStats.total)
-	assert.Equal(t, 1, pathsStats.breaking)
+	assert.Equal(t, 1, pathsStats.totalBreaking)
+	assert.Equal(t, 0, pathsStats.directBreaking) // Paths' own leaves aren't breaking
+
+	petsStats := cache[root.Children[0].Children[0]]
+	assert.Equal(t, 1, petsStats.totalBreaking)
+	assert.Equal(t, 1, petsStats.directBreaking) // /pets owns the breaking leaf
 }
 
 func TestSelectedEntry_AlwaysLeaf(t *testing.T) {

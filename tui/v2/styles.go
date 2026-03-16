@@ -32,7 +32,7 @@ func newConsoleStyles() consoleStyles {
 		activePanel:   lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color(terminal.LipglossPrimaryBlue)),
 		inactivePanel: lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color(terminal.LipglossSecondaryPink)),
 		cursor:        lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)).Bold(true),
-		selectedRow:   lipgloss.NewStyle().Background(lipgloss.Color("236")).Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)).Bold(true),
+		selectedRow:   lipgloss.NewStyle().Background(lipgloss.Color("#4a1a4e")).Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)).Bold(true),
 		added:         lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGreen)),
 		modified:      lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossYellow)),
 		removed:       lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)),

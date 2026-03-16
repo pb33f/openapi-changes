@@ -38,11 +38,12 @@ type treeEntry struct {
 }
 
 type nodeStats struct {
-	additions     int
-	modifications int
-	deletions     int
-	breaking      int
-	total         int
+	additions      int
+	modifications  int
+	deletions      int
+	directBreaking int // breaking in own leaves + immediate children's leaves
+	totalBreaking  int // all descendant breaking (accumulated, not displayed)
+	total          int
 }
 
 func newTreeModel(root *v3.Node, height int) treeModel {
@@ -331,8 +332,8 @@ func (t treeModel) renderNode(entry treeEntry, styles consoleStyles) string {
 	if stats.total > 0 {
 		statParts = append(statParts, fmt.Sprintf("%d changes", stats.total))
 	}
-	if stats.breaking > 0 {
-		statParts = append(statParts, styles.breaking.Render(fmt.Sprintf("%d breaking", stats.breaking)))
+	if stats.directBreaking > 0 {
+		statParts = append(statParts, styles.breaking.Render(fmt.Sprintf("%d breaking", stats.directBreaking)))
 	}
 
 	if len(statParts) > 0 {
@@ -353,8 +354,12 @@ func getNodeChanges(node *v3.Node) []*whatChangedModel.Change {
 }
 
 // computeStats recursively computes change statistics for a node and all descendants.
+// directBreaking only counts breaking changes in the node's own leaf changes
+// (from getNodeChanges), so only the node that directly owns a breaking leaf
+// displays the breaking count — ancestors do not repeat it.
 func computeStats(node *v3.Node, cache map[*v3.Node]nodeStats) nodeStats {
 	s := nodeStats{}
+
 	for _, ch := range getNodeChanges(node) {
 		switch ch.ChangeType {
 		case whatChangedModel.PropertyAdded, whatChangedModel.ObjectAdded:
@@ -365,19 +370,21 @@ func computeStats(node *v3.Node, cache map[*v3.Node]nodeStats) nodeStats {
 			s.deletions++
 		}
 		if ch.Breaking {
-			s.breaking++
+			s.directBreaking++
 		}
 	}
 	s.total = s.additions + s.modifications + s.deletions
+	s.totalBreaking = s.directBreaking
 
 	for _, child := range node.Children {
 		cs := computeStats(child, cache)
 		s.additions += cs.additions
 		s.modifications += cs.modifications
 		s.deletions += cs.deletions
-		s.breaking += cs.breaking
+		s.totalBreaking += cs.totalBreaking
 		s.total += cs.total
 	}
+
 	cache[node] = s
 	return s
 }

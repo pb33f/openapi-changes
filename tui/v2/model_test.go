@@ -233,17 +233,19 @@ func TestUpdate_CodeModalPrecedence(t *testing.T) {
 	assert.False(t, updated.showCodeModal)
 }
 
-func TestUpdate_ArrowKeysUpdateHighlightNotActive(t *testing.T) {
+func TestUpdate_ArrowKeysLoadCommit(t *testing.T) {
 	commits := makeTestCommits()
 	m := NewConsoleModel(commits, nil, true, "test")
 	m.width = 120
 	m.height = 40
 	m.focus = FocusCommitTable
 
+	// Arrow down should load the next commit immediately
 	result, _ := m.Update(tea.KeyPressMsg(tea.Key{Code: 0, Text: "j"}))
 	updated := result.(ConsoleModel)
 	assert.Equal(t, 1, updated.highlightedIdx)
-	assert.Equal(t, 0, updated.activeIdx)
+	assert.Equal(t, 1, updated.activeIdx)
+	assert.Equal(t, commits[1].Hash, updated.activeHash)
 }
 
 func TestView_ReturnsTeaView(t *testing.T) {
