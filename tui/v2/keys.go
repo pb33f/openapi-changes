@@ -4,6 +4,7 @@
 package v2
 
 import (
+	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -60,6 +61,9 @@ func (m ConsoleModel) handleTreeKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.openCodeModal(entry.change)
 		}
 		return m, nil
+	case "r":
+		m.openReportModal()
+		return m, nil
 	case "up", "k":
 		m.tree.moveUp(1)
 		m.syncDiffToTreeCursor()
@@ -102,6 +106,9 @@ func (m ConsoleModel) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "esc":
 		m.focus = FocusTree
 		return m, nil
+	case "r":
+		m.openReportModal()
+		return m, nil
 	case "up", "k":
 		m.tree.moveUp(1)
 		m.syncDiffToTreeCursor()
@@ -137,27 +144,56 @@ func (m ConsoleModel) handleCodeModalKeys(msg tea.KeyPressMsg) (tea.Model, tea.C
 		return m, nil
 	case "ctrl+c":
 		return m.handleQuit()
-	case "up", "k":
-		m.codeModal.vp.ScrollUp(1)
-		return m, nil
-	case "down", "j":
-		m.codeModal.vp.ScrollDown(1)
-		return m, nil
-	case "pgup":
-		m.codeModal.vp.PageUp()
-		return m, nil
-	case "pgdown":
-		m.codeModal.vp.PageDown()
-		return m, nil
-	case "home":
-		m.codeModal.vp.GotoTop()
-		return m, nil
-	case "end":
-		m.codeModal.vp.GotoBottom()
-		return m, nil
 	case "space":
 		m.codeModal.recenter()
 		return m, nil
+	default:
+		if handleOverlayKeys(&m.codeModal.vp, msg) {
+			return m, nil
+		}
 	}
 	return m, nil
+}
+
+// handleReportModalKeys handles key events when the report modal is showing.
+func (m ConsoleModel) handleReportModalKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc", "q", "enter":
+		m.showReportModal = false
+		m.focus = m.prevFocus
+		return m, nil
+	case "ctrl+c":
+		return m.handleQuit()
+	default:
+		if handleOverlayKeys(&m.reportModal.vp, msg) {
+			return m, nil
+		}
+	}
+	return m, nil
+}
+
+// handleOverlayKeys handles scroll/page/home/end keys shared by modal overlays.
+// Returns true if the key was handled.
+func handleOverlayKeys(vp *viewport.Model, msg tea.KeyPressMsg) bool {
+	switch msg.String() {
+	case "up", "k":
+		vp.ScrollUp(1)
+		return true
+	case "down", "j":
+		vp.ScrollDown(1)
+		return true
+	case "pgup":
+		vp.PageUp()
+		return true
+	case "pgdown":
+		vp.PageDown()
+		return true
+	case "home":
+		vp.GotoTop()
+		return true
+	case "end":
+		vp.GotoBottom()
+		return true
+	}
+	return false
 }

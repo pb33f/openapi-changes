@@ -12,6 +12,7 @@ import (
 	"charm.land/bubbles/v2/table"
 	"charm.land/bubbles/v2/viewport"
 	"github.com/pb33f/doctor/changerator"
+	"github.com/pb33f/doctor/changerator/renderer"
 	v3 "github.com/pb33f/doctor/model/high/v3"
 	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
@@ -26,6 +27,7 @@ const (
 	FocusTree
 	FocusDiff
 	FocusCodeModal
+	FocusReportModal
 )
 
 // ConsoleModel is the top-level Bubbletea model for the new-console command.
@@ -40,6 +42,10 @@ type ConsoleModel struct {
 	// Code modal — key handlers and rendering both go through codeModal.vp
 	// to avoid the value-copy divergence that would occur with a separate viewport field.
 	codeModal codeModal
+
+	// Report modal — glamour-rendered markdown report overlay
+	reportModal     reportModal
+	showReportModal bool
 
 	// Data
 	commits     []*model.Commit
@@ -138,6 +144,9 @@ func (m ConsoleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyPressMsg:
+		if m.showReportModal {
+			return m.handleReportModalKeys(msg)
+		}
 		if m.showCodeModal {
 			return m.handleCodeModalKeys(msg)
 		}
@@ -164,13 +173,12 @@ func (m ConsoleModel) View() tea.View {
 
 	baseView := m.renderBaseView()
 
-	if m.showCodeModal {
-		modal := m.codeModal.View(m.styles)
-		x, y := m.modalPosition()
-
-		base := lipgloss.NewLayer(baseView)
-		overlay := lipgloss.NewLayer(modal).X(x).Y(y).Z(1)
-		v.Content = lipgloss.NewCompositor(base, overlay).Render()
+	if m.showReportModal {
+		x, y := m.overlayPosition(m.reportModal.width, m.reportModal.height)
+		v.Content = renderOverlay(baseView, m.reportModal.View(m.styles), x, y)
+	} else if m.showCodeModal {
+		x, y := m.overlayPosition(m.codeModal.width, m.codeModal.height)
+		v.Content = renderOverlay(baseView, m.codeModal.View(m.styles), x, y)
 	} else {
 		v.Content = baseView
 	}
@@ -222,11 +230,11 @@ func (m ConsoleModel) renderBaseView() string {
 	return sb.String()
 }
 
-// modalPosition returns the X, Y position for the code modal overlay,
+// overlayPosition returns the X, Y position for a modal overlay,
 // positioned on the right side with padding (matching vacuum's layout).
-func (m ConsoleModel) modalPosition() (int, int) {
-	x := m.width - m.codeModal.width - modalRightPadding
-	y := (m.height - m.codeModal.height) / 2
+func (m ConsoleModel) overlayPosition(modalW, modalH int) (int, int) {
+	x := m.width - modalW - modalRightPadding
+	y := (m.height - modalH) / 2
 
 	if x < 0 {
 		x = 0
@@ -235,6 +243,26 @@ func (m ConsoleModel) modalPosition() (int, int) {
 		y = 0
 	}
 	return x, y
+}
+
+func renderOverlay(baseView, modalView string, x, y int) string {
+	base := lipgloss.NewLayer(baseView)
+	overlay := lipgloss.NewLayer(modalView).X(x).Y(y).Z(1)
+	return lipgloss.NewCompositor(base, overlay).Render()
+}
+
+// modalDimensions computes shared modal dimensions from terminal size.
+func modalDimensions(termWidth, termHeight int) (modalW, modalH, contentW int) {
+	modalW = termWidth - modalWidthReduction
+	modalH = termHeight - modalHeightMargin
+	if modalW < 30 {
+		modalW = 30
+	}
+	if modalH < 10 {
+		modalH = 10
+	}
+	contentW = modalW - 4 // border(2) + padding(2)
+	return
 }
 
 // recalculateLayout updates all component dimensions based on terminal size.
@@ -309,7 +337,7 @@ func (m ConsoleModel) renderNavBar() string {
 		parts = append(parts, fmt.Sprintf("%d/%d", m.activeIdx+1, len(m.commits)))
 	}
 
-	parts = append(parts, "↑↓: navigate", "enter: view", "esc: back", "tab: switch", "q: quit")
+	parts = append(parts, "↑↓: navigate", "enter: view", "r: report", "esc: back", "tab: switch", "q: quit")
 
 	return m.styles.nav.Render(" " + strings.Join(parts, " | ") + " ")
 }
@@ -463,6 +491,51 @@ func (m *ConsoleModel) openCodeModal(ch *whatChangedModel.Change) {
 	m.showCodeModal = true
 	m.prevFocus = m.focus
 	m.focus = FocusCodeModal
+}
+
+// openReportModal opens the markdown report modal for the active commit.
+func (m *ConsoleModel) openReportModal() {
+	if m.showCodeModal {
+		return
+	}
+
+	entry := m.cache.get(m.activeHash)
+	if entry == nil {
+		return
+	}
+
+	// Get or generate raw markdown
+	if entry.markdown == "" {
+		if entry.result == nil || entry.result.Changerator == nil {
+			return
+		}
+		mdRenderer := renderer.NewMarkdownRenderer()
+		md, err := entry.result.Changerator.GenerateReport(mdRenderer, renderer.OutputFormatMarkdown)
+		if err != nil || md == "" {
+			return
+		}
+		entry.markdown = md
+	}
+
+	modalW, modalH, contentW := modalDimensions(m.width, m.height)
+
+	// Use cached rendered output if width hasn't changed
+	rendered := entry.renderedMarkdown
+	if rendered == "" || entry.renderedWidth != contentW {
+		rendered = renderMarkdown(entry.markdown, contentW)
+		entry.renderedMarkdown = rendered
+		entry.renderedWidth = contentW
+	}
+
+	commitMsg := ""
+	if m.activeIdx >= 0 && m.activeIdx < len(m.commits) {
+		commitMsg = m.commits[m.activeIdx].Message
+	}
+
+	m.reportModal = newReportModal(rendered, commitMsg, modalW, modalH, contentW, m.styles)
+	m.showReportModal = true
+	m.prevFocus = m.focus
+	m.focus = FocusReportModal
 }
 
 const (

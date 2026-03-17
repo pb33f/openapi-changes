@@ -30,14 +30,7 @@ type codeModal struct {
 }
 
 func newCodeModal(lines []string, hl highlightRange, ch *whatChangedModel.Change, termWidth, termHeight int, styles consoleStyles) codeModal {
-	modalW := termWidth - modalWidthReduction
-	modalH := termHeight - modalHeightMargin
-	if modalW < 30 {
-		modalW = 30
-	}
-	if modalH < 10 {
-		modalH = 10
-	}
+	modalW, modalH, contentW := modalDimensions(termWidth, termHeight)
 
 	// Build the fixed diff summary
 	summary := renderDiffSummary(ch, modalW, styles)
@@ -46,9 +39,6 @@ func newCodeModal(lines []string, hl highlightRange, ch *whatChangedModel.Change
 	if summaryH > 0 {
 		summaryH++
 	}
-
-	// Content width inside the border panel (lipgloss Width includes borders + padding)
-	contentW := modalW - 4 // border(2) + padding(2)
 
 	vpH := modalH - summaryH - 4 // -4 for border(2) + separator(1) + nav(1)
 	if vpH < 3 {

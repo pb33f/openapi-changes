@@ -24,6 +24,9 @@ type cacheEntry struct {
 	stats    *changerator.ChangeStatistics
 	newLines []string // pre-split commit.Data
 	oldLines []string // pre-split commit.OldData
+	markdown         string // cached raw markdown report (width-independent)
+	renderedMarkdown string // cached glamour-rendered markdown
+	renderedWidth    int    // content width used for renderedMarkdown
 }
 
 // changeratorResultV2 wraps the cmd.changeratorResult to avoid import cycles.
