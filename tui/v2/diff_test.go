@@ -451,7 +451,7 @@ func TestRenderDiff_ModifiedWithContext(t *testing.T) {
 	assert.Contains(t, result, "spec-line-")
 	// The change line should be highlighted with >
 	assert.Contains(t, result, ">")
-	assert.Contains(t, result, "10|")
+	assert.Contains(t, result, "10 │")
 }
 
 func TestRenderDiff_AddedWithContext(t *testing.T) {
@@ -498,11 +498,11 @@ func TestRenderFileContext(t *testing.T) {
 	lines := []string{"line0", "line1", "line2", "line3", "line4"}
 	center := 3
 
-	result := renderFileContext(lines, &center, 3, testStyles)
+	result := renderFileContext(lines, &center, singleLineRange(3), whatChangedModel.Modified, 120, testStyles)
 	assert.Contains(t, result, "spec context")
 	// Line 3 should be highlighted with >
 	assert.Contains(t, result, ">")
-	assert.Contains(t, result, "3|")
+	assert.Contains(t, result, "3 │")
 	// Other lines should also appear
 	assert.Contains(t, result, "line0")
 	assert.Contains(t, result, "line4")
@@ -510,12 +510,42 @@ func TestRenderFileContext(t *testing.T) {
 
 func TestRenderFileContext_NilCenter(t *testing.T) {
 	lines := []string{"a", "b", "c"}
-	result := renderFileContext(lines, nil, 1, testStyles)
+	result := renderFileContext(lines, nil, singleLineRange(1), whatChangedModel.Modified, 120, testStyles)
 	assert.Equal(t, "", result)
 }
 
 func TestRenderFileContext_EmptyLines(t *testing.T) {
 	center := 1
-	result := renderFileContext(nil, &center, 1, testStyles)
+	result := renderFileContext(nil, &center, singleLineRange(1), whatChangedModel.Modified, 120, testStyles)
 	assert.Equal(t, "", result)
+}
+
+func TestRenderFileContext_RangeHighlight(t *testing.T) {
+	lines := []string{
+		"openapi: '3.0'",
+		"paths:",
+		"  /pets:",
+		"    get:",
+		"      summary: List pets",
+		"      responses:",
+		"        200:",
+		"          description: OK",
+		"  /users:",
+		"    get:",
+	}
+	center := 3
+	hl := highlightRange{start: 3, end: 8}
+
+	result := renderFileContext(lines, &center, hl, whatChangedModel.ObjectAdded, 120, testStyles)
+	assert.Contains(t, result, "spec context")
+	// Primary line should have > marker
+	assert.Contains(t, result, ">")
+	// Body lines should have + gutter marker for ObjectAdded
+	assert.Contains(t, result, "+")
+	// All highlighted lines should appear (keys are ANSI-styled separately)
+	assert.Contains(t, result, "/pets:")
+	assert.Contains(t, result, "description:")
+	assert.Contains(t, result, "OK")
+	// Context line after range should appear
+	assert.Contains(t, result, "/users:")
 }

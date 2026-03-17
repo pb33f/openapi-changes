@@ -321,25 +321,6 @@ func (t treeModel) renderNode(entry treeEntry, styles consoleStyles) string {
 	if label == "" {
 		label = entry.node.Type
 	}
-
-	// Stats from cache
-	stats, ok := t.statsCache[entry.node]
-	if !ok {
-		return styles.info.Render(label)
-	}
-
-	var statParts []string
-	if stats.total > 0 {
-		statParts = append(statParts, fmt.Sprintf("%d changes", stats.total))
-	}
-	if stats.directBreaking > 0 {
-		statParts = append(statParts, styles.breaking.Render(fmt.Sprintf("%d breaking", stats.directBreaking)))
-	}
-
-	if len(statParts) > 0 {
-		return fmt.Sprintf("%s %s", styles.info.Render(label),
-			styles.grey.Render("("+strings.Join(statParts, ", ")+")"))
-	}
 	return styles.info.Render(label)
 }
 

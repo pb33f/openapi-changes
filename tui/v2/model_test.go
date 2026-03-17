@@ -119,6 +119,18 @@ func setupModelWithTree(t *testing.T) ConsoleModel {
 	return m
 }
 
+// moveToFirstLeaf positions the tree cursor on the first leaf change entry.
+func moveToFirstLeaf(t *testing.T, m *ConsoleModel) {
+	t.Helper()
+	for i, e := range m.tree.entries {
+		if e.change != nil {
+			m.tree.cursor = i
+			return
+		}
+	}
+	t.Fatal("no leaf entry found in tree")
+}
+
 func makeTestCommits() []*model.Commit {
 	return []*model.Commit{
 		{
@@ -141,7 +153,7 @@ func TestNewConsoleModel_MultipleCommits(t *testing.T) {
 	m := NewConsoleModel(commits, nil, true, "test")
 
 	assert.False(t, m.singleCommit)
-	assert.Equal(t, FocusCommitTable, m.focus)
+	assert.Equal(t, FocusTree, m.focus)
 	assert.Equal(t, 0, m.activeIdx)
 	assert.Equal(t, "abc123", m.activeHash)
 }
@@ -171,15 +183,17 @@ func TestUpdate_WindowSizeMsg(t *testing.T) {
 	assert.Equal(t, 40, updated.height)
 }
 
-func TestUpdate_FocusTransitions_CommitToTree(t *testing.T) {
+func TestUpdate_FocusTransitions_TreeToDiff(t *testing.T) {
 	commits := makeTestCommits()
 	m := NewConsoleModel(commits, nil, true, "test")
 	m.width = 120
 	m.height = 40
+	assert.Equal(t, FocusTree, m.focus)
 
+	// Tab from tree (initial focus) → diff
 	result, _ := m.Update(tea.KeyPressMsg(tea.Key{Code: 0, Text: "tab"}))
 	updated := result.(ConsoleModel)
-	assert.Equal(t, FocusTree, updated.focus)
+	assert.Equal(t, FocusDiff, updated.focus)
 }
 
 func TestUpdate_EscFromTree_ToTable(t *testing.T) {
@@ -216,8 +230,8 @@ func TestUpdate_EscFromDiff_ToTree(t *testing.T) {
 	result, _ := m.Update(tea.KeyPressMsg(tea.Key{Code: tea.KeyEscape}))
 	updated := result.(ConsoleModel)
 	assert.Equal(t, FocusTree, updated.focus)
-	assert.False(t, updated.showDiff)
-	assert.Nil(t, updated.activeChange)
+	assert.True(t, updated.showDiff, "esc from diff should keep diff visible")
+	assert.NotNil(t, updated.activeChange, "esc from diff should keep activeChange")
 }
 
 func TestUpdate_CodeModalPrecedence(t *testing.T) {
@@ -267,7 +281,7 @@ func TestView_Initializing(t *testing.T) {
 
 // --- Tests that exercise the real tree/diff/modal data paths ---
 
-func TestEnterOnLeafChange_ShowsDiff(t *testing.T) {
+func TestEnterOnLeafChange_OpensCodeModal(t *testing.T) {
 	m := setupModelWithTree(t)
 
 	// Tree should have entries: Info (branch), then leaf changes
@@ -275,21 +289,16 @@ func TestEnterOnLeafChange_ShowsDiff(t *testing.T) {
 
 	// Move to a leaf change entry
 	m.focus = FocusTree
-	for i, e := range m.tree.entries {
-		if e.change != nil {
-			m.tree.cursor = i
-			break
-		}
-	}
+	moveToFirstLeaf(t, &m)
 	require.NotNil(t, m.tree.selectedEntry().change, "should have a leaf change selected")
 
-	// Press enter to show diff
+	// Press enter to open code modal
 	result, _ := m.Update(tea.KeyPressMsg(tea.Key{Code: tea.KeyEnter}))
 	updated := result.(ConsoleModel)
 
-	assert.Equal(t, FocusDiff, updated.focus)
-	assert.True(t, updated.showDiff)
-	assert.NotNil(t, updated.activeChange)
+	assert.True(t, updated.showCodeModal)
+	assert.Equal(t, FocusCodeModal, updated.focus)
+	assert.Equal(t, FocusTree, updated.prevFocus)
 }
 
 func TestCommitSwitching_UpdatesTree(t *testing.T) {
@@ -454,4 +463,200 @@ func TestCodeModal_ScrollingMutatesRenderedViewport(t *testing.T) {
 	// The viewport that renderCodeModal will use (codeModal.vp) should have moved
 	assert.NotEqual(t, initialOffset, updated.codeModal.vp.YOffset(),
 		"scrolling in code modal should actually move the viewport that gets rendered")
+}
+
+func TestApplyCache_AutoSelectsFirstChange(t *testing.T) {
+	m := setupModelWithTree(t)
+	// After setupModelWithTree (which calls applyCache), the first leaf
+	// should be auto-selected and diff should be showing.
+	assert.True(t, m.showDiff, "applyCache should auto-select first change")
+	assert.NotNil(t, m.activeChange, "applyCache should set activeChange to first leaf")
+	// The tree cursor should be on the first leaf
+	entry := m.tree.selectedEntry()
+	require.NotNil(t, entry)
+	assert.NotNil(t, entry.change, "cursor should be on a leaf entry")
+	assert.Equal(t, m.activeChange, entry.change, "activeChange should match tree cursor")
+}
+
+func TestSplitWidths(t *testing.T) {
+	m := NewConsoleModel(makeTestCommits(), nil, true, "test")
+	m.width = 120
+	treeW, diffW := m.splitWidths()
+	assert.Equal(t, 60, treeW)
+	assert.Equal(t, 60, diffW)
+	assert.Equal(t, m.width, treeW+diffW)
+}
+
+func TestSplitWidths_OddWidth(t *testing.T) {
+	m := NewConsoleModel(makeTestCommits(), nil, true, "test")
+	m.width = 121
+	treeW, diffW := m.splitWidths()
+	assert.Equal(t, 121, treeW+diffW)
+}
+
+func TestBottomHeight(t *testing.T) {
+	m := NewConsoleModel(makeTestCommits(), nil, true, "test")
+	m.width = 120
+	m.height = 40
+	h := m.bottomHeight()
+	assert.Equal(t, m.height-navBarHeight-m.tableHeight(), h)
+	assert.GreaterOrEqual(t, h, 10)
+}
+
+func TestDiffPlaceholder_WhenNoChangeSelected(t *testing.T) {
+	m := NewConsoleModel(makeTestCommits(), nil, true, "test")
+	m.width = 120
+	m.height = 40
+	m.recalculateLayout()
+	view := m.View()
+	assert.Contains(t, view.Content, "Select a change to view diff")
+}
+
+func TestEscFromDiff_KeepsDiffVisible(t *testing.T) {
+	m := setupModelWithTree(t)
+	m.focus = FocusTree
+	moveToFirstLeaf(t, &m)
+	m.syncDiffToTreeCursor()
+
+	// Tab to diff panel
+	result, _ := m.Update(tea.KeyPressMsg(tea.Key{Code: 0, Text: "tab"}))
+	m = result.(ConsoleModel)
+	assert.Equal(t, FocusDiff, m.focus)
+
+	// Esc back to tree — diff should stay visible
+	result, _ = m.Update(tea.KeyPressMsg(tea.Key{Code: tea.KeyEscape}))
+	updated := result.(ConsoleModel)
+	assert.Equal(t, FocusTree, updated.focus)
+	assert.True(t, updated.showDiff)
+	assert.NotNil(t, updated.activeChange)
+}
+
+func TestTabCycle_MultiCommit(t *testing.T) {
+	commits := makeTestCommits()
+	m := NewConsoleModel(commits, nil, true, "test")
+	m.width = 120
+	m.height = 40
+	m.singleCommit = false
+	m.recalculateLayout()
+	m.focus = FocusCommitTable
+
+	// Tab: commit table → tree
+	result, _ := m.Update(tea.KeyPressMsg(tea.Key{Code: 0, Text: "tab"}))
+	m = result.(ConsoleModel)
+	assert.Equal(t, FocusTree, m.focus)
+
+	// Tab: tree → diff (always, no showDiff guard)
+	result, _ = m.Update(tea.KeyPressMsg(tea.Key{Code: 0, Text: "tab"}))
+	m = result.(ConsoleModel)
+	assert.Equal(t, FocusDiff, m.focus)
+
+	// Tab: diff → commit table
+	result, _ = m.Update(tea.KeyPressMsg(tea.Key{Code: 0, Text: "tab"}))
+	m = result.(ConsoleModel)
+	assert.Equal(t, FocusCommitTable, m.focus)
+}
+
+func TestTabCycle_SingleCommit(t *testing.T) {
+	m := setupModelWithTree(t) // single-commit
+	m.focus = FocusTree
+
+	// Tab: tree → diff
+	result, _ := m.Update(tea.KeyPressMsg(tea.Key{Code: 0, Text: "tab"}))
+	m = result.(ConsoleModel)
+	assert.Equal(t, FocusDiff, m.focus)
+
+	// Tab: diff → tree (no commit table in single-commit mode)
+	result, _ = m.Update(tea.KeyPressMsg(tea.Key{Code: 0, Text: "tab"}))
+	m = result.(ConsoleModel)
+	assert.Equal(t, FocusTree, m.focus)
+}
+
+func TestTreeMovement_SyncsDiff(t *testing.T) {
+	m := setupModelWithTree(t)
+	m.focus = FocusTree
+	moveToFirstLeaf(t, &m)
+	m.syncDiffToTreeCursor()
+	firstChange := m.activeChange
+	require.NotNil(t, firstChange)
+
+	// Move down to next leaf — activeChange should update
+	result, _ := m.Update(tea.KeyPressMsg(tea.Key{Code: 0, Text: "j"}))
+	updated := result.(ConsoleModel)
+	assert.True(t, updated.showDiff)
+	assert.NotNil(t, updated.activeChange)
+}
+
+func TestCodeModalReturnsToCorrectFocus(t *testing.T) {
+	m := setupModelWithTree(t)
+
+	// Open code modal from tree context
+	m.focus = FocusTree
+	moveToFirstLeaf(t, &m)
+	result, _ := m.Update(tea.KeyPressMsg(tea.Key{Code: tea.KeyEnter}))
+	m = result.(ConsoleModel)
+	assert.Equal(t, FocusCodeModal, m.focus)
+	assert.Equal(t, FocusTree, m.prevFocus)
+
+	// Close modal with enter — should return to tree
+	result, _ = m.Update(tea.KeyPressMsg(tea.Key{Code: tea.KeyEnter}))
+	updated := result.(ConsoleModel)
+	assert.Equal(t, FocusTree, updated.focus)
+}
+
+func TestCodeModal_ObjectAdded_HighlightsRange(t *testing.T) {
+	newSpec := "openapi: '3.0'\ninfo:\n  title: Test\npaths:\n  /pets:\n    get:\n      summary: List\n      responses:\n        200:\n          description: OK\n  /users:\n    get:\n      summary: Users"
+	oldSpec := "openapi: '3.0'\ninfo:\n  title: Test\npaths:\n  /users:\n    get:\n      summary: Users"
+
+	commits := []*model.Commit{
+		{
+			Hash:       "obj123",
+			Message:    "add pets path",
+			CommitDate: time.Now(),
+			Data:       []byte(newSpec),
+			OldData:    []byte(oldSpec),
+		},
+	}
+
+	m := NewConsoleModel(commits, nil, true, "test")
+	m.width = 120
+	m.height = 40
+
+	objAddChange := &whatChangedModel.Change{
+		ChangeType: whatChangedModel.ObjectAdded,
+		Property:   "/pets",
+		Context: &whatChangedModel.ChangeContext{
+			NewLine: ptrInt(6), // points to "get:" child line
+		},
+	}
+
+	infoNode := &v3.Node{Label: "Paths", Type: "Paths"}
+	infoNode.AppendChange(&mockChanged{changes: []*whatChangedModel.Change{objAddChange}})
+
+	root := &v3.Node{
+		Label:    "Document",
+		Type:     "Document",
+		Children: []*v3.Node{infoNode},
+	}
+
+	entry := &cacheEntry{
+		treeRoot: root,
+		newLines: splitLines(commits[0].Data),
+		oldLines: splitLines(commits[0].OldData),
+	}
+	m.cache.put("obj123", entry)
+	m.applyCache(entry)
+	m.recalculateLayout()
+
+	m.openCodeModal(objAddChange)
+	assert.True(t, m.showCodeModal)
+
+	// The highlight range should span more than one line (block expansion)
+	assert.Greater(t, m.codeModal.highlight.end, m.codeModal.highlight.start,
+		"ObjectAdded should expand to a multi-line highlight range")
+
+	view := m.codeModal.View(m.styles)
+	// Primary line should have > marker
+	assert.Contains(t, view, ">")
+	// Body lines should have │ gutter marker
+	assert.Contains(t, view, "│")
 }

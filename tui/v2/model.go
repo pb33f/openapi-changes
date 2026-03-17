@@ -48,9 +48,11 @@ type ConsoleModel struct {
 
 	// UI state
 	focus          PanelFocus
+	prevFocus      PanelFocus // saved before opening code modal
 	width          int
 	height         int
 	showDiff       bool
+	pendingDiff    bool // diff content needs rendering once layout is ready
 	showCodeModal  bool
 	activeChange   *whatChangedModel.Change
 	singleCommit   bool
@@ -96,16 +98,11 @@ func NewConsoleModel(commits []*model.Commit, breakingConfig *whatChangedModel.B
 	// Single commit mode
 	if len(commits) <= 1 {
 		m.singleCommit = true
-		m.focus = FocusTree
-	} else {
-		m.focus = FocusCommitTable
 	}
+	m.focus = FocusTree
 
 	// Build commit table (default width, resized on first WindowSizeMsg)
 	m.commitTable = buildCommitTable(commits, 120, styles)
-	if !m.singleCommit {
-		m.commitTable.Focus()
-	}
 
 	// Initialize tree with placeholder height (will be recalculated on WindowSizeMsg)
 	m.tree = newTreeModel(nil, 20)
@@ -165,17 +162,26 @@ func (m ConsoleModel) View() tea.View {
 		return v
 	}
 
+	baseView := m.renderBaseView()
+
 	if m.showCodeModal {
-		v.Content = m.renderCodeModal()
-		return v
+		modal := m.codeModal.View(m.styles)
+		x, y := m.modalPosition()
+
+		base := lipgloss.NewLayer(baseView)
+		overlay := lipgloss.NewLayer(modal).X(x).Y(y).Z(1)
+		v.Content = lipgloss.NewCompositor(base, overlay).Render()
+	} else {
+		v.Content = baseView
 	}
 
+	return v
+}
+
+// renderBaseView renders the main UI (commit table + tree + diff + nav bar).
+func (m ConsoleModel) renderBaseView() string {
 	var sb strings.Builder
 	sb.Grow(m.width * m.height)
-
-	// In lipgloss v2, Width() is the TOTAL width including borders.
-	// Panels get m.width (full terminal), content inside gets innerWidth.
-	iw := innerWidth(m.width)
 
 	// Commit table (unless single commit mode)
 	if !m.singleCommit {
@@ -186,31 +192,49 @@ func (m ConsoleModel) View() tea.View {
 		sb.WriteByte('\n')
 	}
 
-	// Tree panel
-	treeH := m.treeHeight()
+	// Tree + Diff side by side
+	treeW, diffW := m.splitWidths()
+	bottomH := m.bottomHeight()
+
 	treePanelStyle := m.panelBorder(FocusTree)
-	treeShowCursor := m.focus == FocusTree || m.focus == FocusDiff
-	treeContent := m.tree.View(iw, treeShowCursor, m.styles)
+	treeShowCursor := m.focus == FocusTree || m.focus == FocusDiff || m.showDiff
+	treeContent := m.tree.View(treeW-2, treeShowCursor, m.styles)
 	if m.emptyState != "" {
 		treeContent = m.styles.grey.Render("  " + m.emptyState)
 	}
-	sb.WriteString(treePanelStyle.Width(m.width).Height(treeH).Render(treeContent))
-	sb.WriteByte('\n')
+	leftPanel := treePanelStyle.Width(treeW).Height(bottomH).Render(treeContent)
 
-	// Diff panel (if visible)
+	diffPanelStyle := m.panelBorder(FocusDiff)
+	var diffContent string
 	if m.showDiff {
-		diffH := m.diffHeight()
-		diffPanelStyle := m.panelBorder(FocusDiff)
-		diffContent := m.diffViewport.View()
-		sb.WriteString(diffPanelStyle.Width(m.width).Height(diffH).Render(diffContent))
-		sb.WriteByte('\n')
+		diffContent = m.diffViewport.View()
+	} else {
+		diffContent = m.styles.grey.Render("  Select a change to view diff")
 	}
+	rightPanel := diffPanelStyle.Width(diffW).Height(bottomH).Render(diffContent)
+
+	sb.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, rightPanel))
+	sb.WriteByte('\n')
 
 	// Navigation bar
 	sb.WriteString(m.renderNavBar())
 
-	v.Content = sb.String()
-	return v
+	return sb.String()
+}
+
+// modalPosition returns the X, Y position for the code modal overlay,
+// positioned on the right side with padding (matching vacuum's layout).
+func (m ConsoleModel) modalPosition() (int, int) {
+	x := m.width - m.codeModal.width - modalRightPadding
+	y := (m.height - m.codeModal.height) / 2
+
+	if x < 0 {
+		x = 0
+	}
+	if y < 0 {
+		y = 0
+	}
+	return x, y
 }
 
 // recalculateLayout updates all component dimensions based on terminal size.
@@ -223,11 +247,17 @@ func (m *ConsoleModel) recalculateLayout() {
 		resizeCommitTable(&m.commitTable, m.width)
 	}
 
-	m.tree.setHeight(m.treeHeight() - 2)
+	bottomH := m.bottomHeight()
+	m.tree.setHeight(bottomH - 2)
 
-	if m.showDiff {
-		m.diffViewport.SetHeight(m.diffHeight() - 2)
-		m.diffViewport.SetWidth(innerWidth(m.width))
+	_, diffW := m.splitWidths()
+	m.diffViewport.SetHeight(bottomH - 2)
+	m.diffViewport.SetWidth(diffW - 2)
+
+	// Render diff content that was deferred before layout was ready.
+	if m.pendingDiff {
+		m.pendingDiff = false
+		m.updateDiffContent()
 	}
 }
 
@@ -251,29 +281,18 @@ func (m ConsoleModel) tableHeight() int {
 	return h
 }
 
-func (m ConsoleModel) treeHeight() int {
-	// Tree gets all remaining vertical space.
-	remaining := m.height - navBarHeight - m.tableHeight()
-	if m.showDiff {
-		remaining -= m.diffHeight()
-	}
-	if remaining < 7 {
-		remaining = 7
-	}
-	return remaining
-}
-
-func (m ConsoleModel) diffHeight() int {
-	if !m.showDiff {
-		return 0
-	}
-	// Diff gets 40% of space below the table.
-	below := m.height - navBarHeight - m.tableHeight()
-	h := below * 40 / 100
+func (m ConsoleModel) bottomHeight() int {
+	h := m.height - navBarHeight - m.tableHeight()
 	if h < 10 {
 		h = 10
 	}
 	return h
+}
+
+func (m ConsoleModel) splitWidths() (treeW, diffW int) {
+	treeW = m.width / 2
+	diffW = m.width - treeW // handles odd widths
+	return
 }
 
 func (m ConsoleModel) panelBorder(panel PanelFocus) lipgloss.Style {
@@ -290,42 +309,11 @@ func (m ConsoleModel) renderNavBar() string {
 		parts = append(parts, fmt.Sprintf("%d/%d", m.activeIdx+1, len(m.commits)))
 	}
 
-	parts = append(parts, "↑↓: navigate", "enter: select", "esc: back")
-
-	if m.focus == FocusDiff || m.focus == FocusTree {
-		parts = append(parts, "x: code")
-	}
-	parts = append(parts, "tab: switch", "q: quit")
+	parts = append(parts, "↑↓: navigate", "enter: view", "esc: back", "tab: switch", "q: quit")
 
 	return m.styles.nav.Render(" " + strings.Join(parts, " | ") + " ")
 }
 
-func (m ConsoleModel) renderCodeModal() string {
-	modal := m.codeModal.View(m.styles)
-
-	// Center the modal in the terminal
-	modalLines := strings.Split(modal, "\n")
-	topPad := (m.height - len(modalLines)) / 2
-	if topPad < 0 {
-		topPad = 0
-	}
-	leftPad := (m.width - m.codeModal.width) / 2
-	if leftPad < 0 {
-		leftPad = 0
-	}
-	padding := strings.Repeat(" ", leftPad)
-
-	var sb strings.Builder
-	for i := 0; i < topPad; i++ {
-		sb.WriteByte('\n')
-	}
-	for _, line := range modalLines {
-		sb.WriteString(padding)
-		sb.WriteString(line)
-		sb.WriteByte('\n')
-	}
-	return sb.String()
-}
 
 // loadActiveCommit runs the changerator for the active commit and updates the tree.
 func (m *ConsoleModel) loadActiveCommit() {
@@ -390,6 +378,9 @@ func (m *ConsoleModel) applyCache(entry *cacheEntry) {
 	}
 	m.showDiff = false
 	m.activeChange = nil
+	// Auto-select first leaf change and render its diff.
+	// syncDiffToTreeCursor is a no-op if tree has no leaves.
+	m.syncDiffToTreeCursor()
 }
 
 // selectHighlightedCommit syncs activeIdx to the table cursor and loads the commit.
@@ -405,17 +396,23 @@ func (m *ConsoleModel) selectHighlightedCommit() {
 	m.activeIdx = row
 	m.activeHash = m.commits[row].Hash
 	m.loadActiveCommit()
-	m.recalculateLayout()
 }
 
 // syncDiffToTreeCursor updates the diff to show whichever change the tree cursor is on.
+// If layout isn't ready yet (width == 0), it sets pendingDiff so recalculateLayout
+// renders the content once dimensions are known.
 func (m *ConsoleModel) syncDiffToTreeCursor() {
 	entry := m.tree.selectedEntry()
 	if entry == nil || entry.change == nil {
 		return
 	}
 	m.activeChange = entry.change
-	m.updateDiffContent()
+	m.showDiff = true
+	if m.width > 0 {
+		m.updateDiffContent()
+	} else {
+		m.pendingDiff = true
+	}
 }
 
 // updateDiffContent renders the diff for the active change into the diff viewport.
@@ -426,7 +423,8 @@ func (m *ConsoleModel) updateDiffContent() {
 	}
 
 	newLines, oldLines := m.cache.getLines(m.activeHash)
-	content := renderDiff(m.activeChange, newLines, oldLines, m.width-4, m.styles)
+	_, diffW := m.splitWidths()
+	content := renderDiff(m.activeChange, newLines, oldLines, diffW-2, m.styles)
 	m.diffViewport.SetContent(content)
 	m.diffViewport.GotoTop()
 }
@@ -459,8 +457,11 @@ func (m *ConsoleModel) openCodeModal(ch *whatChangedModel.Change) {
 		return
 	}
 
-	m.codeModal = newCodeModal(lines, changeLn, m.width, m.height, m.styles)
+	rangeStart, rangeEnd := computeBlockRange(lines, changeLn)
+	hl := highlightRange{start: rangeStart, end: rangeEnd}
+	m.codeModal = newCodeModal(lines, hl, ch, m.width, m.height, m.styles)
 	m.showCodeModal = true
+	m.prevFocus = m.focus
 	m.focus = FocusCodeModal
 }
 

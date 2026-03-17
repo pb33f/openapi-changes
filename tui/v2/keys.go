@@ -7,6 +7,11 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+func (m ConsoleModel) handleQuit() (tea.Model, tea.Cmd) {
+	m.cache.releaseAll()
+	return m, tea.Quit
+}
+
 // handleCommitTableKeys handles key events when the commit table has focus.
 // Arrow keys load the changerator for the highlighted commit immediately
 // (matching the old console's selection-changed behavior).
@@ -14,11 +19,9 @@ import (
 func (m ConsoleModel) handleCommitTableKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "ctrl+c":
-		m.cache.releaseAll()
-		return m, tea.Quit
+		return m.handleQuit()
 	case "esc":
-		m.cache.releaseAll()
-		return m, tea.Quit
+		return m.handleQuit()
 	case "enter":
 		m.focus = FocusTree
 		m.commitTable.Blur()
@@ -43,59 +46,48 @@ func (m ConsoleModel) handleCommitTableKeys(msg tea.KeyPressMsg) (tea.Model, tea
 func (m ConsoleModel) handleTreeKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "ctrl+c":
-		m.cache.releaseAll()
-		return m, tea.Quit
+		return m.handleQuit()
 	case "esc":
 		if m.singleCommit {
-			m.cache.releaseAll()
-			return m, tea.Quit
+			return m.handleQuit()
 		}
 		m.focus = FocusCommitTable
 		m.commitTable.Focus()
 		return m, nil
 	case "enter":
 		entry := m.tree.selectedEntry()
-		if entry == nil || entry.change == nil {
-			return m, nil
+		if entry != nil && entry.change != nil {
+			m.openCodeModal(entry.change)
 		}
-		m.activeChange = entry.change
-		m.showDiff = true
-		m.focus = FocusDiff
-		m.updateDiffContent()
-		m.recalculateLayout()
 		return m, nil
 	case "up", "k":
 		m.tree.moveUp(1)
+		m.syncDiffToTreeCursor()
 		return m, nil
 	case "down", "j":
 		m.tree.moveDown(1)
+		m.syncDiffToTreeCursor()
 		return m, nil
 	case "pgup":
 		m.tree.moveUp(m.tree.height)
+		m.syncDiffToTreeCursor()
 		return m, nil
 	case "pgdown":
 		m.tree.moveDown(m.tree.height)
+		m.syncDiffToTreeCursor()
 		return m, nil
 	case "home":
 		m.tree.cursor = 0
 		m.tree.offset = 0
+		m.tree.snapToNextLeaf()
+		m.syncDiffToTreeCursor()
 		return m, nil
 	case "end":
 		m.tree.moveDown(len(m.tree.entries))
+		m.syncDiffToTreeCursor()
 		return m, nil
 	case "tab":
-		if m.showDiff {
-			m.focus = FocusDiff
-		} else if !m.singleCommit {
-			m.focus = FocusCommitTable
-			m.commitTable.Focus()
-		}
-		return m, nil
-	case "x":
-		entry := m.tree.selectedEntry()
-		if entry != nil && entry.change != nil {
-			m.openCodeModal(entry.change)
-		}
+		m.focus = FocusDiff
 		return m, nil
 	}
 	return m, nil
@@ -106,13 +98,9 @@ func (m ConsoleModel) handleTreeKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 func (m ConsoleModel) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "ctrl+c":
-		m.cache.releaseAll()
-		return m, tea.Quit
+		return m.handleQuit()
 	case "esc":
 		m.focus = FocusTree
-		m.showDiff = false
-		m.activeChange = nil
-		m.recalculateLayout()
 		return m, nil
 	case "up", "k":
 		m.tree.moveUp(1)
@@ -123,9 +111,14 @@ func (m ConsoleModel) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.syncDiffToTreeCursor()
 		return m, nil
 	case "tab":
-		m.focus = FocusTree
+		if !m.singleCommit {
+			m.focus = FocusCommitTable
+			m.commitTable.Focus()
+		} else {
+			m.focus = FocusTree
+		}
 		return m, nil
-	case "x":
+	case "enter":
 		if m.activeChange != nil {
 			m.openCodeModal(m.activeChange)
 		}
@@ -138,17 +131,12 @@ func (m ConsoleModel) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 // All scrolling goes through m.codeModal.vp so rendering and input share the same state.
 func (m ConsoleModel) handleCodeModalKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
-	case "esc", "q", "x":
+	case "esc", "q", "enter":
 		m.showCodeModal = false
-		if m.showDiff {
-			m.focus = FocusDiff
-		} else {
-			m.focus = FocusTree
-		}
+		m.focus = m.prevFocus
 		return m, nil
 	case "ctrl+c":
-		m.cache.releaseAll()
-		return m, tea.Quit
+		return m.handleQuit()
 	case "up", "k":
 		m.codeModal.vp.ScrollUp(1)
 		return m, nil
@@ -167,7 +155,7 @@ func (m ConsoleModel) handleCodeModalKeys(msg tea.KeyPressMsg) (tea.Model, tea.C
 	case "end":
 		m.codeModal.vp.GotoBottom()
 		return m, nil
-	case " ":
+	case "space":
 		m.codeModal.recenter()
 		return m, nil
 	}
