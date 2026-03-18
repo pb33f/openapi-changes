@@ -549,3 +549,28 @@ func TestRenderFileContext_RangeHighlight(t *testing.T) {
 	// Context line after range should appear
 	assert.Contains(t, result, "/users:")
 }
+
+func TestRenderFileContext_IncludesHighlightStartAboveCenter(t *testing.T) {
+	lines := []string{
+		"line 1",
+		"line 2",
+		"line 3",
+		"line 4",
+		"line 5",
+		"line 6",
+		"line 7",
+		"line 8",
+		"line 9",
+		"line 10",
+		"line 11",
+		"line 12",
+	}
+	center := 10
+	hl := highlightRange{start: 3, end: 10}
+
+	result := renderFileContext(lines, &center, hl, whatChangedModel.ObjectRemoved, 120, newNoColorStyles())
+	assert.Contains(t, result, "spec context")
+	assert.Contains(t, result, ">  3")
+	assert.Contains(t, result, "line 3")
+	assert.Contains(t, result, "line 10")
+}

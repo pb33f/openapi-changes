@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	regionRadius  = 5  // lines above/below change to extract for file-region fallback diffing
+	regionRadius  = 5   // lines above/below change to extract for file-region fallback diffing
 	contextBefore = 5   // lines above change for spec context view
 	contextAfter  = 120 // lines below change for spec context view
-	diffContext   = 3  // context lines in unified diff output
+	diffContext   = 3   // context lines in unified diff output
 )
 
 var hunkHeaderRe = regexp.MustCompile(`@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@`)
@@ -66,7 +66,7 @@ func renderDiff(ch *whatChangedModel.Change, newLines, oldLines []string, width 
 			val := resolveNewValue(ch)
 			sb.WriteString(renderValueOneSided(ch.Property, val, "+", styles.added))
 			if ch.Context != nil && ch.Context.NewLine != nil {
-				s, e := computeBlockRange(newLines, *ch.Context.NewLine)
+				s, e := computeBlockRangeForChange(newLines, *ch.Context.NewLine, ch)
 				hl := highlightRange{start: s, end: e}
 				sb.WriteString(renderFileContext(newLines, ch.Context.NewLine, hl, ch.ChangeType, width, styles))
 			}
@@ -89,7 +89,7 @@ func renderDiff(ch *whatChangedModel.Change, newLines, oldLines []string, width 
 			val := resolveOldValue(ch)
 			sb.WriteString(renderValueOneSided(ch.Property, val, "-", styles.removed))
 			if ch.Context != nil && ch.Context.OriginalLine != nil {
-				s, e := computeBlockRange(oldLines, *ch.Context.OriginalLine)
+				s, e := computeBlockRangeForChange(oldLines, *ch.Context.OriginalLine, ch)
 				hl := highlightRange{start: s, end: e}
 				sb.WriteString(renderFileContext(oldLines, ch.Context.OriginalLine, hl, ch.ChangeType, width, styles))
 			}
@@ -159,12 +159,27 @@ func renderFileContext(lines []string, centerLine *int, hl highlightRange, chang
 		idx = 0
 	}
 
-	// Extend the region to include the full highlight range + trailing context.
-	afterEnd := contextAfter
-	if hl.end > 0 && (idx+afterEnd) < (hl.end-1+3) {
-		afterEnd = hl.end - 1 - idx + 3
+	// Extend the region to include the full highlight range with a little context.
+	beforeStart := contextBefore
+	if hl.start > 0 {
+		desiredStart := hl.start - 3
+		if desiredStart < 1 {
+			desiredStart = 1
+		}
+		neededBefore := idx - (desiredStart - 1)
+		if neededBefore > beforeStart {
+			beforeStart = neededBefore
+		}
 	}
-	start, end := clampRange(idx, contextBefore, afterEnd, len(lines))
+
+	afterEnd := contextAfter
+	if hl.end > 0 {
+		neededAfter := hl.end + 3 - (idx + 1)
+		if neededAfter > afterEnd {
+			afterEnd = neededAfter
+		}
+	}
+	start, end := clampRange(idx, beforeStart, afterEnd, len(lines))
 	if start >= end {
 		return ""
 	}

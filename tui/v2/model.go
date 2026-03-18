@@ -485,7 +485,7 @@ func (m *ConsoleModel) openCodeModal(ch *whatChangedModel.Change) {
 		return
 	}
 
-	rangeStart, rangeEnd := computeBlockRange(lines, changeLn)
+	rangeStart, rangeEnd := computeBlockRangeForChange(lines, changeLn, ch)
 	hl := highlightRange{start: rangeStart, end: rangeEnd}
 	m.codeModal = newCodeModal(lines, hl, ch, m.width, m.height, m.styles)
 	m.showCodeModal = true
