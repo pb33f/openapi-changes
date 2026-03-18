@@ -446,14 +446,8 @@ func renderDiffHeader(ch *whatChangedModel.Change, width int, styles consoleStyl
 
 	// Values (only when diff body doesn't show them)
 	if showValues {
-		origVal := ch.Original
-		if ch.OriginalEncoded != "" {
-			origVal = ch.OriginalEncoded
-		}
-		newVal := ch.New
-		if ch.NewEncoded != "" {
-			newVal = ch.NewEncoded
-		}
+		origVal := resolveOldValue(ch)
+		newVal := resolveNewValue(ch)
 
 		// Truncate long values
 		maxVal := width/2 - 20

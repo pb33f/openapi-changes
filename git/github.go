@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	goGithub "github.com/google/go-github/v72/github"
 	"github.com/pb33f/doctor/github"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
@@ -54,13 +55,28 @@ type commitResult struct {
 
 func createGitHubSession() (*github.GitHubSession, githubAPI, error) {
 	token := os.Getenv(GithubToken)
-	if token == "" {
-		return nil, nil, fmt.Errorf("GH_TOKEN environment variable is required for GitHub API access")
-	}
 	github.SetGlobalLogger(github.NewProductionLogger(github.LogLevelError))
 	svc := github.NewGitHubService()
 	config := github.DefaultSessionConfig()
 	config.Timeout = 60 * time.Second
+
+	if token == "" {
+		// Preserve public GitHub access when no token is configured by creating
+		// an active doctor session and swapping in an anonymous go-github client.
+		session := github.NewGitHubSession("anonymous-access-1234", config)
+		if session == nil {
+			return nil, nil, fmt.Errorf("failed to create anonymous GitHub session")
+		}
+
+		httpClient := config.CustomHTTPClient
+		if httpClient == nil {
+			httpClient = &http.Client{Timeout: config.Timeout}
+		}
+		session.Token = ""
+		session.Client = goGithub.NewClient(httpClient)
+		return session, svc, nil
+	}
+
 	session := svc.CreateSession(token, config)
 	if session == nil {
 		return nil, nil, fmt.Errorf("failed to create GitHub session — check that GH_TOKEN is a valid GitHub token (PAT or fine-grained)")
@@ -120,8 +136,10 @@ func GetCommitsForGithubFile(user, repo, path string, baseCommit string,
 
 	ctx := context.Background()
 
-	// Determine MaxResults for the commit list fetch.
-	maxResults := 100 // hard default, prevents unbounded fetch
+	// Default to a generous cap so baseCommit/limitTime filters (applied post-fetch)
+	// have enough history to work with, while still protecting against unbounded
+	// fetches on repos with very long commit histories.
+	maxResults := 1000
 	if limit > 0 {
 		maxResults = limit + 1
 	}
@@ -374,4 +392,3 @@ func getCommitTimeLimit(limitTime int, commits []github.Commit) int {
 	}
 	return newLimit
 }
-

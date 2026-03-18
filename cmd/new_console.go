@@ -5,9 +5,6 @@ package cmd
 
 import (
 	"fmt"
-	"net/url"
-	"os"
-	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/pb33f/doctor/changerator"
@@ -47,50 +44,24 @@ func GetNewConsoleCommand() *cobra.Command {
 		Long:         "Navigate through changes visually in an interactive terminal UI built with Bubbletea, using the doctor changerator engine.",
 		Example:      "openapi-changes new-console /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			noColorFlag, _ := cmd.Flags().GetBool("no-color")
-			latestFlag, _ := cmd.Flags().GetBool("top")
-			limitFlag, _ := cmd.Flags().GetInt("limit")
-			limitTimeFlag, _ := cmd.Flags().GetInt("limit-time")
-			baseFlag, _ := cmd.Flags().GetString("base")
-			baseCommitFlag, _ := cmd.Flags().GetString("base-commit")
-			remoteFlag, _ := cmd.Flags().GetBool("remote")
-			extRefs, _ := cmd.Flags().GetBool("ext-refs")
-			configFlag, _ := cmd.Flags().GetString("config")
-			globalRevisionsFlag, _ := cmd.Flags().GetBool("global-revisions")
+			opts, configFlag := readCommonFlags(cmd)
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {
-				PrintNewBanner(noColorFlag)
+				PrintNewBanner(opts.noColor)
 			}
 
 			if len(args) == 0 {
-				printNewConsoleUsage(noColorFlag)
+				printNewConsoleUsage(opts.noColor)
 				return nil
 			}
 
-			if len(args) == 1 {
-				specURL, err := url.Parse(args[0])
-				if err != nil || specURL.Host != "github.com" {
-					fmt.Println("A single argument requires a github.com URL.")
-					fmt.Println("For local comparison, provide two arguments: a git repository path and a file path within it.")
-					return nil
-				}
+			if len(args) == 1 && !validateGitHubURL(args[0]) {
+				return nil
 			}
 
 			if len(args) > 2 {
 				return fmt.Errorf("too many arguments provided, expecting at most two (2)")
-			}
-
-			opts := newSummaryOpts{
-				noColor:         noColorFlag,
-				latest:          latestFlag,
-				limit:           limitFlag,
-				limitTime:       limitTimeFlag,
-				base:            baseFlag,
-				baseCommit:      baseCommitFlag,
-				remote:          remoteFlag,
-				extRefs:         extRefs,
-				globalRevisions: globalRevisionsFlag,
 			}
 
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
@@ -99,27 +70,7 @@ func GetNewConsoleCommand() *cobra.Command {
 				return err
 			}
 
-			// Load commits based on args
-			var commits []*model.Commit
-			switch {
-			case len(args) == 1:
-				commits, err = loadGitHubCommits(args[0], opts, breakingConfig)
-			case len(args) == 2:
-				firstURL, _ := url.Parse(args[0])
-				if firstURL != nil && strings.HasPrefix(firstURL.Scheme, "http") {
-					commits, err = loadLeftRightCommits(args[0], args[1], opts, breakingConfig)
-				} else {
-					f, statErr := os.Stat(args[0])
-					if statErr != nil {
-						return fmt.Errorf("cannot open file/repository: '%s'", args[0])
-					}
-					if f.IsDir() {
-						commits, err = loadGitHistoryCommits(args[0], args[1], opts, breakingConfig)
-					} else {
-						commits, err = loadLeftRightCommits(args[0], args[1], opts, breakingConfig)
-					}
-				}
-			}
+			commits, err := loadCommitsFromArgs(args, opts, breakingConfig)
 			if err != nil {
 				return err
 			}
@@ -142,11 +93,8 @@ func GetNewConsoleCommand() *cobra.Command {
 				return nil
 			}
 
-			// Inject the changerator bridge function
-			v2tui.SetRunChangeratorFn(bridgeRunChangerator)
-
 			// Build and run the TUI
-			m := v2tui.NewConsoleModel(commits, breakingConfig, noColorFlag, Version)
+			m := v2tui.NewConsoleModel(commits, breakingConfig, opts.noColor, Version, bridgeRunChangerator)
 			p := tea.NewProgram(m)
 			if _, err := p.Run(); err != nil {
 				return fmt.Errorf("console error: %w", err)

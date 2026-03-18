@@ -10,7 +10,6 @@ import (
 
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/openapi-changes/model"
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -170,39 +169,21 @@ func TestNewMarkdownReport_IncludeDiffFlag(t *testing.T) {
 // Command dispatch tests — persistent flags (--no-logo etc.) live on rootCmd,
 // so we add the subcommand to a fresh root for testing.
 
-func newTestMarkdownReportCmd(args ...string) *cobra.Command {
-	root := &cobra.Command{Use: "openapi-changes"}
-	root.PersistentFlags().BoolP("no-logo", "b", false, "")
-	root.PersistentFlags().BoolP("top", "t", false, "")
-	root.PersistentFlags().IntP("limit", "l", 5, "")
-	root.PersistentFlags().IntP("limit-time", "d", -1, "")
-	root.PersistentFlags().StringP("base", "p", "", "")
-	root.PersistentFlags().StringP("base-commit", "", "", "")
-	root.PersistentFlags().BoolP("remote", "r", true, "")
-	root.PersistentFlags().BoolP("ext-refs", "", false, "")
-	root.PersistentFlags().StringP("config", "c", "", "")
-	root.PersistentFlags().BoolP("global-revisions", "R", false, "")
-	sub := GetNewMarkdownReportCommand()
-	root.AddCommand(sub)
-	root.SetArgs(append([]string{"new-markdown-report"}, args...))
-	return root
-}
-
 func TestNewMarkdownReportCommand_ZeroArgs(t *testing.T) {
-	cmd := newTestMarkdownReportCmd("--no-logo", "--no-color")
+	cmd := newTestRootCmd(GetNewMarkdownReportCommand(), "--no-logo", "--no-color")
 	err := cmd.Execute()
 	assert.NoError(t, err)
 }
 
 func TestNewMarkdownReportCommand_TooManyArgs(t *testing.T) {
-	cmd := newTestMarkdownReportCmd("--no-logo", "a", "b", "c")
+	cmd := newTestRootCmd(GetNewMarkdownReportCommand(),"--no-logo", "a", "b", "c")
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "too many arguments")
 }
 
 func TestNewMarkdownReportCommand_LeftRightFiles(t *testing.T) {
-	cmd := newTestMarkdownReportCmd(
+	cmd := newTestRootCmd(GetNewMarkdownReportCommand(),
 		"--no-logo", "--no-color",
 		"--report-file", "/dev/null",
 		"../sample-specs/petstorev3-original.json",
@@ -213,7 +194,7 @@ func TestNewMarkdownReportCommand_LeftRightFiles(t *testing.T) {
 }
 
 func TestNewMarkdownReportCommand_BadFirstArg(t *testing.T) {
-	cmd := newTestMarkdownReportCmd(
+	cmd := newTestRootCmd(GetNewMarkdownReportCommand(),
 		"--no-logo", "--no-color",
 		"/nonexistent/path",
 		"../sample-specs/petstorev3.json",
@@ -224,7 +205,7 @@ func TestNewMarkdownReportCommand_BadFirstArg(t *testing.T) {
 }
 
 func TestNewMarkdownReportCommand_SingleArgNonGithub(t *testing.T) {
-	cmd := newTestMarkdownReportCmd("--no-logo", "--no-color", "not-a-url")
+	cmd := newTestRootCmd(GetNewMarkdownReportCommand(),"--no-logo", "--no-color", "not-a-url")
 	err := cmd.Execute()
 	// Single non-GitHub arg prints usage hint, no error
 	assert.NoError(t, err)

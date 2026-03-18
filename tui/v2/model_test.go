@@ -65,7 +65,7 @@ func setupModelWithTree(t *testing.T) ConsoleModel {
 		},
 	}
 
-	m := NewConsoleModel(commits, nil, true, "test")
+	m := NewConsoleModel(commits, nil, true, "test", nil)
 	m.width = 120
 	m.height = 40
 
@@ -150,7 +150,7 @@ func makeTestCommits() []*model.Commit {
 
 func TestNewConsoleModel_MultipleCommits(t *testing.T) {
 	commits := makeTestCommits()
-	m := NewConsoleModel(commits, nil, true, "test")
+	m := NewConsoleModel(commits, nil, true, "test", nil)
 
 	assert.False(t, m.singleCommit)
 	assert.Equal(t, FocusTree, m.focus)
@@ -160,20 +160,20 @@ func TestNewConsoleModel_MultipleCommits(t *testing.T) {
 
 func TestNewConsoleModel_SingleCommit(t *testing.T) {
 	commits := makeTestCommits()[:1]
-	m := NewConsoleModel(commits, nil, true, "test")
+	m := NewConsoleModel(commits, nil, true, "test", nil)
 
 	assert.True(t, m.singleCommit)
 	assert.Equal(t, FocusTree, m.focus)
 }
 
 func TestNewConsoleModel_EmptyCommits(t *testing.T) {
-	m := NewConsoleModel(nil, nil, true, "test")
+	m := NewConsoleModel(nil, nil, true, "test", nil)
 	assert.Equal(t, "No commits to display", m.emptyState)
 }
 
 func TestUpdate_WindowSizeMsg(t *testing.T) {
 	commits := makeTestCommits()
-	m := NewConsoleModel(commits, nil, true, "test")
+	m := NewConsoleModel(commits, nil, true, "test", nil)
 
 	result, cmd := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	assert.Nil(t, cmd)
@@ -185,7 +185,7 @@ func TestUpdate_WindowSizeMsg(t *testing.T) {
 
 func TestUpdate_FocusTransitions_TreeToDiff(t *testing.T) {
 	commits := makeTestCommits()
-	m := NewConsoleModel(commits, nil, true, "test")
+	m := NewConsoleModel(commits, nil, true, "test", nil)
 	m.width = 120
 	m.height = 40
 	assert.Equal(t, FocusTree, m.focus)
@@ -198,7 +198,7 @@ func TestUpdate_FocusTransitions_TreeToDiff(t *testing.T) {
 
 func TestUpdate_EscFromTree_ToTable(t *testing.T) {
 	commits := makeTestCommits()
-	m := NewConsoleModel(commits, nil, true, "test")
+	m := NewConsoleModel(commits, nil, true, "test", nil)
 	m.width = 120
 	m.height = 40
 	m.focus = FocusTree
@@ -210,7 +210,7 @@ func TestUpdate_EscFromTree_ToTable(t *testing.T) {
 
 func TestUpdate_EscFromTree_SingleCommit_Quits(t *testing.T) {
 	commits := makeTestCommits()[:1]
-	m := NewConsoleModel(commits, nil, true, "test")
+	m := NewConsoleModel(commits, nil, true, "test", nil)
 	m.width = 120
 	m.height = 40
 
@@ -220,7 +220,7 @@ func TestUpdate_EscFromTree_SingleCommit_Quits(t *testing.T) {
 
 func TestUpdate_EscFromDiff_ToTree(t *testing.T) {
 	commits := makeTestCommits()
-	m := NewConsoleModel(commits, nil, true, "test")
+	m := NewConsoleModel(commits, nil, true, "test", nil)
 	m.width = 120
 	m.height = 40
 	m.focus = FocusDiff
@@ -236,7 +236,7 @@ func TestUpdate_EscFromDiff_ToTree(t *testing.T) {
 
 func TestUpdate_CodeModalPrecedence(t *testing.T) {
 	commits := makeTestCommits()
-	m := NewConsoleModel(commits, nil, true, "test")
+	m := NewConsoleModel(commits, nil, true, "test", nil)
 	m.width = 120
 	m.height = 40
 	m.showCodeModal = true
@@ -249,7 +249,7 @@ func TestUpdate_CodeModalPrecedence(t *testing.T) {
 
 func TestUpdate_ArrowKeysLoadCommit(t *testing.T) {
 	commits := makeTestCommits()
-	m := NewConsoleModel(commits, nil, true, "test")
+	m := NewConsoleModel(commits, nil, true, "test", nil)
 	m.width = 120
 	m.height = 40
 	m.focus = FocusCommitTable
@@ -264,7 +264,7 @@ func TestUpdate_ArrowKeysLoadCommit(t *testing.T) {
 
 func TestView_ReturnsTeaView(t *testing.T) {
 	commits := makeTestCommits()
-	m := NewConsoleModel(commits, nil, true, "test")
+	m := NewConsoleModel(commits, nil, true, "test", nil)
 	m.width = 120
 	m.height = 40
 
@@ -274,7 +274,7 @@ func TestView_ReturnsTeaView(t *testing.T) {
 }
 
 func TestView_Initializing(t *testing.T) {
-	m := NewConsoleModel(nil, nil, true, "test")
+	m := NewConsoleModel(nil, nil, true, "test", nil)
 	view := m.View()
 	assert.Contains(t, view.Content, "Initializing")
 }
@@ -358,14 +358,10 @@ func TestCacheHit_ReusesResult(t *testing.T) {
 
 func TestEmptyChangerator_ShowsMessage(t *testing.T) {
 	commits := makeTestCommits()
-	// Inject a changerator that returns nil (no changes)
-	old := runChangeratorFn
-	SetRunChangeratorFn(func(_ *model.Commit, _ *whatChangedModel.BreakingRulesConfig) (*changerator.Changerator, *v3.Node, func(), error) {
+	runFn := func(_ *model.Commit, _ *whatChangedModel.BreakingRulesConfig) (*changerator.Changerator, *v3.Node, func(), error) {
 		return nil, nil, nil, nil
-	})
-	defer SetRunChangeratorFn(old)
-
-	m := NewConsoleModel(commits, nil, true, "test")
+	}
+	m := NewConsoleModel(commits, nil, true, "test", runFn)
 	assert.Equal(t, "No changes detected in this commit", m.emptyState)
 }
 
@@ -479,7 +475,7 @@ func TestApplyCache_AutoSelectsFirstChange(t *testing.T) {
 }
 
 func TestSplitWidths(t *testing.T) {
-	m := NewConsoleModel(makeTestCommits(), nil, true, "test")
+	m := NewConsoleModel(makeTestCommits(), nil, true, "test", nil)
 	m.width = 120
 	treeW, diffW := m.splitWidths()
 	assert.Equal(t, 60, treeW)
@@ -488,14 +484,14 @@ func TestSplitWidths(t *testing.T) {
 }
 
 func TestSplitWidths_OddWidth(t *testing.T) {
-	m := NewConsoleModel(makeTestCommits(), nil, true, "test")
+	m := NewConsoleModel(makeTestCommits(), nil, true, "test", nil)
 	m.width = 121
 	treeW, diffW := m.splitWidths()
 	assert.Equal(t, 121, treeW+diffW)
 }
 
 func TestBottomHeight(t *testing.T) {
-	m := NewConsoleModel(makeTestCommits(), nil, true, "test")
+	m := NewConsoleModel(makeTestCommits(), nil, true, "test", nil)
 	m.width = 120
 	m.height = 40
 	h := m.bottomHeight()
@@ -504,7 +500,7 @@ func TestBottomHeight(t *testing.T) {
 }
 
 func TestDiffPlaceholder_WhenNoChangeSelected(t *testing.T) {
-	m := NewConsoleModel(makeTestCommits(), nil, true, "test")
+	m := NewConsoleModel(makeTestCommits(), nil, true, "test", nil)
 	m.width = 120
 	m.height = 40
 	m.recalculateLayout()
@@ -533,7 +529,7 @@ func TestEscFromDiff_KeepsDiffVisible(t *testing.T) {
 
 func TestTabCycle_MultiCommit(t *testing.T) {
 	commits := makeTestCommits()
-	m := NewConsoleModel(commits, nil, true, "test")
+	m := NewConsoleModel(commits, nil, true, "test", nil)
 	m.width = 120
 	m.height = 40
 	m.singleCommit = false
@@ -617,7 +613,7 @@ func TestCodeModal_ObjectAdded_HighlightsRange(t *testing.T) {
 		},
 	}
 
-	m := NewConsoleModel(commits, nil, true, "test")
+	m := NewConsoleModel(commits, nil, true, "test", nil)
 	m.width = 120
 	m.height = 40
 

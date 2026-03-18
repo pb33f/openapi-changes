@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -102,24 +103,36 @@ func runChangerator(commit *model.Commit, breakingConfig *whatChangedModel.Break
 
 // changerateCommit runs the doctor changerator on a single commit to populate
 // commit.Changes. Returns true if changes were found.
-func changerateCommit(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) bool {
+func changerateCommit(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (bool, error) {
 	result, err := runChangerator(commit, breakingConfig)
-	if err != nil || result == nil {
-		return false
+	if err != nil {
+		return false, fmt.Errorf("commit %s: %w", commit.Hash, err)
+	}
+	if result == nil {
+		return false, nil
 	}
 	defer result.Release()
 	commit.Changes = result.DocChanges
-	return true
+	return true, nil
 }
 
-func changerateAndFlatten(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) []*model.FlatReport {
+func changerateAndFlatten(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.FlatReport, error) {
 	reports := make([]*model.FlatReport, 0, len(commits))
+	var errs []error
 	for _, commit := range commits {
-		if changerateCommit(commit, breakingConfig) {
+		hasChanges, err := changerateCommit(commit, breakingConfig)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		if hasChanges {
 			reports = append(reports, FlattenReport(createReport(commit)))
 		}
 	}
-	return reports
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+	return reports, nil
 }
 
 func runNewLeftRightReport(left, right string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatReport, error) {
@@ -127,7 +140,14 @@ func runNewLeftRightReport(left, right string, opts newSummaryOpts, breakingConf
 	if err != nil {
 		return nil, err
 	}
-	if len(commits) == 0 || !changerateCommit(commits[0], breakingConfig) {
+	if len(commits) == 0 {
+		return nil, nil
+	}
+	hasChanges, err := changerateCommit(commits[0], breakingConfig)
+	if err != nil {
+		return nil, err
+	}
+	if !hasChanges {
 		return nil, nil
 	}
 	return FlattenReport(createReport(commits[0])), nil
@@ -141,13 +161,17 @@ func runNewGitHistoryReport(gitPath, filePath string, opts newSummaryOpts, break
 	if commits == nil {
 		return nil, nil
 	}
+	reports, err := changerateAndFlatten(commits, breakingConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	return &model.FlatHistoricalReport{
 		GitRepoPath:   gitPath,
 		GitFilePath:   filePath,
 		Filename:      path.Base(filePath),
 		DateGenerated: time.Now().Format(time.RFC3339),
-		Reports:       changerateAndFlatten(commits, breakingConfig),
+		Reports:       reports,
 	}, nil
 }
 
@@ -165,13 +189,17 @@ func runNewGithubHistoryReport(rawURL string, opts newSummaryOpts, breakingConfi
 	if err != nil {
 		return nil, err
 	}
+	reports, err := changerateAndFlatten(commits, breakingConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	return &model.FlatHistoricalReport{
 		GitRepoPath:   fmt.Sprintf("%s/%s", user, repo),
 		GitFilePath:   filePath,
 		Filename:      path.Base(filePath),
 		DateGenerated: time.Now().Format(time.RFC3339),
-		Reports:       changerateAndFlatten(commits, breakingConfig),
+		Reports:       reports,
 	}, nil
 }
 
@@ -192,15 +220,7 @@ func GetNewReportCommand() *cobra.Command {
 		Long:         "Generate a JSON report for what has changed using the doctor changerator engine.",
 		Example:      "openapi-changes new-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			latestFlag, _ := cmd.Flags().GetBool("top")
-			limitFlag, _ := cmd.Flags().GetInt("limit")
-			limitTimeFlag, _ := cmd.Flags().GetInt("limit-time")
-			baseFlag, _ := cmd.Flags().GetString("base")
-			baseCommitFlag, _ := cmd.Flags().GetString("base-commit")
-			remoteFlag, _ := cmd.Flags().GetBool("remote")
-			extRefs, _ := cmd.Flags().GetBool("ext-refs")
-			configFlag, _ := cmd.Flags().GetString("config")
-			globalRevisionsFlag, _ := cmd.Flags().GetBool("global-revisions")
+			opts, configFlag := readCommonFlags(cmd)
 
 			if len(args) == 0 {
 				noBanner, _ := cmd.Flags().GetBool("no-logo")
@@ -217,17 +237,6 @@ func GetNewReportCommand() *cobra.Command {
 				return fmt.Errorf("too many arguments provided, expecting at most two (2)")
 			}
 
-			opts := newSummaryOpts{
-				latest:          latestFlag,
-				limit:           limitFlag,
-				limitTime:       limitTimeFlag,
-				base:            baseFlag,
-				baseCommit:      baseCommitFlag,
-				remote:          remoteFlag,
-				extRefs:         extRefs,
-				globalRevisions: globalRevisionsFlag,
-			}
-
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
 			if err != nil {
 				PrintNewConfigError(err)
@@ -235,10 +244,7 @@ func GetNewReportCommand() *cobra.Command {
 			}
 
 			if len(args) == 1 {
-				specURL, parseErr := url.Parse(args[0])
-				if parseErr != nil || specURL.Host != "github.com" {
-					fmt.Println("A single argument requires a github.com URL.")
-					fmt.Println("For local comparison, provide two arguments: a git repository path and a file path within it.")
+				if !validateGitHubURL(args[0]) {
 					return nil
 				}
 

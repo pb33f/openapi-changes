@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -141,30 +140,6 @@ func generateNewMarkdownReport(commits []*model.Commit, breakingConfig *whatChan
 	return []byte(sb.String()), nil
 }
 
-func runNewLeftRightMarkdownReport(left, right string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig, includeDiff bool) ([]byte, error) {
-	commits, err := loadLeftRightCommits(left, right, opts, breakingConfig)
-	if err != nil {
-		return nil, err
-	}
-	return generateNewMarkdownReport(commits, breakingConfig, includeDiff)
-}
-
-func runNewGitHistoryMarkdownReport(gitPath, filePath string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig, includeDiff bool) ([]byte, error) {
-	commits, err := loadGitHistoryCommits(gitPath, filePath, opts, breakingConfig)
-	if err != nil {
-		return nil, err
-	}
-	return generateNewMarkdownReport(commits, breakingConfig, includeDiff)
-}
-
-func runNewGithubHistoryMarkdownReport(rawURL string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig, includeDiff bool) ([]byte, error) {
-	commits, err := loadGitHubCommits(rawURL, opts, breakingConfig)
-	if err != nil {
-		return nil, err
-	}
-	return generateNewMarkdownReport(commits, breakingConfig, includeDiff)
-}
-
 func writeMarkdownReportFile(reportFile string, report []byte, styles markdownReportStyles) error {
 	err := os.WriteFile(reportFile, report, 0644)
 	if err != nil {
@@ -182,57 +157,31 @@ func GetNewMarkdownReportCommand() *cobra.Command {
 		Long:         "Generate a detailed markdown report of API changes using the doctor changerator engine.",
 		Example:      "openapi-changes new-markdown-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			noColorFlag, _ := cmd.Flags().GetBool("no-color")
-			latestFlag, _ := cmd.Flags().GetBool("top")
-			limitFlag, _ := cmd.Flags().GetInt("limit")
-			limitTimeFlag, _ := cmd.Flags().GetInt("limit-time")
-			baseFlag, _ := cmd.Flags().GetString("base")
-			baseCommitFlag, _ := cmd.Flags().GetString("base-commit")
-			remoteFlag, _ := cmd.Flags().GetBool("remote")
-			extRefs, _ := cmd.Flags().GetBool("ext-refs")
-			configFlag, _ := cmd.Flags().GetString("config")
-			globalRevisionsFlag, _ := cmd.Flags().GetBool("global-revisions")
+			opts, configFlag := readCommonFlags(cmd)
 			reportFile, _ := cmd.Flags().GetString("report-file")
 			includeDiff, _ := cmd.Flags().GetBool("include-diff")
 
 			styles := markdownReportStyles{}
-			if !noColorFlag {
+			if !opts.noColor {
 				styles = newMarkdownReportStyles()
 			}
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {
-				PrintNewBanner(noColorFlag)
+				PrintNewBanner(opts.noColor)
 			}
 
 			if len(args) == 0 {
-				printMarkdownReportUsage(noColorFlag)
+				printMarkdownReportUsage(opts.noColor)
 				return nil
 			}
 
-			if len(args) == 1 {
-				specURL, err := url.Parse(args[0])
-				if err != nil || specURL.Host != "github.com" {
-					fmt.Println("A single argument requires a github.com URL.")
-					fmt.Println("For local comparison, provide two arguments: a git repository path and a file path within it.")
-					return nil
-				}
+			if len(args) == 1 && !validateGitHubURL(args[0]) {
+				return nil
 			}
 
 			if len(args) > 2 {
 				return fmt.Errorf("too many arguments provided, expecting at most two (2)")
-			}
-
-			opts := newSummaryOpts{
-				noColor:         noColorFlag,
-				latest:          latestFlag,
-				limit:           limitFlag,
-				limitTime:       limitTimeFlag,
-				base:            baseFlag,
-				baseCommit:      baseCommitFlag,
-				remote:          remoteFlag,
-				extRefs:         extRefs,
-				globalRevisions: globalRevisionsFlag,
 			}
 
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
@@ -241,28 +190,12 @@ func GetNewMarkdownReportCommand() *cobra.Command {
 				return err
 			}
 
-			var report []byte
-			switch {
-			case len(args) == 1:
-				report, err = runNewGithubHistoryMarkdownReport(args[0], opts, breakingConfig, includeDiff)
-			case len(args) == 2:
-				// Check if the first arg is a URL — if so, it's a left/right comparison,
-				// not a git history operation. Resolve before os.Stat.
-				firstURL, _ := url.Parse(args[0])
-				if firstURL != nil && strings.HasPrefix(firstURL.Scheme, "http") {
-					report, err = runNewLeftRightMarkdownReport(args[0], args[1], opts, breakingConfig, includeDiff)
-				} else {
-					f, statErr := os.Stat(args[0])
-					if statErr != nil {
-						return fmt.Errorf("cannot open file/repository: '%s'", args[0])
-					}
-					if f.IsDir() {
-						report, err = runNewGitHistoryMarkdownReport(args[0], args[1], opts, breakingConfig, includeDiff)
-					} else {
-						report, err = runNewLeftRightMarkdownReport(args[0], args[1], opts, breakingConfig, includeDiff)
-					}
-				}
+			commits, err := loadCommitsFromArgs(args, opts, breakingConfig)
+			if err != nil {
+				return err
 			}
+
+			report, err := generateNewMarkdownReport(commits, breakingConfig, includeDiff)
 			if err != nil {
 				return err
 			}

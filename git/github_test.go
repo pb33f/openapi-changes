@@ -91,13 +91,14 @@ func makeStaticFileContent(content string) func(context.Context, *github.GitHubS
 	}
 }
 
-func TestCreateSession_TokenRequired(t *testing.T) {
+func TestCreateSession_AllowsAnonymousAccessWhenTokenMissing(t *testing.T) {
 	t.Setenv(GithubToken, "")
 	session, svc, err := createGitHubSession()
-	assert.Nil(t, session)
-	assert.Nil(t, svc)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "GH_TOKEN environment variable is required")
+	assert.NoError(t, err)
+	assert.NotNil(t, session)
+	assert.NotNil(t, svc)
+	assert.Empty(t, session.Token)
+	session.Close()
 }
 
 func TestCreateSession_AcceptableToken(t *testing.T) {
@@ -243,6 +244,90 @@ func TestGetCommitsForGithubFile_TimeLimit(t *testing.T) {
 	// getCommitTimeLimit returns 2, then limit=2 => totalCommits = min(len, 2+1) = 3
 	// but we only have 2 commits within time limit so limit=2 and totalCommits=3
 	require.Len(t, result, 3)
+}
+
+func TestGetCommitsForGithubFile_BaseCommitBeyondDefaultWindow(t *testing.T) {
+	now := time.Now()
+	session := dummySession()
+	defer session.Close()
+
+	const numCommits = 150
+	progressChan := make(chan *model.ProgressUpdate, numCommits*4)
+	errorChan := make(chan model.ProgressError, numCommits)
+	commits := make([]github.Commit, numCommits)
+	for i := 0; i < numCommits; i++ {
+		commits[i] = makeCommit(
+			fmt.Sprintf("sha%03d%036d", i, i),
+			fmt.Sprintf("commit %d", i),
+			"Author", "a@t.com",
+			now.Add(-time.Duration(i)*time.Hour),
+			nil,
+		)
+	}
+
+	baseCommit := commits[120].SHA
+	fileContent := base64.StdEncoding.EncodeToString([]byte("data"))
+
+	mock := &mockGitHubAPI{
+		commitList: func(_ context.Context, _ *github.GitHubSession, _, _, _ string, opts *github.CommitListOptions) ([]github.Commit, error) {
+			if opts.MaxResults > 0 && opts.MaxResults < len(commits) {
+				return commits[:opts.MaxResults], nil
+			}
+			return commits, nil
+		},
+		commit:      makeCommitLookup(commits, "spec.yaml"),
+		fileContent: makeStaticFileContent(fileContent),
+	}
+
+	result, err := GetCommitsForGithubFile("owner", "repo", "spec.yaml", baseCommit,
+		progressChan, errorChan, false, 0, -1, session, mock)
+
+	require.NoError(t, err)
+	require.Len(t, result, 121)
+	assert.Equal(t, baseCommit, result[len(result)-1].Commit.SHA)
+}
+
+func TestGetCommitsForGithubFile_TimeLimitBeyondDefaultWindow(t *testing.T) {
+	now := time.Now()
+	session := dummySession()
+	defer session.Close()
+
+	const numCommits = 150
+	progressChan := make(chan *model.ProgressUpdate, numCommits*4)
+	errorChan := make(chan model.ProgressError, numCommits)
+	commits := make([]github.Commit, numCommits)
+	for i := 0; i < numCommits; i++ {
+		commits[i] = makeCommit(
+			fmt.Sprintf("sha%03d", i),
+			fmt.Sprintf("commit %d", i),
+			"Author", "a@t.com",
+			now.Add(-time.Duration(i)*12*time.Hour),
+			nil,
+		)
+	}
+
+	fileContent := base64.StdEncoding.EncodeToString([]byte("data"))
+
+	mock := &mockGitHubAPI{
+		commitList: func(_ context.Context, _ *github.GitHubSession, _, _, _ string, opts *github.CommitListOptions) ([]github.Commit, error) {
+			if opts.MaxResults > 0 && opts.MaxResults < len(commits) {
+				return commits[:opts.MaxResults], nil
+			}
+			return commits, nil
+		},
+		commit:      makeCommitLookup(commits, "spec.yaml"),
+		fileContent: makeStaticFileContent(fileContent),
+	}
+
+	const limitTime = 55
+	wantWithin := getCommitTimeLimit(limitTime, commits)
+	require.Greater(t, wantWithin, 100)
+
+	result, err := GetCommitsForGithubFile("owner", "repo", "spec.yaml", "",
+		progressChan, errorChan, false, 0, limitTime, session, mock)
+
+	require.NoError(t, err)
+	require.Len(t, result, wantWithin+1)
 }
 
 func TestGetCommitsForGithubFile_TimeLimitZeroResults(t *testing.T) {
@@ -566,7 +651,7 @@ func TestProcessGithubRepo_EmptyParams(t *testing.T) {
 	}
 }
 
-func TestProcessGithubRepo_NoToken(t *testing.T) {
+func TestProcessGithubRepo_UsesAnonymousSessionWithoutToken(t *testing.T) {
 	t.Setenv(GithubToken, "")
 	progressChan, errorChan := makeProgressChans()
 
@@ -574,7 +659,8 @@ func TestProcessGithubRepo_NoToken(t *testing.T) {
 		progressChan, errorChan, false, 0, -1, "", false, false, nil)
 	assert.Nil(t, result)
 	require.Len(t, errs, 1)
-	assert.Contains(t, errs[0].Error(), "GH_TOKEN")
+	assert.NotContains(t, errs[0].Error(), "GH_TOKEN")
+	assert.Contains(t, errs[0].Error(), "failed to list commits")
 }
 
 func TestGetCommitTimeLimit(t *testing.T) {

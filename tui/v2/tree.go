@@ -96,7 +96,9 @@ func (t *treeModel) flattenNode(node *v3.Node, depth int, isLast bool, parentGui
 		guides:  guides,
 	})
 
-	childGuides := append(parentGuides, !isLast)
+	childGuides := make([]bool, len(parentGuides)+1)
+	copy(childGuides, parentGuides)
+	childGuides[len(parentGuides)] = !isLast
 	totalItems := len(node.Children) + len(changes)
 	idx := 0
 
@@ -391,12 +393,15 @@ func visualLen(s string) int {
 }
 
 // truncateToWidth truncates a string (possibly containing ANSI escapes) to a visible width.
+// Appends an ANSI reset if any escape sequences were seen, to avoid corrupting terminal state.
 func truncateToWidth(s string, width int) string {
 	n := 0
 	inEscape := false
+	hasEscape := false
 	for i, r := range s {
 		if r == '\033' {
 			inEscape = true
+			hasEscape = true
 			continue
 		}
 		if inEscape {
@@ -407,6 +412,9 @@ func truncateToWidth(s string, width int) string {
 		}
 		n++
 		if n >= width {
+			if hasEscape {
+				return s[:i+1] + "\033[0m"
+			}
 			return s[:i+1]
 		}
 	}

@@ -179,7 +179,7 @@ func setupModelWithChangerator(t *testing.T) ConsoleModel {
 		},
 	}
 
-	m := NewConsoleModel(commits, nil, true, "test")
+	m := NewConsoleModel(commits, nil, true, "test", nil)
 	m.width = 120
 	m.height = 40
 

@@ -51,6 +51,7 @@ type ConsoleModel struct {
 	commits     []*model.Commit
 	cache       *commitCache
 	breakingCfg *whatChangedModel.BreakingRulesConfig
+	runFn       RunChangeratorFn
 
 	// UI state
 	focus          PanelFocus
@@ -82,16 +83,8 @@ type ConsoleModel struct {
 // This is injected from the cmd package to avoid import cycles.
 type RunChangeratorFn func(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*changerator.Changerator, *v3.Node, func(), error)
 
-// runChangeratorFn holds the injected changerator function.
-var runChangeratorFn RunChangeratorFn
-
-// SetRunChangeratorFn sets the changerator function. Must be called before NewConsoleModel.
-func SetRunChangeratorFn(fn RunChangeratorFn) {
-	runChangeratorFn = fn
-}
-
 // NewConsoleModel creates a new ConsoleModel and runs the changerator on the first commit.
-func NewConsoleModel(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, noColor bool, version string) ConsoleModel {
+func NewConsoleModel(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, noColor bool, version string, runFn RunChangeratorFn) ConsoleModel {
 	styles := newConsoleStyles()
 	if noColor {
 		styles = newNoColorStyles()
@@ -101,6 +94,7 @@ func NewConsoleModel(commits []*model.Commit, breakingConfig *whatChangedModel.B
 		commits:     commits,
 		cache:       newCommitCache(3),
 		breakingCfg: breakingConfig,
+		runFn:       runFn,
 		styles:      styles,
 		version:     version,
 	}
@@ -398,12 +392,12 @@ func (m *ConsoleModel) loadActiveCommit() {
 		return
 	}
 
-	if runChangeratorFn == nil {
+	if m.runFn == nil {
 		m.emptyState = "Changerator not configured"
 		return
 	}
 
-	ctr, root, releaseFn, err := runChangeratorFn(commit, m.breakingCfg)
+	ctr, root, releaseFn, err := m.runFn(commit, m.breakingCfg)
 	if err != nil {
 		m.emptyState = fmt.Sprintf("Error: %s", err)
 		m.tree = newTreeModel(nil, m.tree.height)

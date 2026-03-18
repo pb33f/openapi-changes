@@ -23,6 +23,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var processGithubRepo = git.ProcessGithubRepo
+var extractHistoryFromFile = git.ExtractHistoryFromFile
+var populateHistoryWithChanges = git.PopulateHistoryWithChanges
+
 // newSummaryOpts holds all flag values for the new-summary command.
 type newSummaryOpts struct {
 	noColor         bool
@@ -35,7 +39,6 @@ type newSummaryOpts struct {
 	baseCommit      string
 	remote          bool
 	extRefs         bool
-	configPath      string
 	globalRevisions bool
 }
 
@@ -137,12 +140,15 @@ func loadGitHubCommits(rawURL string, opts newSummaryOpts, breakingConfig *whatC
 	}
 
 	d := newProgressDrainer()
-	commits, _ := git.ProcessGithubRepo(user, repo, filePath, opts.baseCommit,
+	commits, errs := processGithubRepo(user, repo, filePath, opts.baseCommit,
 		d.ProgressChan, d.ErrorChan, false, opts.limit, opts.limitTime,
 		opts.base, opts.remote, opts.extRefs, breakingConfig)
 	drainErrors := d.close()
 	d.printWarnings()
 
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
 	if len(drainErrors) > 0 {
 		for _, e := range drainErrors {
 			if e.Fatal {
@@ -172,23 +178,26 @@ func loadGitHistoryCommits(gitPath, filePath string, opts newSummaryOpts, breaki
 	}
 
 	d := newProgressDrainer()
-	commits, errs := git.ExtractHistoryFromFile(gitPath, filePath, opts.baseCommit,
+	commits, errs := extractHistoryFromFile(gitPath, filePath, opts.baseCommit,
 		d.ProgressChan, d.ErrorChan, opts.globalRevisions, opts.limit, opts.limitTime)
 	if errs != nil {
 		d.close()
 		d.printWarnings()
-		return nil, errs[0]
+		return nil, errors.Join(errs...)
 	}
 
-	commits, _ = git.PopulateHistoryWithChanges(commits, 0, opts.limitTime,
+	commits, errs = populateHistoryWithChanges(commits, 0, opts.limitTime,
 		d.ProgressChan, d.ErrorChan, opts.base, opts.remote, opts.extRefs, breakingConfig)
 	d.close()
 	d.printWarnings()
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
 
 	if len(commits) == 0 {
 		return nil, nil
 	}
-	if opts.latest && len(commits) > 0 {
+	if opts.latest {
 		commits = commits[:1]
 	}
 	return commits, nil
@@ -262,6 +271,8 @@ func renderNewSummary(
 	var sb strings.Builder
 	totalChanges := 0
 	totalBreaking := 0
+	renderedCommits := 0
+	var renderErrors []error
 
 	for c, commit := range commits {
 		if commit.Changes == nil {
@@ -275,6 +286,7 @@ func renderNewSummary(
 		result, err := runChangerator(commit, breakingConfig)
 		if err != nil {
 			sb.WriteString(fmt.Sprintf("Error: %s\n", err))
+			renderErrors = append(renderErrors, fmt.Errorf("commit %s: %w", commit.Hash, err))
 			continue
 		}
 		if result == nil {
@@ -284,6 +296,7 @@ func renderNewSummary(
 			}
 			continue
 		}
+		renderedCommits++
 
 		// Build node change tree and render tree for first commit only
 		if c == 0 {
@@ -414,6 +427,9 @@ func renderNewSummary(
 
 	hasBreaking := totalBreaking > 0
 	hasChanges := totalChanges > 0
+	if renderedCommits == 0 && len(renderErrors) > 0 {
+		return sb.String(), false, false, fmt.Errorf("all %d commits failed to render: %w", len(renderErrors), errors.Join(renderErrors...))
+	}
 	return sb.String(), hasBreaking, hasChanges, nil
 }
 
@@ -426,98 +442,46 @@ func GetNewSummaryCommand() *cobra.Command {
 		Long:         "print a summary of what changed using the doctor changerator engine with tree visualization",
 		Example:      "openapi-changes new-summary /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			noColorFlag, _ := cmd.Flags().GetBool("no-color")
-			markdownFlag, _ := cmd.Flags().GetBool("markdown")
-			errOnDiff, _ := cmd.Flags().GetBool("error-on-diff")
-			latestFlag, _ := cmd.Flags().GetBool("top")
-			limitFlag, _ := cmd.Flags().GetInt("limit")
-			limitTimeFlag, _ := cmd.Flags().GetInt("limit-time")
-			baseFlag, _ := cmd.Flags().GetString("base")
-			baseCommitFlag, _ := cmd.Flags().GetString("base-commit")
-			remoteFlag, _ := cmd.Flags().GetBool("remote")
-			extRefs, _ := cmd.Flags().GetBool("ext-refs")
-			configFlag, _ := cmd.Flags().GetString("config")
-			globalRevisionsFlag, _ := cmd.Flags().GetBool("global-revisions")
+			opts, configFlag := readCommonFlags(cmd)
+			opts.markdown, _ = cmd.Flags().GetBool("markdown")
+			opts.errorOnDiff, _ = cmd.Flags().GetBool("error-on-diff")
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {
-				PrintNewBanner(noColorFlag)
+				PrintNewBanner(opts.noColor)
 			}
 
 			if len(args) == 0 {
-				printNewSummaryUsage(noColorFlag)
+				printNewSummaryUsage(opts.noColor)
 				return nil
 			}
 
-			// Validate single arg is a github URL
-			if len(args) == 1 {
-				specURL, err := url.Parse(args[0])
-				if err != nil || specURL.Host != "github.com" {
-					fmt.Println("A single argument requires a github.com URL.")
-					fmt.Println("For local comparison, provide two arguments: a git repository path and a file path within it.")
-					return nil
-				}
+			if len(args) == 1 && !validateGitHubURL(args[0]) {
+				return nil
 			}
 
 			if len(args) > 2 {
 				return fmt.Errorf("too many arguments provided, expecting at most two (2)")
 			}
 
-			opts := newSummaryOpts{
-				noColor:         noColorFlag,
-				markdown:        markdownFlag,
-				errorOnDiff:     errOnDiff,
-				latest:          latestFlag,
-				limit:           limitFlag,
-				limitTime:       limitTimeFlag,
-				base:            baseFlag,
-				baseCommit:      baseCommitFlag,
-				remote:          remoteFlag,
-				extRefs:         extRefs,
-				configPath:      configFlag,
-				globalRevisions: globalRevisionsFlag,
-			}
-
 			styles := summaryStyles{}
-			if !noColorFlag {
+			if !opts.noColor {
 				styles = newSummaryStyles()
 			}
 
-			// Load breaking rules config
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
 			if err != nil {
 				PrintNewConfigError(err)
 				return err
 			}
 
-			// Load commits based on args
-			var commits []*model.Commit
-			switch {
-			case len(args) == 1:
-				commits, err = loadGitHubCommits(args[0], opts, breakingConfig)
-			case len(args) == 2:
-				firstURL, _ := url.Parse(args[0])
-				if firstURL != nil && strings.HasPrefix(firstURL.Scheme, "http") {
-					commits, err = loadLeftRightCommits(args[0], args[1], opts, breakingConfig)
-				} else {
-					f, statErr := os.Stat(args[0])
-					if statErr != nil {
-						return fmt.Errorf("cannot open file/repository: '%s'", args[0])
-					}
-					if f.IsDir() {
-						commits, err = loadGitHistoryCommits(args[0], args[1], opts, breakingConfig)
-					} else {
-						commits, err = loadLeftRightCommits(args[0], args[1], opts, breakingConfig)
-					}
-				}
-			}
+			commits, err := loadCommitsFromArgs(args, opts, breakingConfig)
 			if err != nil {
 				return err
 			}
 
-			// Render and print
 			output, hasBreaking, hasChanges, renderErr := renderNewSummary(
-				commits, breakingConfig, markdownFlag, noColorFlag, styles,
+				commits, breakingConfig, opts.markdown, opts.noColor, styles,
 			)
 			if output != "" {
 				fmt.Print(output)
@@ -528,7 +492,7 @@ func GetNewSummaryCommand() *cobra.Command {
 			if hasBreaking {
 				return errors.New("breaking changes discovered")
 			}
-			if hasChanges && errOnDiff {
+			if hasChanges && opts.errorOnDiff {
 				return errors.New("differences discovered")
 			}
 			return nil
