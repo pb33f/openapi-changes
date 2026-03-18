@@ -22,6 +22,7 @@ var (
 	glamourPinkBg    = strPtr("#2a1a2a")
 	glamourGreen     = strPtr("46")
 	glamourGrey      = strPtr("246")
+	glamourSubGrey   = strPtr("240") // matches terminal.LipglossGrey — "sub 2" level
 	glamourDarkGrey  = strPtr("236")
 	glamourLightGrey = strPtr("253")
 
@@ -85,14 +86,12 @@ func createPb33fReportStyle(contentWidth int) ansi.StyleConfig {
 			},
 		},
 		Emph: ansi.StylePrimitive{
-			Color:  glamourPink,
+			Color:  glamourLightGrey,
 			Italic: truePointer,
 		},
 		Strong: ansi.StylePrimitive{
-			Color:           glamourPink,
 			BackgroundColor: glamourPinkBg,
 			Bold:            truePointer,
-			Underline:       truePointer,
 		},
 		Code: ansi.StyleBlock{
 			StylePrimitive: ansi.StylePrimitive{
@@ -172,7 +171,7 @@ func createPb33fReportStyle(contentWidth int) ansi.StyleConfig {
 		List: ansi.StyleList{
 			StyleBlock: ansi.StyleBlock{
 				StylePrimitive: ansi.StylePrimitive{
-					Color: glamourPink,
+					Color: glamourBlue,
 				},
 				Indent: uintPtr(2),
 			},
@@ -194,7 +193,7 @@ func createPb33fReportStyle(contentWidth int) ansi.StyleConfig {
 			IndentToken: strPtr("\u2502 "),
 		},
 		HorizontalRule: ansi.StylePrimitive{
-			Color:  glamourPink,
+			Color:  glamourSubGrey,
 			Format: fmt.Sprintf("\n%s\n", strings.Repeat("-", contentWidth)),
 		},
 		Table: ansi.StyleTable{
@@ -219,7 +218,7 @@ func createPb33fReportStyle(contentWidth int) ansi.StyleConfig {
 			Margin:         uintPtr(1),
 		},
 		DefinitionTerm: ansi.StylePrimitive{
-			Color: glamourPink,
+			Color: glamourBlue,
 			Bold:  truePointer,
 		},
 		DefinitionDescription: ansi.StylePrimitive{

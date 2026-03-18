@@ -544,3 +544,58 @@ func digitCount(n int) int {
 	}
 	return d
 }
+
+// resolveSpecAndLine picks the correct spec lines and change line number
+// based on change type. Removals use oldLines + OriginalLine; everything
+// else uses newLines + NewLine (with OriginalLine fallback).
+func resolveSpecAndLine(ch *whatChangedModel.Change, newLines, oldLines []string) (lines []string, changeLn int) {
+	switch ch.ChangeType {
+	case whatChangedModel.PropertyRemoved, whatChangedModel.ObjectRemoved:
+		lines = oldLines
+		if ch.Context != nil && ch.Context.OriginalLine != nil {
+			changeLn = *ch.Context.OriginalLine
+		}
+	default:
+		lines = newLines
+		if ch.Context != nil && ch.Context.NewLine != nil {
+			changeLn = *ch.Context.NewLine
+		} else if ch.Context != nil && ch.Context.OriginalLine != nil {
+			changeLn = *ch.Context.OriginalLine
+		}
+	}
+	return
+}
+
+// renderSpecLines renders all spec lines with highlight formatting matching
+// the code modal style. The primary line gets "> NNN│", body lines get
+// "{gutter} NNN│", and normal lines get grey line numbers with YAML
+// key highlighting. Returns all lines joined with \n.
+func renderSpecLines(lines []string, hl highlightRange, changeType int, contentW int, styles consoleStyles) string {
+	primaryStyle, rangeStyle, bodyGutter := contextHighlightStyles(changeType, styles)
+
+	numWidth := digitCount(len(lines))
+	rendered := make([]string, len(lines))
+	for i, line := range lines {
+		lineNo := i + 1
+		numStr := fmt.Sprintf("%*d", numWidth, lineNo)
+		if lineNo == hl.start {
+			content := fmt.Sprintf("> %s│ %s", numStr, line)
+			if pad := contentW - visualLen(content); pad > 0 {
+				content += strings.Repeat(" ", pad)
+			}
+			rendered[i] = primaryStyle.Render(content)
+		} else if lineNo > hl.start && lineNo <= hl.end {
+			content := fmt.Sprintf("%s %s│ %s", bodyGutter, numStr, line)
+			if pad := contentW - visualLen(content); pad > 0 {
+				content += strings.Repeat(" ", pad)
+			}
+			rendered[i] = rangeStyle.Render(content)
+		} else {
+			rendered[i] = fmt.Sprintf("  %s%s %s",
+				styles.grey.Render(numStr),
+				styles.grey.Render("│"),
+				highlightLine(line, styles))
+		}
+	}
+	return strings.Join(rendered, "\n")
+}

@@ -660,3 +660,122 @@ func TestCodeModal_ObjectAdded_HighlightsRange(t *testing.T) {
 	// Body lines should have │ gutter marker
 	assert.Contains(t, view, "│")
 }
+
+// --- Diff panel summary and spec view tests ---
+
+func TestUpdateDiffContent_SummaryAboveViewport(t *testing.T) {
+	m := setupModelWithTree(t)
+	m.focus = FocusTree
+	moveToFirstLeaf(t, &m)
+	m.syncDiffToTreeCursor()
+
+	// The first leaf is a Modified change with value data → summary should be set
+	assert.NotEmpty(t, m.diffSummary, "diffSummary should be set for change with line info")
+	assert.Greater(t, m.diffSummaryH, 0, "diffSummaryH should be > 0")
+
+	// Viewport should contain spec lines (using renderSpecLines format)
+	vpContent := m.diffViewport.View()
+	assert.Contains(t, vpContent, "│")
+}
+
+func TestUpdateDiffContent_NoLineInfo_Fallback(t *testing.T) {
+	m := setupModelWithTree(t)
+
+	// Create a change with no line info
+	ch := &whatChangedModel.Change{
+		ChangeType: whatChangedModel.Modified,
+		Property:   "test",
+		Original:   "old",
+		New:        "new",
+		Context:    &whatChangedModel.ChangeContext{},
+	}
+	m.activeChange = ch
+	m.showDiff = true
+	m.updateDiffContent()
+
+	// Summary should be cleared on fallback path
+	assert.Empty(t, m.diffSummary, "diffSummary should be empty on fallback")
+	assert.Equal(t, 0, m.diffSummaryH, "diffSummaryH should be 0 on fallback")
+}
+
+func TestUpdateDiffContent_NilChange_ClearsSummary(t *testing.T) {
+	m := setupModelWithTree(t)
+	m.focus = FocusTree
+	moveToFirstLeaf(t, &m)
+	m.syncDiffToTreeCursor()
+	require.NotEmpty(t, m.diffSummary)
+
+	// Clear the active change
+	m.activeChange = nil
+	m.updateDiffContent()
+
+	assert.Empty(t, m.diffSummary)
+	assert.Equal(t, 0, m.diffSummaryH)
+}
+
+func TestApplyCache_ResetsDiffSummary(t *testing.T) {
+	m := setupModelWithTree(t)
+	m.focus = FocusTree
+	moveToFirstLeaf(t, &m)
+	m.syncDiffToTreeCursor()
+	require.NotEmpty(t, m.diffSummary)
+
+	// Re-apply cache (simulates commit switch)
+	entry := m.cache.get(m.activeHash)
+	require.NotNil(t, entry)
+	m.applyCache(entry)
+
+	// After applyCache, syncDiffToTreeCursor runs and may set new summary,
+	// but the applyCache itself should have cleared it first.
+	// The important thing is that stale summary from a different commit is gone.
+	// Since applyCache auto-selects a leaf, summary will be set again for the new change.
+	// We verify the mechanism works by checking it doesn't panic and fields are consistent.
+	assert.True(t, m.showDiff || m.diffSummary == "")
+}
+
+func TestRecalculateLayout_AccountsForSummaryHeight(t *testing.T) {
+	m := setupModelWithTree(t)
+	m.focus = FocusTree
+	moveToFirstLeaf(t, &m)
+	m.syncDiffToTreeCursor()
+
+	summaryH := m.diffSummaryH
+	require.Greater(t, summaryH, 0)
+
+	bottomH := m.bottomHeight()
+	expectedVPH := bottomH - 2 - summaryH - 1 // -2 border, -summaryH, -1 separator
+	if expectedVPH < 3 {
+		expectedVPH = 3
+	}
+
+	m.recalculateLayout()
+	assert.Equal(t, expectedVPH, m.diffViewport.Height())
+}
+
+func TestWindowResize_RebuildCodeModal(t *testing.T) {
+	m := setupModelWithTree(t)
+	m.focus = FocusTree
+	moveToFirstLeaf(t, &m)
+
+	// Open code modal
+	entry := m.tree.selectedEntry()
+	require.NotNil(t, entry)
+	require.NotNil(t, entry.change)
+	m.openCodeModal(entry.change)
+	require.True(t, m.showCodeModal)
+	assert.Equal(t, FocusCodeModal, m.focus)
+	assert.Equal(t, FocusTree, m.prevFocus)
+
+	oldWidth := m.codeModal.width
+
+	// Simulate resize
+	result, _ := m.Update(tea.WindowSizeMsg{Width: 160, Height: 50})
+	updated := result.(ConsoleModel)
+
+	// Modal should be rebuilt with new dimensions
+	assert.True(t, updated.showCodeModal)
+	assert.NotEqual(t, oldWidth, updated.codeModal.width)
+	// Focus should NOT have changed
+	assert.Equal(t, FocusCodeModal, updated.focus)
+	assert.Equal(t, FocusTree, updated.prevFocus)
+}

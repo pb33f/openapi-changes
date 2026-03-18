@@ -574,3 +574,144 @@ func TestRenderFileContext_IncludesHighlightStartAboveCenter(t *testing.T) {
 	assert.Contains(t, result, "line 3")
 	assert.Contains(t, result, "line 10")
 }
+
+// --- renderSpecLines tests ---
+
+func TestRenderSpecLines_Added(t *testing.T) {
+	lines := []string{"openapi: '3.0'", "info:", "  title: Test", "paths: {}"}
+	hl := highlightRange{start: 3, end: 3}
+	styles := newNoColorStyles()
+
+	result := renderSpecLines(lines, hl, whatChangedModel.PropertyAdded, 80, styles)
+	// Primary line should have > marker
+	assert.Contains(t, result, ">")
+	assert.Contains(t, result, "3│")
+	// Normal lines should have line numbers
+	assert.Contains(t, result, "1│")
+	assert.Contains(t, result, "openapi:")
+}
+
+func TestRenderSpecLines_Removed(t *testing.T) {
+	lines := []string{"a: 1", "b: 2", "c: 3"}
+	hl := highlightRange{start: 2, end: 2}
+	styles := newNoColorStyles()
+
+	result := renderSpecLines(lines, hl, whatChangedModel.PropertyRemoved, 80, styles)
+	assert.Contains(t, result, ">")
+	assert.Contains(t, result, "2│")
+}
+
+func TestRenderSpecLines_Modified(t *testing.T) {
+	lines := []string{"a: 1", "b: 2", "c: 3"}
+	hl := highlightRange{start: 2, end: 2}
+	styles := newNoColorStyles()
+
+	result := renderSpecLines(lines, hl, whatChangedModel.Modified, 80, styles)
+	assert.Contains(t, result, ">")
+	assert.Contains(t, result, "2│")
+}
+
+func TestRenderSpecLines_EmptyHighlight(t *testing.T) {
+	lines := []string{"a: 1", "b: 2", "c: 3"}
+	hl := highlightRange{start: 0, end: 0}
+	styles := newNoColorStyles()
+
+	// Should not crash — all lines rendered as normal
+	result := renderSpecLines(lines, hl, whatChangedModel.Modified, 80, styles)
+	assert.Contains(t, result, "1│")
+	assert.Contains(t, result, "2│")
+	assert.Contains(t, result, "3│")
+	assert.NotContains(t, result, ">")
+}
+
+func TestRenderSpecLines_RangeHighlight(t *testing.T) {
+	lines := []string{"a: 1", "b: 2", "c: 3", "d: 4", "e: 5"}
+	hl := highlightRange{start: 2, end: 4}
+	styles := newNoColorStyles()
+
+	result := renderSpecLines(lines, hl, whatChangedModel.ObjectAdded, 80, styles)
+	// Primary line 2 should have >
+	assert.Contains(t, result, ">")
+	// Body lines 3-4 should have + gutter for ObjectAdded
+	assert.Contains(t, result, "+")
+}
+
+// --- resolveSpecAndLine tests ---
+
+func TestResolveSpecAndLine_Removed(t *testing.T) {
+	newLines := []string{"new1", "new2"}
+	oldLines := []string{"old1", "old2"}
+
+	ch := &whatChangedModel.Change{
+		ChangeType: whatChangedModel.PropertyRemoved,
+		Context: &whatChangedModel.ChangeContext{
+			OriginalLine: ptrInt(2),
+		},
+	}
+
+	lines, changeLn := resolveSpecAndLine(ch, newLines, oldLines)
+	assert.Equal(t, oldLines, lines)
+	assert.Equal(t, 2, changeLn)
+}
+
+func TestResolveSpecAndLine_Added(t *testing.T) {
+	newLines := []string{"new1", "new2"}
+	oldLines := []string{"old1", "old2"}
+
+	ch := &whatChangedModel.Change{
+		ChangeType: whatChangedModel.PropertyAdded,
+		Context: &whatChangedModel.ChangeContext{
+			NewLine: ptrInt(1),
+		},
+	}
+
+	lines, changeLn := resolveSpecAndLine(ch, newLines, oldLines)
+	assert.Equal(t, newLines, lines)
+	assert.Equal(t, 1, changeLn)
+}
+
+func TestResolveSpecAndLine_Modified(t *testing.T) {
+	newLines := []string{"new1", "new2"}
+	oldLines := []string{"old1", "old2"}
+
+	ch := &whatChangedModel.Change{
+		ChangeType: whatChangedModel.Modified,
+		Context: &whatChangedModel.ChangeContext{
+			NewLine:      ptrInt(2),
+			OriginalLine: ptrInt(1),
+		},
+	}
+
+	lines, changeLn := resolveSpecAndLine(ch, newLines, oldLines)
+	assert.Equal(t, newLines, lines)
+	assert.Equal(t, 2, changeLn) // prefers NewLine
+}
+
+func TestResolveSpecAndLine_ModifiedFallbackToOriginal(t *testing.T) {
+	newLines := []string{"new1", "new2"}
+	oldLines := []string{"old1", "old2"}
+
+	ch := &whatChangedModel.Change{
+		ChangeType: whatChangedModel.Modified,
+		Context: &whatChangedModel.ChangeContext{
+			OriginalLine: ptrInt(1),
+		},
+	}
+
+	lines, changeLn := resolveSpecAndLine(ch, newLines, oldLines)
+	assert.Equal(t, newLines, lines)
+	assert.Equal(t, 1, changeLn) // falls back to OriginalLine
+}
+
+func TestResolveSpecAndLine_NilContext(t *testing.T) {
+	newLines := []string{"new1", "new2"}
+	oldLines := []string{"old1", "old2"}
+
+	ch := &whatChangedModel.Change{
+		ChangeType: whatChangedModel.Modified,
+	}
+
+	lines, changeLn := resolveSpecAndLine(ch, newLines, oldLines)
+	assert.Equal(t, newLines, lines)
+	assert.Equal(t, 0, changeLn) // no line info
+}

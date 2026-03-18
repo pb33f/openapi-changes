@@ -66,6 +66,10 @@ type ConsoleModel struct {
 	activeIdx      int
 	emptyState     string
 
+	// Diff panel summary header (rendered above viewport)
+	diffSummary  string // pre-rendered diff summary for right panel fixed header
+	diffSummaryH int    // line count of summary
+
 	// Active commit hash — lines accessed via cache
 	activeHash string
 
@@ -215,7 +219,14 @@ func (m ConsoleModel) renderBaseView() string {
 	diffPanelStyle := m.panelBorder(FocusDiff)
 	var diffContent string
 	if m.showDiff {
-		diffContent = m.diffViewport.View()
+		var sb2 strings.Builder
+		if m.diffSummary != "" {
+			sb2.WriteString(m.diffSummary)
+			sb2.WriteString(m.styles.grey.Render(strings.Repeat("─", diffW-2)))
+			sb2.WriteByte('\n')
+		}
+		sb2.WriteString(m.diffViewport.View())
+		diffContent = sb2.String()
 	} else {
 		diffContent = m.styles.grey.Render("  Select a change to view diff")
 	}
@@ -279,13 +290,25 @@ func (m *ConsoleModel) recalculateLayout() {
 	m.tree.setHeight(bottomH - 2)
 
 	_, diffW := m.splitWidths()
-	m.diffViewport.SetHeight(bottomH - 2)
+	vpH := bottomH - 2
+	if m.diffSummaryH > 0 {
+		vpH -= m.diffSummaryH + 1 // +1 for separator line
+	}
+	if vpH < 3 {
+		vpH = 3
+	}
+	m.diffViewport.SetHeight(vpH)
 	m.diffViewport.SetWidth(diffW - 2)
 
 	// Render diff content that was deferred before layout was ready.
 	if m.pendingDiff {
 		m.pendingDiff = false
 		m.updateDiffContent()
+	}
+
+	// Rebuild code modal if open (without touching focus state).
+	if m.showCodeModal {
+		m.rebuildCodeModal()
 	}
 }
 
@@ -368,12 +391,16 @@ func (m *ConsoleModel) loadActiveCommit() {
 		m.emptyState = fmt.Sprintf("Error: %s", err)
 		m.tree = newTreeModel(nil, m.tree.height)
 		m.showDiff = false
+		m.diffSummary = ""
+		m.diffSummaryH = 0
 		return
 	}
 	if ctr == nil {
 		m.emptyState = "No changes detected in this commit"
 		m.tree = newTreeModel(nil, m.tree.height)
 		m.showDiff = false
+		m.diffSummary = ""
+		m.diffSummaryH = 0
 		return
 	}
 
@@ -406,6 +433,8 @@ func (m *ConsoleModel) applyCache(entry *cacheEntry) {
 	}
 	m.showDiff = false
 	m.activeChange = nil
+	m.diffSummary = ""
+	m.diffSummaryH = 0
 	// Auto-select first leaf change and render its diff.
 	// syncDiffToTreeCursor is a no-op if tree has no leaves.
 	m.syncDiffToTreeCursor()
@@ -444,17 +473,73 @@ func (m *ConsoleModel) syncDiffToTreeCursor() {
 }
 
 // updateDiffContent renders the diff for the active change into the diff viewport.
+// When line info is available, it renders a summary header above a spec view
+// centered on the highlight. Otherwise, falls back to renderDiff().
 func (m *ConsoleModel) updateDiffContent() {
 	if m.activeChange == nil {
 		m.diffViewport.SetContent("")
+		m.diffSummary = ""
+		m.diffSummaryH = 0
 		return
 	}
 
 	newLines, oldLines := m.cache.getLines(m.activeHash)
+	lines, changeLn := resolveSpecAndLine(m.activeChange, newLines, oldLines)
+
+	// Fallback: no spec lines or no line info — use renderDiff which includes its own header
+	if len(lines) == 0 || changeLn == 0 {
+		m.diffSummary = ""
+		m.diffSummaryH = 0
+		_, diffW := m.splitWidths()
+		// Recalculate viewport height without summary
+		bottomH := m.bottomHeight()
+		vpH := bottomH - 2
+		if vpH < 3 {
+			vpH = 3
+		}
+		m.diffViewport.SetHeight(vpH)
+		content := renderDiff(m.activeChange, newLines, oldLines, diffW-2, m.styles)
+		m.diffViewport.SetContent(content)
+		m.diffViewport.GotoTop()
+		return
+	}
+
+	// Render summary header
 	_, diffW := m.splitWidths()
-	content := renderDiff(m.activeChange, newLines, oldLines, diffW-2, m.styles)
+	summary := renderDiffSummary(m.activeChange, diffW-2, m.styles)
+	summaryH := strings.Count(summary, "\n")
+	if summaryH > 0 {
+		summaryH++ // +1 for separator
+	}
+	m.diffSummary = summary
+	m.diffSummaryH = summaryH
+
+	// Recalculate viewport height accounting for summary
+	bottomH := m.bottomHeight()
+	vpH := bottomH - 2
+	if m.diffSummaryH > 0 {
+		vpH -= m.diffSummaryH + 1
+	}
+	if vpH < 3 {
+		vpH = 3
+	}
+	m.diffViewport.SetHeight(vpH)
+
+	// Compute highlight range
+	rangeStart, rangeEnd := computeBlockRangeForChange(lines, changeLn, m.activeChange)
+	hl := highlightRange{start: rangeStart, end: rangeEnd}
+
+	// Render spec lines
+	contentW := diffW - 2
+	content := renderSpecLines(lines, hl, m.activeChange.ChangeType, contentW, m.styles)
 	m.diffViewport.SetContent(content)
-	m.diffViewport.GotoTop()
+
+	// Center viewport on highlight
+	targetOffset := hl.start - vpH/2
+	if targetOffset < 0 {
+		targetOffset = 0
+	}
+	m.diffViewport.SetYOffset(targetOffset)
 }
 
 // openCodeModal opens the full-spec code modal for a change.
@@ -462,25 +547,7 @@ func (m *ConsoleModel) updateDiffContent() {
 // it is in the new spec. The line number is chosen to match.
 func (m *ConsoleModel) openCodeModal(ch *whatChangedModel.Change) {
 	newLines, oldLines := m.cache.getLines(m.activeHash)
-
-	// Pick spec and line based on change type
-	var lines []string
-	changeLn := 0
-	switch ch.ChangeType {
-	case whatChangedModel.PropertyRemoved, whatChangedModel.ObjectRemoved:
-		lines = oldLines
-		if ch.Context != nil && ch.Context.OriginalLine != nil {
-			changeLn = *ch.Context.OriginalLine
-		}
-	default:
-		lines = newLines
-		if ch.Context != nil && ch.Context.NewLine != nil {
-			changeLn = *ch.Context.NewLine
-		} else if ch.Context != nil && ch.Context.OriginalLine != nil {
-			changeLn = *ch.Context.OriginalLine
-		}
-	}
-
+	lines, changeLn := resolveSpecAndLine(ch, newLines, oldLines)
 	if len(lines) == 0 {
 		return
 	}
@@ -491,6 +558,23 @@ func (m *ConsoleModel) openCodeModal(ch *whatChangedModel.Change) {
 	m.showCodeModal = true
 	m.prevFocus = m.focus
 	m.focus = FocusCodeModal
+}
+
+// rebuildCodeModal rebuilds the code modal content and dimensions without
+// touching focus state. Used during terminal resize to avoid overwriting
+// prevFocus when the modal is already open.
+func (m *ConsoleModel) rebuildCodeModal() {
+	if m.activeChange == nil {
+		return
+	}
+	newLines, oldLines := m.cache.getLines(m.activeHash)
+	lines, changeLn := resolveSpecAndLine(m.activeChange, newLines, oldLines)
+	if len(lines) == 0 {
+		return
+	}
+	rangeStart, rangeEnd := computeBlockRangeForChange(lines, changeLn, m.activeChange)
+	hl := highlightRange{start: rangeStart, end: rangeEnd}
+	m.codeModal = newCodeModal(lines, hl, m.activeChange, m.width, m.height, m.styles)
 }
 
 // openReportModal opens the markdown report modal for the active commit.

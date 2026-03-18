@@ -4,7 +4,6 @@
 package v2
 
 import (
-	"fmt"
 	"strings"
 
 	"charm.land/bubbles/v2/viewport"
@@ -45,41 +44,13 @@ func newCodeModal(lines []string, hl highlightRange, ch *whatChangedModel.Change
 		vpH = 3
 	}
 
-	// Pick styles and gutter chars based on change type.
-	primaryStyle, rangeStyle, bodyGutter := contextHighlightStyles(ch.ChangeType, styles)
-
-	numWidth := digitCount(len(lines))
-	rendered := make([]string, len(lines))
-	for i, line := range lines {
-		lineNo := i + 1
-		numStr := fmt.Sprintf("%*d", numWidth, lineNo)
-		if lineNo == hl.start {
-			// Primary line — bold with > arrow
-			content := fmt.Sprintf("> %s│ %s", numStr, line)
-			if pad := contentW - visualLen(content); pad > 0 {
-				content += strings.Repeat(" ", pad)
-			}
-			rendered[i] = primaryStyle.Render(content)
-		} else if lineNo > hl.start && lineNo <= hl.end {
-			// Body line — gutter marker (+/-/│) before line number
-			content := fmt.Sprintf("%s %s│ %s", bodyGutter, numStr, line)
-			if pad := contentW - visualLen(content); pad > 0 {
-				content += strings.Repeat(" ", pad)
-			}
-			rendered[i] = rangeStyle.Render(content)
-		} else {
-			rendered[i] = fmt.Sprintf("  %s%s %s",
-				styles.grey.Render(numStr),
-				styles.grey.Render("│"),
-				highlightLine(line, styles))
-		}
-	}
+	specContent := renderSpecLines(lines, hl, ch.ChangeType, contentW, styles)
 
 	vp := viewport.New(
 		viewport.WithWidth(contentW),
 		viewport.WithHeight(vpH),
 	)
-	vp.SetContent(strings.Join(rendered, "\n"))
+	vp.SetContent(specContent)
 
 	// Scroll to primary highlight line (centered in viewport)
 	if hl.start > 0 {
