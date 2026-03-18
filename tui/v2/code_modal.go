@@ -39,10 +39,7 @@ func newCodeModal(lines []string, hl highlightRange, ch *whatChangedModel.Change
 		summaryH++
 	}
 
-	vpH := modalH - summaryH - 4 // -4 for border(2) + separator(1) + nav(1)
-	if vpH < 3 {
-		vpH = 3
-	}
+	vpH := codeModalVPHeight(modalH, summaryH)
 
 	specContent := renderSpecLines(lines, hl, ch.ChangeType, contentW, styles)
 
@@ -76,31 +73,43 @@ func (m codeModal) View(styles consoleStyles) string {
 	border := styles.activePanel.Width(m.width).Height(m.height).
 		Padding(0, 1, 0, 1)
 
-	nav := styles.grey.Render(" ↑↓/jk: scroll | pgup/pgdn: page | space: recenter | enter/esc: close ")
+	nav := " " + styles.renderHotkey("↑↓") + styles.renderLabel("scroll") +
+		"  " + styles.renderHotkey("pgup/pgdn") + styles.renderLabel("page") +
+		"  " + styles.renderHotkey("space") + styles.renderLabel("recenter") +
+		"  " + styles.renderHotkey("enter/esc") + styles.renderLabel("close")
+	sep := styles.renderSeparator(m.width - 4)
 
 	var sb strings.Builder
 
 	// Fixed diff summary at top
 	if m.diffSummary != "" {
 		sb.WriteString(m.diffSummary)
-		sb.WriteString(styles.grey.Render(strings.Repeat("─", m.width-4)))
+		sb.WriteString(sep)
 		sb.WriteByte('\n')
 	}
 
 	// Scrolling spec code
 	sb.WriteString(m.vp.View())
 	sb.WriteByte('\n')
+	sb.WriteString(sep)
+	sb.WriteByte('\n')
 	sb.WriteString(nav)
 
 	return border.Render(sb.String())
 }
 
-func (m codeModal) viewportHeight() int {
-	h := m.height - m.summaryH - 4
+// codeModalVPHeight computes the viewport height for the code modal.
+// Subtracts border(2) + top separator(1) + bottom separator(1) + nav(1) = 5.
+func codeModalVPHeight(modalH, summaryH int) int {
+	h := modalH - summaryH - 5
 	if h < 3 {
 		h = 3
 	}
 	return h
+}
+
+func (m codeModal) viewportHeight() int {
+	return codeModalVPHeight(m.height, m.summaryH)
 }
 
 // recenter scrolls the viewport to center the primary highlight line.

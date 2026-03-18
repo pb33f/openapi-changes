@@ -574,8 +574,13 @@ func renderSpecLines(lines []string, hl highlightRange, changeType int, contentW
 	primaryStyle, rangeStyle, bodyGutter := contextHighlightStyles(changeType, styles)
 
 	numWidth := digitCount(len(lines))
-	rendered := make([]string, len(lines))
+	var sb strings.Builder
+	sb.Grow(len(lines) * (numWidth + contentW + 20))
+
 	for i, line := range lines {
+		if i > 0 {
+			sb.WriteByte('\n')
+		}
 		lineNo := i + 1
 		numStr := fmt.Sprintf("%*d", numWidth, lineNo)
 		if lineNo == hl.start {
@@ -583,19 +588,19 @@ func renderSpecLines(lines []string, hl highlightRange, changeType int, contentW
 			if pad := contentW - visualLen(content); pad > 0 {
 				content += strings.Repeat(" ", pad)
 			}
-			rendered[i] = primaryStyle.Render(content)
+			sb.WriteString(primaryStyle.Render(content))
 		} else if lineNo > hl.start && lineNo <= hl.end {
 			content := fmt.Sprintf("%s %s│ %s", bodyGutter, numStr, line)
 			if pad := contentW - visualLen(content); pad > 0 {
 				content += strings.Repeat(" ", pad)
 			}
-			rendered[i] = rangeStyle.Render(content)
+			sb.WriteString(rangeStyle.Render(content))
 		} else {
-			rendered[i] = fmt.Sprintf("  %s%s %s",
+			sb.WriteString(fmt.Sprintf("  %s%s %s",
 				styles.grey.Render(numStr),
 				styles.grey.Render("│"),
-				highlightLine(line, styles))
+				highlightLine(line, styles)))
 		}
 	}
-	return strings.Join(rendered, "\n")
+	return sb.String()
 }

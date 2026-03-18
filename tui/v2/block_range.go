@@ -157,7 +157,8 @@ func computeBlockRangeForChange(lines []string, changeLn int, ch *whatChangedMod
 	if ch != nil {
 		switch ch.ChangeType {
 		case whatChangedModel.ObjectAdded, whatChangedModel.ObjectRemoved,
-			whatChangedModel.PropertyAdded, whatChangedModel.PropertyRemoved:
+			whatChangedModel.PropertyAdded, whatChangedModel.PropertyRemoved,
+			whatChangedModel.Modified:
 			candidates := changeLookupCandidates(ch)
 			for line := changeLn; line > 0; {
 				if lineMatchesAnyCandidate(lines, line, candidates) {

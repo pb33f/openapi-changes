@@ -4,6 +4,8 @@
 package v2
 
 import (
+	"strings"
+
 	"charm.land/lipgloss/v2"
 	"github.com/pb33f/doctor/terminal"
 )
@@ -27,6 +29,7 @@ type consoleStyles struct {
 	grey           lipgloss.Style
 	info           lipgloss.Style
 	nav            lipgloss.Style
+	helpKey        lipgloss.Style
 	yamlKey        lipgloss.Style
 }
 
@@ -43,12 +46,13 @@ func newConsoleStyles() consoleStyles {
 		removedRow:     lipgloss.NewStyle().Background(lipgloss.Color("#3a1a1a")).Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),
 		removedRange:   lipgloss.NewStyle().Background(lipgloss.Color("#2a0e0e")).Foreground(lipgloss.Color(terminal.LipglossRed)),
 		added:          lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGreen)),
-		modified:       lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossYellow)),
+		modified:       lipgloss.NewStyle(), // intentionally unstyled — default foreground for modifications
 		removed:        lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)),
 		breaking:       lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),
 		grey:           lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGrey)),
 		info:           lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)),
-		nav:            lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGrey)),
+		nav:            lipgloss.NewStyle().Foreground(lipgloss.Color("246")),
+		helpKey:        lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)),
 		yamlKey:        lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)),
 	}
 }
@@ -72,6 +76,22 @@ func newNoColorStyles() consoleStyles {
 		grey:           lipgloss.NewStyle(),
 		info:           lipgloss.NewStyle(),
 		nav:            lipgloss.NewStyle(),
+		helpKey:        lipgloss.NewStyle().Bold(true),
 		yamlKey:        lipgloss.NewStyle(),
 	}
+}
+
+// renderHotkey renders a keyboard shortcut key in the [KEY] format.
+func (s consoleStyles) renderHotkey(key string) string {
+	return s.helpKey.Render("[" + strings.ToUpper(key) + "]")
+}
+
+// renderLabel renders a nav bar label in uppercase grey.
+func (s consoleStyles) renderLabel(label string) string {
+	return s.nav.Render(" " + strings.ToUpper(label))
+}
+
+// renderSeparator renders a horizontal rule of the given width.
+func (s consoleStyles) renderSeparator(width int) string {
+	return s.grey.Render(strings.Repeat("─", width))
 }

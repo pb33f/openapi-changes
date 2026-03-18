@@ -19,7 +19,7 @@ type reportModal struct {
 }
 
 func newReportModal(renderedContent, commitMsg string, modalW, modalH, contentW int, styles consoleStyles) reportModal {
-	vpH := modalH - 4 // border(2) + title/separator(1) + nav(1)
+	vpH := modalH - 5 // border(2) + title/separator(1) + bottom separator(1) + nav(1)
 	if vpH < 3 {
 		vpH = 3
 	}
@@ -43,18 +43,23 @@ func (m reportModal) View(styles consoleStyles) string {
 	border := styles.activePanel.Width(m.width).Height(m.height).
 		Padding(0, 1, 0, 1)
 
-	nav := styles.grey.Render(" \u2191\u2193/jk: scroll | pgup/pgdn: page | esc: close ")
+	nav := " " + styles.renderHotkey("↑↓") + styles.renderLabel("scroll") +
+		"  " + styles.renderHotkey("pgup/pgdn") + styles.renderLabel("page") +
+		"  " + styles.renderHotkey("esc") + styles.renderLabel("close")
+	sep := styles.renderSeparator(m.width - 4)
 
 	var sb strings.Builder
 
 	if m.title != "" {
 		sb.WriteString(styles.info.Render(" " + m.title))
 		sb.WriteByte('\n')
-		sb.WriteString(styles.grey.Render(strings.Repeat("\u2500", m.width-4)))
+		sb.WriteString(sep)
 		sb.WriteByte('\n')
 	}
 
 	sb.WriteString(m.vp.View())
+	sb.WriteByte('\n')
+	sb.WriteString(sep)
 	sb.WriteByte('\n')
 	sb.WriteString(nav)
 

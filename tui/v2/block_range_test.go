@@ -471,9 +471,9 @@ func TestComputeBlockRangeForChange_Modified(t *testing.T) {
 		Property:   "title",
 	}
 
-	// Modified changes should use the regular computeBlockRange
+	// Modified changes should find the specific property line, not the parent block
 	s, e := computeBlockRangeForChange(lines, 2, ch)
-	assert.Equal(t, 1, s)
+	assert.Equal(t, 2, s)
 	assert.Equal(t, 2, e)
 }
 

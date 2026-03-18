@@ -236,6 +236,8 @@ func (m ConsoleModel) renderBaseView() string {
 	sb.WriteByte('\n')
 
 	// Navigation bar
+	sb.WriteString(m.styles.renderSeparator(m.width))
+	sb.WriteByte('\n')
 	sb.WriteString(m.renderNavBar())
 
 	return sb.String()
@@ -315,7 +317,7 @@ func (m *ConsoleModel) recalculateLayout() {
 // Layout: all height functions return the value passed to lipgloss Height(),
 // which is the TOTAL height including top+bottom border (2 lines).
 // Content area inside is Height() - 2.
-const navBarHeight = 1
+const navBarHeight = 2 // separator + controls
 
 func (m ConsoleModel) tableHeight() int {
 	if m.singleCommit {
@@ -354,15 +356,30 @@ func (m ConsoleModel) panelBorder(panel PanelFocus) lipgloss.Style {
 }
 
 func (m ConsoleModel) renderNavBar() string {
-	var parts []string
-
-	if len(m.commits) > 0 {
-		parts = append(parts, fmt.Sprintf("%d/%d", m.activeIdx+1, len(m.commits)))
+	s := m.styles
+	type hint struct{ key, label string }
+	items := []hint{
+		{"↑↓", "navigate"}, {"enter", "view"}, {"r", "report"},
+		{"esc", "back"}, {"tab", "switch"}, {"q", "quit"},
 	}
 
-	parts = append(parts, "↑↓: navigate", "enter: view", "r: report", "esc: back", "tab: switch", "q: quit")
+	var sb strings.Builder
+	sb.WriteByte(' ')
 
-	return m.styles.nav.Render(" " + strings.Join(parts, " | ") + " ")
+	if len(m.commits) > 0 {
+		sb.WriteString(s.nav.Render(fmt.Sprintf("%d/%d", m.activeIdx+1, len(m.commits))))
+		sb.WriteString("  ")
+	}
+
+	for i, item := range items {
+		if i > 0 {
+			sb.WriteString("  ")
+		}
+		sb.WriteString(s.renderHotkey(item.key))
+		sb.WriteString(s.renderLabel(item.label))
+	}
+
+	return sb.String()
 }
 
 
