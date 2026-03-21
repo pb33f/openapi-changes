@@ -143,8 +143,8 @@ type LineDataSet struct {
 // timeline_service.go:compareAndBuildReports(). It runs the full changerator
 // pipeline on a single commit and packages the result for the HTML report.
 //
-// The caller must provide a changeratorResult from cmd.runChangerator().
-// This function takes ownership of the result (calls Release() internally).
+// The caller is responsible for calling Release() on the changeratorResult
+// after BuildReportItem returns — this function does not take ownership.
 func BuildReportItem(
 	commit *model.Commit,
 	result *changerator.Changerator,
@@ -167,6 +167,8 @@ func BuildReportItem(
 	changeStats := result.Calculatoratron()
 
 	htmlConfig := renderer.DefaultRenderConfig()
+	htmlConfig.HTML.EnableFloatingSidebar = true
+	htmlConfig.HTML.EnableNestedListFix = true
 	htmlRenderer := renderer.NewHTMLRenderer(htmlConfig)
 	htmlReport, err := htmlRenderer.RenderHTML(&renderer.RenderInput{
 		DocumentChanges: docChanges,

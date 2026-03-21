@@ -65,7 +65,6 @@ func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedMo
 			result.RightDrDoc,
 			changeId,
 		)
-		// Release after BuildReportItem is done with the data
 		result.Release()
 
 		if err != nil {
@@ -204,6 +203,6 @@ func GetNewHTMLReportCommand() *cobra.Command {
 	}
 	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
 	cmd.Flags().Bool("use-cdn", false, "Use CDN for JS/CSS instead of inline bundling")
-	cmd.Flags().StringP("report-file", "", "report.html", "The name of the HTML report file (defaults to 'report.html')")
+	cmd.Flags().String("report-file", "report.html", "The name of the HTML report file (defaults to 'report.html')")
 	return cmd
 }

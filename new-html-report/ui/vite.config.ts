@@ -44,6 +44,10 @@ export default defineConfig({
     stubWorkerInline(),
   ],
   resolve: {
+    dedupe: [
+      '@shoelace-style/shoelace',
+      'lit',
+    ],
     alias: {
       '@report-elkjs': resolve(__dirname, '../../../cowboy-components/node_modules/elkjs/lib/elk.bundled.js'),
     },

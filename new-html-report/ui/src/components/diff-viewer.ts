@@ -16,6 +16,8 @@ interface DiffLine {
     modifiedLineNum?: number;
 }
 
+const SPACER: DiffLine = Object.freeze({ type: 'equal', content: '' } as DiffLine);
+
 @customElement('openapi-changes-diff-viewer')
 export class DiffViewer extends LitElement {
     static styles = [diffViewerCss];
@@ -29,6 +31,8 @@ export class DiffViewer extends LitElement {
     @state() private cachedRight: DiffLine[] = [];
     @state() private cachedUnified: DiffLine[] = [];
 
+    private readonly dmp = new DiffMatchPatch();
+
     willUpdate(changedProperties: PropertyValues) {
         if (changedProperties.has('originalSpec') || changedProperties.has('modifiedSpec') || changedProperties.has('language')) {
             this.recomputeDiffs();
@@ -36,11 +40,9 @@ export class DiffViewer extends LitElement {
     }
 
     private recomputeDiffs(): void {
-        const dmp = new DiffMatchPatch();
-
-        const a = dmp.diff_linesToChars_(this.originalSpec, this.modifiedSpec);
-        const diffs = dmp.diff_main(a.chars1, a.chars2, false);
-        dmp.diff_charsToLines_(diffs, a.lineArray);
+        const a = this.dmp.diff_linesToChars_(this.originalSpec, this.modifiedSpec);
+        const diffs = this.dmp.diff_main(a.chars1, a.chars2, false);
+        this.dmp.diff_charsToLines_(diffs, a.lineArray);
 
         const left: DiffLine[] = [];
         const right: DiffLine[] = [];
@@ -82,7 +84,7 @@ export class DiffViewer extends LitElement {
                     };
                     left.push(dl);
                     // Spacer on right side to keep panels aligned
-                    right.push({ type: 'equal', content: '', highlightedContent: '' });
+                    right.push(SPACER);
                     unified.push(dl);
                     origLine++;
                 } else if (op === 1) {
@@ -92,7 +94,7 @@ export class DiffViewer extends LitElement {
                     };
                     right.push(dl);
                     // Spacer on left side to keep panels aligned
-                    left.push({ type: 'equal', content: '', highlightedContent: '' });
+                    left.push(SPACER);
                     unified.push(dl);
                     modLine++;
                 }

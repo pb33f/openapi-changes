@@ -79,10 +79,6 @@ export default css`
         color: var(--error-color);
     }
 
-    .diff-line.modified {
-        background: var(--warn-400-lowalpha);
-    }
-
     .view-toggle {
         padding: 6px 12px;
         background: var(--terminal-background);

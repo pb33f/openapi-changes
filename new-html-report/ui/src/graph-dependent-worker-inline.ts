@@ -21,22 +21,23 @@ function visitDependents(
     filteredNodes: Map<string, NodeLike>,
     filteredEdges: Map<string, EdgeLike>,
     nodeMap: Map<string, NodeLike>,
-    _edgeMap: Map<string, EdgeLike>,
     edgeTargets: Map<string, EdgeLike[]>,
 ) {
     if (node && node.nodes) {
         for (const id of node.nodes) {
             if (!filteredNodes.has(id)) {
-                filteredNodes.set(id, nodeMap.get(id)!);
+                const child = nodeMap.get(id);
+                if (!child) continue;
+                filteredNodes.set(id, child);
                 const targets = edgeTargets.get(id);
                 if (targets) {
-                    targets.forEach(target => {
+                    for (const target of targets) {
                         if (!filteredEdges.has(target.id)) {
                             filteredEdges.set(target.id, target);
                         }
-                    });
+                    }
                 }
-                visitDependents(nodeMap.get(id)!, filteredNodes, filteredEdges, nodeMap, _edgeMap, edgeTargets);
+                visitDependents(child, filteredNodes, filteredEdges, nodeMap, edgeTargets);
             }
         }
     }
@@ -91,7 +92,7 @@ class InlineGraphDependentWorker {
             });
         });
 
-        visitDependents(node, filteredNodes, filteredEdges, nodeMap, edgeMap, extractedEdgeTargets);
+        visitDependents(node, filteredNodes, filteredEdges, nodeMap, extractedEdgeTargets);
 
         const event = new MessageEvent('message', {
             data: { filteredNodes, filteredEdges, collapse: data.collapse },
