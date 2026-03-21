@@ -39,6 +39,7 @@ export class ReportShell extends LitElement {
     @state() private error: string = '';
 
     private _cachedChartIndex: number = -1;
+    private _cachedData: ReportPayload | null = null;
     private _changeDataset: any[] = [];
     private _breakingDataset: any[] = [];
 
@@ -150,8 +151,9 @@ export class ReportShell extends LitElement {
     }
 
     private updateChartData(): void {
-        if (this._cachedChartIndex === this.activeItemIndex) return;
+        if (this._cachedChartIndex === this.activeItemIndex && this._cachedData === this.data) return;
         this._cachedChartIndex = this.activeItemIndex;
+        this._cachedData = this.data;
         const item = this.activeItem;
         if (!item) return;
 

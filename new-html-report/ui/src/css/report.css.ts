@@ -8,6 +8,7 @@ export default css`
         background-color: var(--background-color);
         color: var(--font-color);
         font-family: var(--font-stack), monospace;
+        
     }
 
     .report-layout {
@@ -62,7 +63,9 @@ export default css`
         flex-direction: column;
         flex: 1;
         min-height: 0;
-        overflow: hidden;
+        overflow: hidden;   
+        margin-top: 8px;
+        
     }
 
     .navigator-tabs {
@@ -106,24 +109,28 @@ export default css`
         height: 100%;
     }
 
-    .tree-scroll-container {
-        flex: 1;
-        min-height: 0;
-        overflow: auto;
-    }
-
-    .tree-scroll-container::-webkit-scrollbar {
+    /* Shared scrollbar styling */
+    .tree-scroll-container::-webkit-scrollbar,
+    .timeline-scroll-container::-webkit-scrollbar {
         width: 8px;
         height: 8px;
     }
 
-    .tree-scroll-container::-webkit-scrollbar-track {
+    .tree-scroll-container::-webkit-scrollbar-track,
+    .timeline-scroll-container::-webkit-scrollbar-track {
         background-color: var(--terminal-background);
     }
 
-    .tree-scroll-container::-webkit-scrollbar-thumb {
+    .tree-scroll-container::-webkit-scrollbar-thumb,
+    .timeline-scroll-container::-webkit-scrollbar-thumb {
         box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
         background: var(--secondary-color-lowalpha);
+    }
+
+    .tree-scroll-container {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
     }
 
     /* ── Timeline tab (commit list) ── */
@@ -132,19 +139,6 @@ export default css`
         min-height: 0;
         overflow: auto;
         padding: 0 10px;
-    }
-
-    .timeline-scroll-container::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    .timeline-scroll-container::-webkit-scrollbar-track {
-        background-color: var(--terminal-background);
-    }
-
-    .timeline-scroll-container::-webkit-scrollbar-thumb {
-        box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
-        background: var(--secondary-color-lowalpha);
     }
 
     .commit-item {
@@ -221,6 +215,7 @@ export default css`
         flex: 1;
         min-height: 0;
         overflow: auto;
+        margin-top: 8px;
     }
 
     sl-tab-group {
@@ -243,12 +238,9 @@ export default css`
         font-size: 0.9rem;
     }
 
-    sl-tab-panel {
-        padding: 10px;
-    }
-
+    
     sl-tab-panel::part(base) {
-        padding-top: 10px;
+        padding-top: var(--global-padding);
     }
 
     sl-tab-panel[name="graph"] {
@@ -299,19 +291,16 @@ export default css`
     }
 
     .change-report h2 {
-        font-size: 1.4rem;
         text-transform: uppercase;
         letter-spacing: 0.02em;
     }
 
     .change-report h3 {
-        font-size: 1.2rem;
         text-transform: uppercase;
         letter-spacing: 0.02em;
     }
 
     .change-report h4 {
-        font-size: 1.1rem;
         text-transform: uppercase;
         letter-spacing: 0.02em;
     }
@@ -368,26 +357,15 @@ export default css`
         line-height: 1.8em;
     }
 
-    .change-report ul > li:before {
+    .change-report ul li:before {
         color: var(--primary-color);
         font-family: var(--font-stack-bold), monospace;
         margin-right: 10px;
-        content: ">";
     }
 
-    .change-report ul > li > ul > li:before {
-        color: var(--primary-color);
-        font-family: var(--font-stack-bold), monospace;
-        margin-right: 10px;
-        content: "-";
-    }
-
-    .change-report ul > li > ul > li > ul > li:before {
-        color: var(--primary-color);
-        font-family: var(--font-stack-bold), monospace;
-        margin-right: 10px;
-        content: "*";
-    }
+    .change-report ul > li:before { content: ">"; }
+    .change-report ul > li > ul > li:before { content: "-"; }
+    .change-report ul > li > ul > li > ul > li:before { content: "*"; }
 
     .change-report ul > li > p {
         display: inline;
