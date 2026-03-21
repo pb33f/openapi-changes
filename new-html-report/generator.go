@@ -25,6 +25,9 @@ var headerTemplate string
 //go:embed ui/build/static/bundle.js
 var bundledJS string
 
+//go:embed ui/build/static/bundle-lite.js
+var bundledLiteJS string
+
 //go:embed ui/build/static/bundle.css
 var bundledCSS string
 
@@ -40,9 +43,13 @@ type ReportData struct {
 }
 
 // NewReportData creates a ReportData for template rendering.
-func NewReportData(payloadJSON string, useCDN bool) *ReportData {
+func NewReportData(payloadJSON string, useCDN, noExplorer bool) *ReportData {
+	js := bundledJS
+	if noExplorer {
+		js = bundledLiteJS
+	}
 	return &ReportData{
-		BundledJS:  bundledJS,
+		BundledJS:  js,
 		BundledCSS: bundledCSS,
 		UseCDN:     useCDN,
 		JsCDN:      "https://pb33f.github.io/openapi-changes/new-html-report/ui/build/static/bundle.js",

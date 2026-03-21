@@ -83,7 +83,7 @@ func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedMo
 }
 
 // generateNewHTMLReport assembles the full HTML report from commits.
-func generateNewHTMLReport(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, useCDN bool) ([]byte, error) {
+func generateNewHTMLReport(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, useCDN, noExplorer bool) ([]byte, error) {
 	items, err := buildHTMLReportItems(commits, breakingConfig)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func generateNewHTMLReport(commits []*model.Commit, breakingConfig *whatChangedM
 
 	// Use text/template, NOT html/template — html/template would HTML-escape the JSON payload.
 	// This is intentional and matches the old html-report/build_report.go pattern.
-	reportData := newHtmlReport.NewReportData(string(payloadJSON), useCDN)
+	reportData := newHtmlReport.NewReportData(string(payloadJSON), useCDN, noExplorer)
 
 	tmpl := template.New("header")
 	t, err := tmpl.Parse(newHtmlReport.GetHeaderTemplate())
@@ -154,6 +154,7 @@ func GetNewHTMLReportCommand() *cobra.Command {
 			opts, configFlag := readCommonFlags(cmd)
 			reportFile, _ := cmd.Flags().GetString("report-file")
 			useCDN, _ := cmd.Flags().GetBool("use-cdn")
+			noExplorer, _ := cmd.Flags().GetBool("no-explorer")
 
 			styles := htmlReportStyles{}
 			if !opts.noColor {
@@ -189,7 +190,7 @@ func GetNewHTMLReportCommand() *cobra.Command {
 				return err
 			}
 
-			report, err := generateNewHTMLReport(commits, breakingConfig, useCDN)
+			report, err := generateNewHTMLReport(commits, breakingConfig, useCDN, noExplorer)
 			if err != nil {
 				return err
 			}
@@ -204,5 +205,6 @@ func GetNewHTMLReportCommand() *cobra.Command {
 	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
 	cmd.Flags().Bool("use-cdn", false, "Use CDN for JS/CSS instead of inline bundling")
 	cmd.Flags().String("report-file", "report.html", "The name of the HTML report file (defaults to 'report.html')")
+	cmd.Flags().Bool("no-explorer", false, "Exclude the explorer graph tab (saves ~1.7MB)")
 	return cmd
 }

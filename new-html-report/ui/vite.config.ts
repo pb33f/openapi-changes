@@ -39,6 +39,9 @@ function stubWorkerInline(): Plugin {
   };
 }
 
+// Support building the lite bundle via BUNDLE_LITE=1 env var.
+const isLite = !!process.env.BUNDLE_LITE;
+
 export default defineConfig({
   plugins: [
     stubWorkerInline(),
@@ -54,11 +57,11 @@ export default defineConfig({
   },
   build: {
     outDir: 'build/static',
-    emptyDirOnBuild: true,
+    emptyOutDir: !isLite, // Don't wipe when building lite (full bundle already there)
     lib: {
-      entry: resolve(__dirname, 'src/main.ts'),
+      entry: resolve(__dirname, isLite ? 'src/main-lite.ts' : 'src/main.ts'),
       name: 'openapiChangesReport',
-      fileName: () => 'bundle.js',
+      fileName: () => isLite ? 'bundle-lite.js' : 'bundle.js',
       cssFileName: 'bundle',
       formats: ['iife'],
     },
