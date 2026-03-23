@@ -197,7 +197,7 @@ export default css`
         align-items: center;
         gap: 15px;
         padding: 10px 20px;
-        background: var(--terminal-background);
+        background: var(--background-color);
         border-bottom: 1px dashed var(--secondary-color-dimmer);
         flex-wrap: wrap;
         flex-shrink: 0;

@@ -26,7 +26,7 @@ export default css`
 
     .diff-header {
         padding: 6px 12px;
-        background: var(--terminal-background);
+        background: var(--background-color);
         font-family: var(--font-stack-bold, inherit), monospace;
         font-weight: normal;
         font-size: 11px;
@@ -52,7 +52,7 @@ export default css`
         padding: 0 8px;
         color: var(--font-color-sub3);
         user-select: none;
-        background: var(--terminal-background);
+        background: var(--background-color);
     }
 
     .line-content {
@@ -81,7 +81,7 @@ export default css`
 
     .view-toggle {
         padding: 6px 12px;
-        background: var(--terminal-background);
+        background: var(--background-color);
         border-bottom: 1px dashed var(--secondary-color-dimmer);
         display: flex;
         gap: 8px;
@@ -126,8 +126,14 @@ export default css`
     }
 
     .diff-line.highlight {
-        outline: 2px solid var(--primary-color, #62c4ff);
-        background: rgba(98, 196, 255, 0.15);
+        outline: 1px solid var(--secondary-color);
+        background: var(--secondary-color);
+        color: var(--background-color);
+    }
+
+    .diff-line.highlight .line-number {
+        background: var(--secondary-color);
+        color: var(--background-color);
     }
 
     /* Scrollbar styling */
@@ -136,7 +142,7 @@ export default css`
     }
 
     :host::-webkit-scrollbar-track {
-        background-color: var(--terminal-background);
+        background-color: var(--background-color);
     }
 
     :host::-webkit-scrollbar-thumb {
