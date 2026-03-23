@@ -9,7 +9,10 @@ import type { ReportPayload, ReportItem } from '../model/report-payload.js';
 import './diff-viewer.js';
 
 // Import cowboy-components WITHOUT ExplorerComponent — no ELK dependency.
-import { HeaderComponent, HttpMethodComponent, PathRenderComponent } from '@pb33f/cowboy-components/static-report';
+import { HeaderComponent, HttpMethodComponent, PathRenderComponent, ModelTreeNodeClicked } from '@pb33f/cowboy-components/static-report';
+import type { NodeClickedEvent } from '@pb33f/cowboy-components/static-report';
+import type { DiffViewer } from './diff-viewer.js';
+import type { Change } from '../model/report-payload.js';
 
 // Ensure components are registered (tree-shaking guard)
 void HeaderComponent;
@@ -42,10 +45,18 @@ export class ReportShellLite extends LitElement {
 
     @query('.navigator-panel pb33f-model-tree') private modelTree: any;
     @query('pb33f-chart') private beefyChart: any;
+    @query('.tab-content > sl-tab-group') private mainTabGroup: any;
+    @query('openapi-changes-diff-viewer') private diffViewer: DiffViewer;
 
     connectedCallback() {
         super.connectedCallback();
         this.loadData();
+        this.addEventListener(ModelTreeNodeClicked, this._onTreeNodeClicked as EventListener);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.removeEventListener(ModelTreeNodeClicked, this._onTreeNodeClicked as EventListener);
     }
 
     private loadData() {
@@ -133,6 +144,30 @@ export class ReportShellLite extends LitElement {
             labels: BREAKING_LABELS,
             data: [item.summary.breakingChanges || 0, (item.summary.totalChanges || 0) - (item.summary.breakingChanges || 0)],
         }];
+    }
+
+    private _onTreeNodeClicked = (evt: CustomEvent<NodeClickedEvent>) => {
+        const { changes } = evt.detail;
+        if (changes && changes.length > 0) {
+            this.navigateToDiffForChanges(changes as Change[]);
+        }
+    }
+
+    private navigateToDiffForChanges(changes: Change[]) {
+        const change = changes.find(c =>
+            (c.context?.originalLine > 0) || (c.context?.newLine > 0)
+        );
+        if (!change) return;
+
+        const originalLine = change.context?.originalLine || 0;
+        const modifiedLine = change.context?.newLine || 0;
+
+        if (this.mainTabGroup) {
+            this.mainTabGroup.show('diff');
+            this.mainTabGroup.updateComplete.then(() => {
+                this.diffViewer?.scrollToLine(originalLine, modifiedLine);
+            });
+        }
     }
 
     private renderNavigator(): TemplateResult {

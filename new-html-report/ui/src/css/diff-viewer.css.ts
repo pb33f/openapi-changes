@@ -125,6 +125,11 @@ export default css`
         font-family: var(--font-stack, inherit), monospace;
     }
 
+    .diff-line.highlight {
+        outline: 2px solid var(--primary-color, #62c4ff);
+        background: rgba(98, 196, 255, 0.15);
+    }
+
     /* Scrollbar styling */
     :host::-webkit-scrollbar {
         width: 8px;

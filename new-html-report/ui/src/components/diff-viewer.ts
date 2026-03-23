@@ -120,11 +120,43 @@ export class DiffViewer extends LitElement {
         }
 
         return html`
-            <div class="diff-line ${line.type}">
+            <div class="diff-line ${line.type}"
+                 data-original-line="${line.originalLineNum ?? ''}"
+                 data-modified-line="${line.modifiedLineNum ?? ''}">
                 <span class="line-number">${lineNum}</span>
                 <span class="line-content">${unsafeHTML(line.highlightedContent || line.content)}</span>
             </div>
         `;
+    }
+
+    async scrollToLine(originalLine: number, modifiedLine?: number): Promise<void> {
+        await this.updateComplete;
+        if (originalLine <= 0 && (!modifiedLine || modifiedLine <= 0)) return;
+
+        let target: Element | null = null;
+
+        if (this.viewMode === 'side-by-side') {
+            const panels = this.renderRoot.querySelectorAll('.diff-panel');
+            if (originalLine > 0 && panels[0]) {
+                target = panels[0].querySelector(`[data-original-line="${originalLine}"]`);
+            }
+            if (!target && modifiedLine && modifiedLine > 0 && panels[1]) {
+                target = panels[1].querySelector(`[data-modified-line="${modifiedLine}"]`);
+            }
+        } else {
+            if (originalLine > 0) {
+                target = this.renderRoot.querySelector(`[data-original-line="${originalLine}"]`);
+            }
+            if (!target && modifiedLine && modifiedLine > 0) {
+                target = this.renderRoot.querySelector(`[data-modified-line="${modifiedLine}"]`);
+            }
+        }
+
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.classList.add('highlight');
+            setTimeout(() => target?.classList.remove('highlight'), 2000);
+        }
     }
 
     render() {

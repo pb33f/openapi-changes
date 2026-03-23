@@ -8,7 +8,10 @@ import './diff-viewer.js';
 
 // Import cowboy-components via the static-report entrypoint.
 // This registers the custom elements as side effects.
-import { ExplorerComponent, HeaderComponent, HttpMethodComponent, PathRenderComponent } from '@pb33f/cowboy-components/static-report';
+import { ExplorerComponent, HeaderComponent, HttpMethodComponent, PathRenderComponent, ModelTreeNodeClicked } from '@pb33f/cowboy-components/static-report';
+import type { NodeClickedEvent } from '@pb33f/cowboy-components/static-report';
+import type { DiffViewer } from './diff-viewer.js';
+import type { Change } from '../model/report-payload.js';
 import { createElkLayoutWorker } from '../elk-layout-worker-inline.js';
 import { createGraphDependentWorker } from '../graph-dependent-worker-inline.js';
 ExplorerComponent.elkWorkerFactory = createElkLayoutWorker;
@@ -43,13 +46,23 @@ export class ReportShell extends LitElement {
     private _changeDataset: any[] = [];
     private _breakingDataset: any[] = [];
 
+    @state() private activeMainTab: string = 'report';
+
     @query('pb33f-explorer') private explorer: any;
     @query('.navigator-panel pb33f-model-tree') private modelTree: any;
     @query('pb33f-chart') private beefyChart: any;
+    @query('.tab-content > sl-tab-group') private mainTabGroup: any;
+    @query('openapi-changes-diff-viewer') private diffViewer: DiffViewer;
 
     connectedCallback() {
         super.connectedCallback();
         this.loadData();
+        this.addEventListener(ModelTreeNodeClicked, this._onTreeNodeClicked as EventListener);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.removeEventListener(ModelTreeNodeClicked, this._onTreeNodeClicked as EventListener);
     }
 
     private loadData() {
@@ -136,11 +149,12 @@ export class ReportShell extends LitElement {
     }
 
     private handleTabShow = (event: SlTabShowEvent) => {
+        this.activeMainTab = event.detail.name;
+
         if (event.detail.name !== 'graph') return;
 
         this.updateComplete.then(() => {
             if (this.explorer) {
-                // Allow the tab panel and split panel to fully settle before centering.
                 // Use centerOnRoot() instead of reset() — reset() triggers a full ELK
                 // re-layout that causes the container to scroll out of view.
                 setTimeout(() => {
@@ -165,6 +179,36 @@ export class ReportShell extends LitElement {
             labels: BREAKING_LABELS,
             data: [item.summary.breakingChanges || 0, (item.summary.totalChanges || 0) - (item.summary.breakingChanges || 0)],
         }];
+    }
+
+    private _onTreeNodeClicked = (evt: CustomEvent<NodeClickedEvent>) => {
+        const { nodeId, changes } = evt.detail;
+
+        if (this.activeMainTab === 'graph' && this.explorer && nodeId) {
+            this.explorer.revealPathToNode(nodeId);
+            return;
+        }
+
+        if (changes && changes.length > 0) {
+            this.navigateToDiffForChanges(changes as Change[]);
+        }
+    }
+
+    private navigateToDiffForChanges(changes: Change[]) {
+        const change = changes.find(c =>
+            (c.context?.originalLine > 0) || (c.context?.newLine > 0)
+        );
+        if (!change) return;
+
+        const originalLine = change.context?.originalLine || 0;
+        const modifiedLine = change.context?.newLine || 0;
+
+        if (this.mainTabGroup) {
+            this.mainTabGroup.show('diff');
+            this.mainTabGroup.updateComplete.then(() => {
+                this.diffViewer?.scrollToLine(originalLine, modifiedLine);
+            });
+        }
     }
 
     private renderNavigator(): TemplateResult {
