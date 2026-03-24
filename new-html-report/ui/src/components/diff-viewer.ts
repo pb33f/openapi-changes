@@ -32,6 +32,8 @@ export class DiffViewer extends LitElement {
     @state() private cachedUnified: DiffLine[] = [];
 
     private readonly dmp = new DiffMatchPatch();
+    private _highlightTimer: number = 0;
+    private _highlightedElement: Element | null = null;
 
     willUpdate(changedProperties: PropertyValues) {
         if (changedProperties.has('originalSpec') || changedProperties.has('modifiedSpec') || changedProperties.has('language')) {
@@ -153,9 +155,24 @@ export class DiffViewer extends LitElement {
         }
 
         if (target) {
+            // Clear previous highlight before starting a new one
+            if (this._highlightTimer) {
+                clearTimeout(this._highlightTimer);
+                this._highlightTimer = 0;
+            }
+            if (this._highlightedElement) {
+                this._highlightedElement.classList.remove('highlight');
+                this._highlightedElement = null;
+            }
+
             target.scrollIntoView({ behavior: 'smooth', block: 'center' });
             target.classList.add('highlight');
-            setTimeout(() => target?.classList.remove('highlight'), 2000);
+            this._highlightedElement = target;
+            this._highlightTimer = window.setTimeout(() => {
+                target?.classList.remove('highlight');
+                this._highlightedElement = null;
+                this._highlightTimer = 0;
+            }, 2000);
         }
     }
 
