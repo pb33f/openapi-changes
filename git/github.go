@@ -28,7 +28,7 @@ var newGitHubService = func() githubHistoryService {
 
 func convertGitHubRevisionsIntoModel(revisions []*doctorgithub.FileRevision,
 	progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError, base string, remote, extRefs bool,
-	breakingConfig *whatChangedModel.BreakingRulesConfig,
+	breakingConfig *whatChangedModel.BreakingRulesConfig, keepComparable bool,
 ) ([]*model.Commit, []error) {
 	normalized := make([]*model.Commit, 0, len(revisions))
 
@@ -59,7 +59,7 @@ func convertGitHubRevisionsIntoModel(revisions []*doctorgithub.FileRevision,
 		model.SendProgressUpdate("converting commits", "building data models...", false, progressChan)
 	}
 
-	normalized, errs = BuildCommitChangelog(normalized, progressChan, progressErrorChan, base, remote, extRefs, breakingConfig)
+	normalized, errs = buildCommitChangelog(normalized, progressChan, progressErrorChan, base, remote, extRefs, breakingConfig, keepComparable)
 
 	if len(errs) > 0 {
 		model.SendProgressError("converting commits",
@@ -80,7 +80,24 @@ func ProcessGithubRepo(username, repo, filePath, baseCommit string,
 	forceCutoff bool, limit int, limitTime int, base string, remote, extRefs bool,
 	breakingConfig *whatChangedModel.BreakingRulesConfig,
 ) ([]*model.Commit, []error) {
+	return processGithubRepo(username, repo, filePath, baseCommit, progressChan, errorChan, forceCutoff, limit, limitTime, base, remote, extRefs, breakingConfig, false)
+}
 
+// ProcessGithubRepoWithDocuments keeps comparable revisions even when the
+// legacy libopenapi diff is empty. The new doctor-based commands use this path.
+func ProcessGithubRepoWithDocuments(username, repo, filePath, baseCommit string,
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
+	forceCutoff bool, limit int, limitTime int, base string, remote, extRefs bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
+) ([]*model.Commit, []error) {
+	return processGithubRepo(username, repo, filePath, baseCommit, progressChan, errorChan, forceCutoff, limit, limitTime, base, remote, extRefs, breakingConfig, true)
+}
+
+func processGithubRepo(username, repo, filePath, baseCommit string,
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
+	forceCutoff bool, limit int, limitTime int, base string, remote, extRefs bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig, keepComparable bool,
+) ([]*model.Commit, []error) {
 	if username == "" || repo == "" || filePath == "" {
 		err := errors.New("please supply valid github username/repo and filepath")
 		model.SendProgressError("git", err.Error(), errorChan)
@@ -121,7 +138,7 @@ func ProcessGithubRepo(username, repo, filePath, baseCommit string,
 	model.SendProgressUpdate("git",
 		fmt.Sprintf("fetched %d github revisions", len(revisions)), true, progressChan)
 
-	commitHistory, errs := convertGitHubRevisionsIntoModel(revisions, progressChan, errorChan, base, remote, extRefs, breakingConfig)
+	commitHistory, errs := convertGitHubRevisionsIntoModel(revisions, progressChan, errorChan, base, remote, extRefs, breakingConfig, keepComparable)
 	if errs != nil {
 		for _, err := range errs {
 			model.SendProgressError("git", err.Error(), errorChan)

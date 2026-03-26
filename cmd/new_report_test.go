@@ -92,3 +92,9 @@ func TestRunNewGithubHistoryReport_PropagatesChangeratorErrors(t *testing.T) {
 	assert.Nil(t, report)
 	assert.Contains(t, err.Error(), "commit abc123")
 }
+
+func TestNewReportCommand_ZeroArgsWithNoColor(t *testing.T) {
+	cmd := newTestRootCmd(GetNewReportCommand(), "--no-logo", "--no-color")
+	err := cmd.Execute()
+	assert.NoError(t, err)
+}

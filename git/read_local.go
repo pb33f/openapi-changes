@@ -143,6 +143,23 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitT
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
 	breakingConfig *whatChangedModel.BreakingRulesConfig,
 ) ([]*model.Commit, []error) {
+	return populateHistory(commitHistory, limit, limitTime, progressChan, errorChan, base, remote, extRefs, breakingConfig, false)
+}
+
+// PopulateHistoryWithDocuments preserves every comparable revision instead of
+// dropping commits whose legacy change report is empty. This is used by the
+// new doctor/changerator-based commands, which do their own change detection.
+func PopulateHistoryWithDocuments(commitHistory []*model.Commit, limit int, limitTime int,
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
+) ([]*model.Commit, []error) {
+	return populateHistory(commitHistory, limit, limitTime, progressChan, errorChan, base, remote, extRefs, breakingConfig, true)
+}
+
+func populateHistory(commitHistory []*model.Commit, limit int, limitTime int,
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig, keepComparable bool,
+) ([]*model.Commit, []error) {
 	for c := range commitHistory {
 		var err error
 		commitHistory[c].Data, err = readFile(commitHistory[c].RepoDirectory, commitHistory[c].Hash, commitHistory[c].FilePath)
@@ -159,7 +176,7 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitT
 		commitHistory = commitHistory[0 : limit+1]
 	}
 
-	cleaned, errs := BuildCommitChangelog(commitHistory, progressChan, errorChan, base, remote, extRefs, breakingConfig)
+	cleaned, errs := buildCommitChangelog(commitHistory, progressChan, errorChan, base, remote, extRefs, breakingConfig, keepComparable)
 	if len(errs) > 0 {
 		model.SendProgressError("git",
 			fmt.Sprintf("%d error(s) found building commit change log", len(errs)), errorChan)
@@ -171,10 +188,24 @@ func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitT
 	return cleaned, nil
 }
 
+func BuildCommitTimeline(commitHistory []*model.Commit,
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
+) ([]*model.Commit, []error) {
+	return buildCommitChangelog(commitHistory, progressChan, errorChan, base, remote, extRefs, breakingConfig, true)
+}
+
 // TODO: we have reached peak argument count, we have to fix this.
 func BuildCommitChangelog(commitHistory []*model.Commit,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
 	breakingConfig *whatChangedModel.BreakingRulesConfig,
+) ([]*model.Commit, []error) {
+	return buildCommitChangelog(commitHistory, progressChan, errorChan, base, remote, extRefs, breakingConfig, false)
+}
+
+func buildCommitChangelog(commitHistory []*model.Commit,
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+	breakingConfig *whatChangedModel.BreakingRulesConfig, keepComparable bool,
 ) ([]*model.Commit, []error) {
 	var changeErrors []error
 	var cleaned []*model.Commit
@@ -305,10 +336,10 @@ func BuildCommitChangelog(commitHistory []*model.Commit,
 		if oldDoc != nil {
 			commitHistory[c].OldDocument = oldDoc
 		}
-		// Preserve the oldest entry as a sentinel when there is no prior version
-		// or no changes, so left/right comparisons can still report "no changes"
-		// instead of collapsing to an empty result set.
-		if c == len(commitHistory)-1 || commitHistory[c].Changes != nil {
+		// Preserve the oldest entry as a sentinel when there is no prior version.
+		// The legacy commands keep only revisions with libopenapi changes, while
+		// the new doctor-based commands keep every revision with comparable docs.
+		if c == len(commitHistory)-1 || commitHistory[c].Changes != nil || (keepComparable && oldDoc != nil && newDoc != nil) {
 			cleaned = append(cleaned, commitHistory[c])
 		}
 	}

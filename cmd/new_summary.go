@@ -23,9 +23,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var processGithubRepo = git.ProcessGithubRepo
+var processGithubRepo = git.ProcessGithubRepoWithDocuments
 var extractHistoryFromFile = git.ExtractHistoryFromFile
-var populateHistoryWithChanges = git.PopulateHistoryWithChanges
+var populateHistoryWithDocuments = git.PopulateHistoryWithDocuments
+var buildCommitTimeline = git.BuildCommitTimeline
 
 // newSummaryOpts holds all flag values for the new-summary command.
 type newSummaryOpts struct {
@@ -186,7 +187,7 @@ func loadGitHistoryCommits(gitPath, filePath string, opts newSummaryOpts, breaki
 		return nil, errors.Join(errs...)
 	}
 
-	commits, errs = populateHistoryWithChanges(commits, 0, opts.limitTime,
+	commits, errs = populateHistoryWithDocuments(commits, 0, opts.limitTime,
 		d.ProgressChan, d.ErrorChan, opts.base, opts.remote, opts.extRefs, breakingConfig)
 	d.close()
 	d.printWarnings()
@@ -244,7 +245,7 @@ func loadLeftRightCommits(left, right string, opts newSummaryOpts, breakingConfi
 		},
 	}
 
-	commits, errs := git.BuildCommitChangelog(commits, d.ProgressChan, d.ErrorChan,
+	commits, errs := buildCommitTimeline(commits, d.ProgressChan, d.ErrorChan,
 		opts.base, opts.remote, opts.extRefs, breakingConfig)
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
@@ -264,9 +265,6 @@ func renderNewSummary(
 	if len(commits) == 0 {
 		return "No changes found between specifications\n", false, false, nil
 	}
-	if len(commits) == 1 && commits[0].Changes == nil {
-		return "No changes found between specifications\n", false, false, nil
-	}
 
 	var sb strings.Builder
 	totalChanges := 0
@@ -275,7 +273,7 @@ func renderNewSummary(
 	var renderErrors []error
 
 	for c, commit := range commits {
-		if commit.Changes == nil {
+		if commit.Document == nil || commit.OldDocument == nil {
 			if totalChanges == 0 && totalBreaking == 0 && c+1 < len(commits) {
 				sb.WriteString(fmt.Sprintf("No changes detected between %s and %s\n",
 					commit.Hash, commits[c+1].Hash))
@@ -429,6 +427,12 @@ func renderNewSummary(
 	hasChanges := totalChanges > 0
 	if renderedCommits == 0 && len(renderErrors) > 0 {
 		return sb.String(), false, false, fmt.Errorf("all %d commits failed to render: %w", len(renderErrors), errors.Join(renderErrors...))
+	}
+	if !hasChanges && len(renderErrors) == 0 {
+		if sb.Len() == 0 {
+			return "No changes found between specifications\n", false, false, nil
+		}
+		return sb.String(), false, false, nil
 	}
 	return sb.String(), hasBreaking, hasChanges, nil
 }

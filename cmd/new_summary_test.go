@@ -5,8 +5,12 @@ package cmd
 
 import (
 	"errors"
+	"os"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/pb33f/libopenapi"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
@@ -15,10 +19,10 @@ import (
 
 func TestLoadGitHistoryCommits_ReturnsPopulateErrors(t *testing.T) {
 	originalExtract := extractHistoryFromFile
-	originalPopulate := populateHistoryWithChanges
+	originalPopulate := populateHistoryWithDocuments
 	t.Cleanup(func() {
 		extractHistoryFromFile = originalExtract
-		populateHistoryWithChanges = originalPopulate
+		populateHistoryWithDocuments = originalPopulate
 	})
 
 	extractHistoryFromFile = func(repoDirectory, filePath, baseCommit string,
@@ -26,7 +30,7 @@ func TestLoadGitHistoryCommits_ReturnsPopulateErrors(t *testing.T) {
 	) ([]*model.Commit, []error) {
 		return []*model.Commit{{Hash: "abc123"}}, nil
 	}
-	populateHistoryWithChanges = func(commitHistory []*model.Commit, limit int, limitTime int,
+	populateHistoryWithDocuments = func(commitHistory []*model.Commit, limit int, limitTime int,
 		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
 		breakingConfig *whatChangedModel.BreakingRulesConfig,
 	) ([]*model.Commit, []error) {
@@ -78,4 +82,58 @@ func TestRenderNewSummary_ReturnsErrorWhenAllCommitsFailToRender(t *testing.T) {
 	assert.Contains(t, output, "Error: building right model")
 	assert.False(t, hasBreaking)
 	assert.False(t, hasChanges)
+}
+
+func TestLoadLeftRightCommits_IdenticalSpecsPreserveComparableRevision(t *testing.T) {
+	opts := newSummaryOpts{noColor: true}
+
+	commits, err := loadLeftRightCommits(
+		"../sample-specs/petstorev3.json",
+		"../sample-specs/petstorev3.json",
+		opts, nil,
+	)
+
+	require.NoError(t, err)
+	require.Len(t, commits, 2)
+	assert.NotNil(t, commits[0].Document)
+	assert.NotNil(t, commits[0].OldDocument)
+	assert.Nil(t, commits[0].Changes)
+}
+
+func TestRenderNewSummary_UsesDoctorEngineWhenLegacyChangesMissing(t *testing.T) {
+	leftBytes, err := os.ReadFile("../sample-specs/petstorev3-original.json")
+	require.NoError(t, err)
+	rightBytes, err := os.ReadFile("../sample-specs/petstorev3.json")
+	require.NoError(t, err)
+
+	leftDoc, err := libopenapi.NewDocument(leftBytes)
+	require.NoError(t, err)
+	rightDoc, err := libopenapi.NewDocument(rightBytes)
+	require.NoError(t, err)
+
+	commit := &model.Commit{
+		Hash:        "abc123",
+		Message:     "doctor-only",
+		Author:      "test",
+		CommitDate:  time.Now(),
+		Data:        rightBytes,
+		OldData:     leftBytes,
+		Document:    rightDoc,
+		OldDocument: leftDoc,
+		Changes:     nil,
+	}
+
+	output, hasBreaking, hasChanges, err := renderNewSummary(
+		[]*model.Commit{commit},
+		nil,
+		false,
+		true,
+		summaryStyles{},
+	)
+
+	require.NoError(t, err)
+	assert.NotContains(t, output, "No changes found between specifications")
+	assert.True(t, hasChanges)
+	assert.NotEmpty(t, output)
+	assert.Equal(t, hasBreaking, strings.Contains(output, "Breaking"))
 }

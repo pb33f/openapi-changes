@@ -225,11 +225,11 @@ func GetNewReportCommand() *cobra.Command {
 			if len(args) == 0 {
 				noBanner, _ := cmd.Flags().GetBool("no-logo")
 				if !noBanner {
-					PrintNewBanner(false)
+					PrintNewBanner(opts.noColor)
 				}
 				printNewCommandUsage("new-report",
 					"The new-report command generates a machine-readable JSON report of all API changes\nusing the doctor changerator engine.",
-					false)
+					opts.noColor)
 				return nil
 			}
 
@@ -282,5 +282,6 @@ func GetNewReportCommand() *cobra.Command {
 			return printReportJSON(flat)
 		},
 	}
+	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
 	return cmd
 }

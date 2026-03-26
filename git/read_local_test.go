@@ -105,6 +105,36 @@ func TestBuildCommitChangelog_IdenticalLeftRightPreservesSentinelCommit(t *testi
 	assert.NotNil(t, cleaned[0].Document)
 }
 
+func TestBuildCommitTimeline_IdenticalLeftRightPreservesComparableRevision(t *testing.T) {
+	specBytes := mustReadTestFile(t, "../sample-specs/petstorev3.json")
+	progressChan := make(chan *model.ProgressUpdate, 32)
+	errorChan := make(chan model.ProgressError, 32)
+
+	commits := []*model.Commit{
+		{
+			Hash:       "right1",
+			Message:    "right",
+			CommitDate: time.Now(),
+			Data:       specBytes,
+			FilePath:   "../sample-specs/petstorev3.json",
+		},
+		{
+			Hash:       "left01",
+			Message:    "left",
+			CommitDate: time.Now(),
+			Data:       specBytes,
+			FilePath:   "../sample-specs/petstorev3.json",
+		},
+	}
+
+	cleaned, errs := BuildCommitTimeline(commits, progressChan, errorChan, "", true, false, nil)
+	require.Empty(t, errs)
+	require.Len(t, cleaned, 2)
+	assert.NotNil(t, cleaned[0].Document)
+	assert.NotNil(t, cleaned[0].OldDocument)
+	assert.Nil(t, cleaned[0].Changes)
+}
+
 func mustReadTestFile(t *testing.T, path string) []byte {
 	t.Helper()
 

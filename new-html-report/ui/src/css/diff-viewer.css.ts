@@ -9,7 +9,7 @@ export default css`
 
     .diff-container {
         display: flex;
-        font-family: var(--font-stack, 'BerkeleyMono-Regular', 'Roboto Mono', Monaco, Menlo, monospace);
+        font-family: var(--font-stack);
         font-size: 12px;
         line-height: 1.5;
     }
@@ -29,7 +29,6 @@ export default css`
         background: var(--background-color);
         font-family: var(--font-stack-bold, inherit), monospace;
         font-weight: normal;
-        font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: var(--font-color-sub1);
@@ -55,10 +54,30 @@ export default css`
         background: var(--background-color);
     }
 
+    .line-gutter {
+        flex-shrink: 0;
+        width: 16px;
+        text-align: center;
+        user-select: none;
+        font-weight: bold;
+    }
+
+    .diff-line.removed .line-gutter {
+        color: var(--error-color);
+    }
+
+    .diff-line.added .line-gutter {
+        color: var(--ok-color);
+    }
+
     .line-content {
         flex: 1;
         padding: 0 8px;
         overflow-x: auto;
+    }
+
+    .diff-line.spacer {
+        background: var(--secondary-color-very-lowalpha);
     }
 
     .diff-line.added {
@@ -94,7 +113,6 @@ export default css`
         padding: 3px 10px;
         border-radius: 0;
         cursor: pointer;
-        font-size: 11px;
         font-family: var(--font-stack, inherit), monospace;
         text-transform: uppercase;
         letter-spacing: 0.05em;

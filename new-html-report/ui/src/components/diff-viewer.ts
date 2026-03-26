@@ -9,14 +9,14 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import DiffMatchPatch from 'diff-match-patch';
 
 interface DiffLine {
-    type: 'equal' | 'added' | 'removed';
+    type: 'equal' | 'added' | 'removed' | 'spacer';
     content: string;
     highlightedContent?: string;
     originalLineNum?: number;
     modifiedLineNum?: number;
 }
 
-const SPACER: DiffLine = Object.freeze({ type: 'equal', content: '' } as DiffLine);
+const SPACER: DiffLine = Object.freeze({ type: 'spacer', content: '' } as DiffLine);
 
 @customElement('openapi-changes-diff-viewer')
 export class DiffViewer extends LitElement {
@@ -121,10 +121,13 @@ export class DiffViewer extends LitElement {
             lineNum = line.type === 'equal' ? orig : (orig || mod);
         }
 
+        const gutter = line.type === 'removed' ? '−' : line.type === 'added' ? '+' : '';
+
         return html`
             <div class="diff-line ${line.type}"
                  data-original-line="${line.originalLineNum ?? ''}"
                  data-modified-line="${line.modifiedLineNum ?? ''}">
+                <span class="line-gutter">${gutter}</span>
                 <span class="line-number">${lineNum}</span>
                 <span class="line-content">${unsafeHTML(line.highlightedContent || line.content)}</span>
             </div>

@@ -240,7 +240,7 @@ export default css`
 
     
     sl-tab-panel::part(base) {
-        padding-top: var(--global-padding);
+        padding-top: 0;
     }
 
     sl-tab-panel[name="graph"] {

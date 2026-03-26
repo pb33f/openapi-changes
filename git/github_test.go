@@ -144,7 +144,7 @@ func TestConvertGitHubRevisionsIntoModel_BuildsCommitHistory(t *testing.T) {
 		makeDoctorRevision("bbb222", "old", time.Now().Add(-time.Hour), older),
 	}
 
-	result, errs := convertGitHubRevisionsIntoModel(revisions, progressChan, errorChan, "", false, false, nil)
+	result, errs := convertGitHubRevisionsIntoModel(revisions, progressChan, errorChan, "", false, false, nil, false)
 
 	require.Nil(t, errs)
 	require.NotEmpty(t, result)
@@ -160,7 +160,7 @@ func TestConvertGitHubRevisionsIntoModel_ReturnsBuildErrors(t *testing.T) {
 		makeDoctorRevision("bbb222", "old", time.Now().Add(-time.Hour), []byte("openapi: 3.0.0\ninfo:\n  title: ok\n  version: 1.0.0\npaths: {}\n")),
 	}
 
-	result, errs := convertGitHubRevisionsIntoModel(revisions, progressChan, errorChan, "", false, false, &whatChangedModel.BreakingRulesConfig{})
+	result, errs := convertGitHubRevisionsIntoModel(revisions, progressChan, errorChan, "", false, false, &whatChangedModel.BreakingRulesConfig{}, false)
 
 	assert.NotNil(t, result)
 	require.NotEmpty(t, errs)
