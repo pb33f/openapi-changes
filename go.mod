@@ -6,6 +6,7 @@ require (
 	charm.land/bubbles/v2 v2.0.0
 	charm.land/bubbletea/v2 v2.0.2
 	charm.land/lipgloss/v2 v2.0.2
+	github.com/alecthomas/chroma/v2 v2.20.0
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/charmbracelet/glamour v0.8.0
 	github.com/gdamore/tcell/v2 v2.13.4
@@ -26,7 +27,6 @@ require (
 	atomicgo.dev/cursor v0.2.0 // indirect
 	atomicgo.dev/keyboard v0.2.9 // indirect
 	atomicgo.dev/schedule v0.1.0 // indirect
-	github.com/alecthomas/chroma/v2 v2.20.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect

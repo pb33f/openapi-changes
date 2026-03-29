@@ -1,12 +1,11 @@
 import { LitElement, html, PropertyValues, TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import diffViewerCss from '../css/diff-viewer.css.js';
-import Prism from 'prismjs';
-import 'prismjs/components/prism-yaml';
-import 'prismjs/components/prism-json';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 // @ts-ignore
 import DiffMatchPatch from 'diff-match-patch';
+import '@shoelace-style/shoelace/dist/components/split-panel/split-panel.js';
+import '@shoelace-style/shoelace/dist/components/icon/icon.js';
 
 interface DiffLine {
     type: 'equal' | 'added' | 'removed' | 'spacer';
@@ -24,7 +23,8 @@ export class DiffViewer extends LitElement {
 
     @property() originalSpec: string = '';
     @property() modifiedSpec: string = '';
-    @property() language: string = 'yaml';
+    @property({ type: Object }) originalHighlighted: Record<number, string> = {};
+    @property({ type: Object }) modifiedHighlighted: Record<number, string> = {};
 
     @state() private viewMode: 'side-by-side' | 'unified' = 'side-by-side';
     @state() private cachedLeft: DiffLine[] = [];
@@ -36,7 +36,8 @@ export class DiffViewer extends LitElement {
     private _highlightedElement: Element | null = null;
 
     willUpdate(changedProperties: PropertyValues) {
-        if (changedProperties.has('originalSpec') || changedProperties.has('modifiedSpec') || changedProperties.has('language')) {
+        if (changedProperties.has('originalSpec') || changedProperties.has('modifiedSpec') ||
+            changedProperties.has('originalHighlighted') || changedProperties.has('modifiedHighlighted')) {
             this.recomputeDiffs();
         }
     }
@@ -50,15 +51,8 @@ export class DiffViewer extends LitElement {
         const right: DiffLine[] = [];
         const unified: DiffLine[] = [];
 
-        const grammar = this.language === 'json' ? Prism.languages.json : Prism.languages.yaml;
-        const lang = this.language;
-        const highlight = (content: string): string => {
-            try {
-                return Prism.highlight(content, grammar, lang);
-            } catch {
-                return content;
-            }
-        };
+        const origHL = this.originalHighlighted || {};
+        const modHL = this.modifiedHighlighted || {};
 
         let origLine = 1;
         let modLine = 1;
@@ -68,10 +62,10 @@ export class DiffViewer extends LitElement {
             if (lines[lines.length - 1] === '') lines.pop();
 
             for (const line of lines) {
-                const highlighted = highlight(line);
                 if (op === 0) {
                     const dl: DiffLine = {
-                        type: 'equal', content: line, highlightedContent: highlighted,
+                        type: 'equal', content: line,
+                        highlightedContent: origHL[origLine] || modHL[modLine],
                         originalLineNum: origLine, modifiedLineNum: modLine,
                     };
                     left.push(dl);
@@ -81,21 +75,21 @@ export class DiffViewer extends LitElement {
                     modLine++;
                 } else if (op === -1) {
                     const dl: DiffLine = {
-                        type: 'removed', content: line, highlightedContent: highlighted,
+                        type: 'removed', content: line,
+                        highlightedContent: origHL[origLine],
                         originalLineNum: origLine,
                     };
                     left.push(dl);
-                    // Spacer on right side to keep panels aligned
                     right.push(SPACER);
                     unified.push(dl);
                     origLine++;
                 } else if (op === 1) {
                     const dl: DiffLine = {
-                        type: 'added', content: line, highlightedContent: highlighted,
+                        type: 'added', content: line,
+                        highlightedContent: modHL[modLine],
                         modifiedLineNum: modLine,
                     };
                     right.push(dl);
-                    // Spacer on left side to keep panels aligned
                     left.push(SPACER);
                     unified.push(dl);
                     modLine++;
@@ -204,16 +198,17 @@ export class DiffViewer extends LitElement {
                 <button class="active" @click=${() => this.viewMode = 'side-by-side'}>Side by Side</button>
                 <button @click=${() => this.viewMode = 'unified'}>Unified</button>
             </div>
-            <div class="diff-container">
-                <div class="diff-panel">
+            <sl-split-panel class="diff-split">
+                <sl-icon slot="divider" name="grip-vertical" class="divider-vert" aria-hidden="true"></sl-icon>
+                <div slot="start" class="diff-panel">
                     <div class="diff-header">Original</div>
                     ${this.cachedLeft.map((line) => this.renderDiffLine(line, 'left'))}
                 </div>
-                <div class="diff-panel">
+                <div slot="end" class="diff-panel">
                     <div class="diff-header">Modified</div>
                     ${this.cachedRight.map((line) => this.renderDiffLine(line, 'right'))}
                 </div>
-            </div>
+            </sl-split-panel>
         `;
     }
 }

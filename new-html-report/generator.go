@@ -4,11 +4,18 @@
 package new_html_report
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"html"
+	"strings"
 	"time"
 
+	"github.com/alecthomas/chroma/v2"
+	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/pb33f/doctor/changerator"
 	"github.com/pb33f/doctor/changerator/renderer"
 	drModel "github.com/pb33f/doctor/model"
@@ -79,13 +86,67 @@ type ReportPayload struct {
 
 // ReportItem represents a single commit/comparison in the report.
 type ReportItem struct {
-	ChangeId     string       `json:"changeId"`
-	Graph        *GraphData   `json:"graph"`
-	Summary      *SummaryData `json:"summary"`
-	HtmlReport   string       `json:"htmlReport"`
-	OriginalSpec string       `json:"originalSpec"`
-	ModifiedSpec string       `json:"modifiedSpec"`
-	Commit       *CommitInfo  `json:"commit"`
+	ChangeId              string            `json:"changeId"`
+	Graph                 *GraphData        `json:"graph"`
+	Summary               *SummaryData      `json:"summary"`
+	HtmlReport            string            `json:"htmlReport"`
+	OriginalSpec          string            `json:"originalSpec"`
+	ModifiedSpec          string            `json:"modifiedSpec"`
+	OriginalHighlighted   map[int]string    `json:"originalHighlighted,omitempty"`
+	ModifiedHighlighted   map[int]string    `json:"modifiedHighlighted,omitempty"`
+	Commit                *CommitInfo       `json:"commit"`
+}
+
+// highlightSpecLines uses Chroma to syntax-highlight each line of a spec,
+// returning a map from 1-based line number to highlighted HTML.
+func highlightSpecLines(spec string) map[int]string {
+	if len(spec) == 0 {
+		return nil
+	}
+
+	lang := "yaml"
+	if len(spec) > 0 && (spec[0] == '{' || spec[0] == '[') {
+		lang = "json"
+	}
+
+	lexer := lexers.Get(lang)
+	if lexer == nil {
+		return escapeLines(spec)
+	}
+	lexer = chroma.Coalesce(lexer)
+
+	formatter := chromahtml.New(
+		chromahtml.WithClasses(true),
+		chromahtml.PreventSurroundingPre(true),
+	)
+	style := styles.Get("dracula")
+
+	lines := strings.Split(spec, "\n")
+	result := make(map[int]string, len(lines))
+
+	for i, line := range lines {
+		iterator, err := lexer.Tokenise(nil, line)
+		if err != nil {
+			result[i+1] = html.EscapeString(line)
+			continue
+		}
+		var buf bytes.Buffer
+		if err := formatter.Format(&buf, style, iterator); err != nil {
+			result[i+1] = html.EscapeString(line)
+			continue
+		}
+		result[i+1] = buf.String()
+	}
+	return result
+}
+
+func escapeLines(spec string) map[int]string {
+	lines := strings.Split(spec, "\n")
+	result := make(map[int]string, len(lines))
+	for i, line := range lines {
+		result[i+1] = html.EscapeString(line)
+	}
+	return result
 }
 
 // GraphData mirrors the cowboy-components GraphResponse interface.
@@ -239,13 +300,15 @@ func BuildReportItem(
 	}
 
 	item := &ReportItem{
-		ChangeId:     changeId,
-		Graph:        graphData,
-		Summary:      summary,
-		HtmlReport:   htmlReport,
-		OriginalSpec: string(commit.OldData),
-		ModifiedSpec: string(commit.Data),
-		Commit:       buildCommitInfo(commit),
+		ChangeId:            changeId,
+		Graph:               graphData,
+		Summary:             summary,
+		HtmlReport:          htmlReport,
+		OriginalSpec:        string(commit.OldData),
+		ModifiedSpec:        string(commit.Data),
+		OriginalHighlighted: highlightSpecLines(string(commit.OldData)),
+		ModifiedHighlighted: highlightSpecLines(string(commit.Data)),
+		Commit:              buildCommitInfo(commit),
 	}
 
 	return item, nil

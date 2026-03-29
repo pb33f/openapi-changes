@@ -310,7 +310,8 @@ export abstract class ReportShellBase extends LitElement {
                     <openapi-changes-diff-viewer
                         .originalSpec=${item.originalSpec}
                         .modifiedSpec=${item.modifiedSpec}
-                        language="yaml"
+                        .originalHighlighted=${item.originalHighlighted || {}}
+                        .modifiedHighlighted=${item.modifiedHighlighted || {}}
                     ></openapi-changes-diff-viewer>
                 </sl-tab-panel>
             </sl-tab-group>

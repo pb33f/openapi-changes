@@ -136,6 +136,8 @@ export interface ReportItem {
     htmlReport: string;
     originalSpec: string;
     modifiedSpec: string;
+    originalHighlighted?: Record<number, string>;
+    modifiedHighlighted?: Record<number, string>;
     commit: CommitInfo;
 }
 
