@@ -10,7 +10,7 @@ export default css`
     .diff-split {
         --divider-width: 2px;
         width: 100%;
-        height: 100%;
+        height: calc(100% - 37px); /* 37px = .view-toggle bar height */
         font-family: var(--font-stack);
         font-size: 12px;
         line-height: 1.5;
@@ -45,6 +45,7 @@ export default css`
         font-family: var(--font-stack);
         font-size: 12px;
         line-height: 1.5;
+        height: calc(100% - 37px); /* 37px = .view-toggle bar height */
     }
 
     .diff-panel {
@@ -81,13 +82,21 @@ export default css`
         z-index: 1;
     }
 
+    .scroll-pad-top, .scroll-pad-bottom {
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .visible-lines {
+        contain: layout style;
+    }
+
     .diff-line {
         display: flex;
-        min-height: 20px;
+        height: 20px;
         white-space: pre;
         contain: layout style;
-        content-visibility: auto;
-        contain-intrinsic-size: auto 20px;
     }
 
     .line-number {
@@ -193,6 +202,10 @@ export default css`
         outline: 1px solid var(--secondary-color);
         background: var(--secondary-color);
         color: var(--background-color);
+    }
+
+    .diff-line.highlight * {
+        color: var(--background-color) !important;
     }
 
     .diff-line.highlight .line-number {

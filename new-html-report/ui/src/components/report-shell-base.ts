@@ -28,6 +28,29 @@ import '@shoelace-style/shoelace/dist/components/split-panel/split-panel.js';
 const CHANGE_LABELS = ['MODIFIED', 'ADDED', 'REMOVED'];
 const BREAKING_LABELS = ['BREAKING', 'NON-BREAKING'];
 
+interface ChartDataset {
+    labels: string[];
+    data: number[];
+}
+
+interface ModelTreeElement extends HTMLElement {
+    nodeMap: Map<string, Node>;
+    node: Node | null;
+    changesEnabled: boolean;
+    violationMap: Map<string, unknown>;
+}
+
+interface ChartElement extends HTMLElement {
+    datasets: unknown[];
+    labels: string[];
+    buildChart(): void;
+}
+
+interface TabGroupElement extends HTMLElement {
+    show(panel: string): void;
+    updateComplete: Promise<boolean>;
+}
+
 /**
  * Shared base class for both the full and lite report shells.
  * Contains all common state, data loading, chart logic, rendering, and event wiring.
@@ -43,12 +66,12 @@ export abstract class ReportShellBase extends LitElement {
 
     private _cachedChartIndex: number = -1;
     private _cachedData: ReportPayload | null = null;
-    protected _changeDataset: any[] = [];
-    protected _breakingDataset: any[] = [];
+    protected _changeDataset: ChartDataset[] = [];
+    protected _breakingDataset: ChartDataset[] = [];
 
-    @query('.navigator-panel pb33f-model-tree') protected modelTree: any;
-    @query('pb33f-chart') protected beefyChart: any;
-    @query('.tab-content > sl-tab-group') protected mainTabGroup: any;
+    @query('.navigator-panel pb33f-model-tree') protected modelTree: ModelTreeElement;
+    @query('pb33f-chart') protected beefyChart: ChartElement;
+    @query('.tab-content > sl-tab-group') protected mainTabGroup: TabGroupElement;
     @query('openapi-changes-diff-viewer') protected diffViewer!: DiffViewer;
 
     connectedCallback(): void {

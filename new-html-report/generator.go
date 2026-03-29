@@ -121,21 +121,24 @@ func highlightSpecLines(spec string) map[int]string {
 	)
 	style := styles.Get("dracula")
 
-	lines := strings.Split(spec, "\n")
-	result := make(map[int]string, len(lines))
+	// Tokenize the entire spec in a single pass (preserves cross-line lexer state)
+	// then format and split by line. Much faster than per-line tokenization.
+	iterator, err := lexer.Tokenise(nil, spec)
+	if err != nil {
+		return escapeLines(spec)
+	}
 
-	for i, line := range lines {
-		iterator, err := lexer.Tokenise(nil, line)
-		if err != nil {
-			result[i+1] = html.EscapeString(line)
-			continue
-		}
-		var buf bytes.Buffer
-		if err := formatter.Format(&buf, style, iterator); err != nil {
-			result[i+1] = html.EscapeString(line)
-			continue
-		}
-		result[i+1] = buf.String()
+	var buf bytes.Buffer
+	buf.Grow(len(spec) * 2) // highlighted HTML is roughly 2x the source
+	if err := formatter.Format(&buf, style, iterator); err != nil {
+		return escapeLines(spec)
+	}
+
+	highlighted := buf.String()
+	htmlLines := strings.Split(highlighted, "\n")
+	result := make(map[int]string, len(htmlLines))
+	for i, line := range htmlLines {
+		result[i+1] = line
 	}
 	return result
 }

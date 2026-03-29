@@ -12,7 +12,7 @@ export default css`
     }
 
     .report-layout {
-        height: calc(100vh - 57px);
+        height: calc(100vh - 57px); /* 57px = pb33f-header height */
         overflow: hidden;
     }
 
@@ -249,7 +249,24 @@ export default css`
 
     sl-tab-panel[name="graph"] pb33f-explorer {
         display: block;
-        height: calc(100vh - 200px);
+        height: calc(100vh - 200px); /* header(57) + summary(~105) + tabs(30) + margins(8) */
+    }
+
+    sl-tab-panel[name="diff"] {
+        padding: 0;
+        overflow: hidden;
+        height: calc(100vh - 236px); /* header(57) + summary(~141) + tabs(30) + margins(8) */
+    }
+
+    sl-tab-panel[name="diff"]::part(base) {
+        overflow: hidden;
+        padding: 0;
+        height: 100%;
+    }
+
+    sl-tab-panel[name="diff"] openapi-changes-diff-viewer {
+        display: block;
+        height: 100%;
     }
 
     /* ── Change report (doctor-rendered HTML) ── */
