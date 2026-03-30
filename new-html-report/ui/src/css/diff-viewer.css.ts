@@ -1,4 +1,4 @@
-import { css } from 'lit';
+import {css} from 'lit';
 
 export default css`
     :host {
@@ -7,7 +7,7 @@ export default css`
         height: 100%;
     }
 
-    .diff-split {
+    .diff-split, .focus-split-main {
         --divider-width: 2px;
         width: 100%;
         height: calc(100% - 37px); /* 37px = .view-toggle bar height */
@@ -16,11 +16,11 @@ export default css`
         line-height: 1.5;
     }
 
-    .diff-split::part(divider) {
+    .diff-split::part(divider), .focus-split-main::part(divider) {
         background-color: var(--secondary-color);
     }
 
-    .diff-split sl-icon.divider-vert {
+    .diff-split sl-icon.divider-vert, .focus-split-main sl-icon.divider-vert {
         position: absolute;
         left: 2px;
         border-radius: 0;
@@ -31,11 +31,11 @@ export default css`
         height: 40px;
     }
 
-    .diff-split::part(divider):focus-visible {
+    .diff-split::part(divider):focus-visible, .focus-split-main::part(divider):focus-visible {
         background-color: var(--primary-color);
     }
 
-    .diff-split:focus-within sl-icon {
+    .diff-split:focus-within sl-icon, .focus-split-main:focus-within sl-icon {
         background-color: var(--primary-color);
         color: var(--background-color);
     }
@@ -153,40 +153,189 @@ export default css`
         color: var(--error-color);
     }
 
+    /* Focused view: range lines get a lighter tint than primary */
+    .diff-line[data-emphasis="range"].added {
+        background: var(--ok-color-verylowalpha);
+    }
+    .diff-line[data-emphasis="range"].added .line-number {
+        background: var(--ok-color-verylowalpha);
+    }
+    .diff-line[data-emphasis="range"].removed {
+        background: var(--error-color-verylowalpha);
+    }
+    .diff-line[data-emphasis="range"].removed .line-number {
+        background: var(--error-color-verylowalpha);
+    }
+
     .view-toggle {
-        padding: 6px 12px;
+        padding: var(--global-padding);
         background: var(--background-color);
         border-bottom: 1px dashed var(--secondary-color-dimmer);
         display: flex;
-        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--global-padding-double);
     }
 
-    .view-toggle button {
-        background: transparent;
-        border: 1px dashed var(--secondary-color-dimmer);
-        color: var(--font-color-sub1);
-        padding: 3px 10px;
-        border-radius: 0;
-        cursor: pointer;
-        font-family: var(--font-stack, inherit), monospace;
-        text-transform: uppercase;
+    .view-radio-group {
+        --sl-color-primary-600: var(--primary-color);
+        --sl-color-primary-700: var(--primary-color);
+    }
+
+    .view-radio-group sl-radio-button::part(button) {
+        font-family: var(--font-stack), monospace;
         letter-spacing: 0.05em;
+        text-transform: uppercase;
+        border-radius: 0;
+        background: transparent;
+        color: var(--font-color-sub3);
+        border-color: var(--font-color-sub3);
+        transition: color 0.15s, border-color 0.15s;
     }
 
-    .view-toggle button:hover {
-        border-color: var(--secondary-color);
-        color: var(--font-color);
+    .view-radio-group sl-radio-button::part(button--checked) {
+        background: var(--primary-color) !important;
+        color: var(--background-color) !important;
+        border-color: var(--primary-color) !important;
+        font-family: var(--font-stack-bold), monospace;
     }
 
-    .view-toggle button.active {
-        background: var(--secondary-color-very-lowalpha);
-        border-color: var(--secondary-color);
-        color: var(--font-color);
+    .view-radio-group sl-radio-button::part(button):hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
     }
 
     .unified .diff-panel {
         flex: none;
         width: 100%;
+    }
+
+    .focused-diff-panel {
+        overflow-y: auto;
+        overflow-x: hidden;
+        height: 100%;
+        padding-left: var(--global-padding-half);
+        padding-right: var(--global-padding);
+        padding-bottom: 50px;
+        display: flex;
+        flex-direction: column;
+        gap: var(--global-padding);
+    }
+
+    .focused-diff-panel.full {
+        height: calc(100% - 37px); /* 37px = .view-toggle bar height */
+        font-family: var(--font-stack);
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .focused-diff-panel::-webkit-scrollbar {
+        width: var(--global-padding);
+    }
+
+    .focused-diff-panel::-webkit-scrollbar-track {
+        background-color: var(--background-color);
+    }
+
+    .focused-diff-panel::-webkit-scrollbar-thumb {
+        box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+        background: var(--secondary-color-lowalpha);
+    }
+
+    .change-card {
+        border-bottom: 1px dashed var(--secondary-color-dimmer);
+        background: var(--background-color);
+        display: flex;
+        flex-direction: column;
+        gap: var(--global-padding);
+        padding: var(--global-padding-half) var(--global-padding) 40px var(--global-padding);
+        margin-bottom: var(--global-padding);
+        
+    }
+
+    .change-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: var(--global-padding);
+    }
+
+    .change-card-meta h3 {
+        margin: 0;
+        border: 0;
+        font-size: 1.5rem;
+        padding: 0;
+        color: var(--font-color);
+    }
+
+    .change-path {
+        display: block;
+        font-size: 0.8rem;
+        word-break: break-word;
+    }
+
+    .breaking-pill {
+        border: 1px solid var(--error-color);
+        color: var(--error-color);
+        padding: var(--global-padding-half) var(--global-padding);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+        margin-top: var(--global-padding);
+    }
+
+    .breaking-pill > sl-icon {
+        font-size: 1rem;
+        vertical-align: middle;
+      }
+
+    .focus-panel {
+        border: 1px solid var(--hrcolor);
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .focus-panel.added {
+        border-color: var(--hrcolor);
+    }
+
+    .focus-panel.removed {
+        border-color: var(--hrcolor);
+    }
+
+    .focus-panel-header {
+        padding: 6px 12px;
+        border-bottom: 1px solid var(--hrcolor);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--font-color-sub1);
+        font-family: var(--font-stack-bold, inherit), monospace;
+        font-weight: normal;
+        background: var(--background-color);
+    }
+
+    .focus-panel-body {
+        padding: 0;
+    }
+
+    .value-panel .focus-panel-body {
+        padding: 6px 12px;
+        background: var(--secondary-color-very-lowalpha);
+    }
+
+    .value-panel.added .focus-panel-body {
+        background: var(--ok-color-lowalpha);
+    }
+
+    .value-panel.removed .focus-panel-body {
+        background: var(--error-color-loweralpha);
+    }
+    
+    .focus-value-line {
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: var(--font-stack-bold), monospace;
+        line-height: var(--global-padding-double);
     }
 
     .no-data {
@@ -254,5 +403,6 @@ export default css`
     .line-content .gi { color: var(--terminal-text); font-family: var(--font-stack-bold), monospace; }
     .line-content .ge { text-decoration: underline; }
     .line-content .gh, .line-content .gu { font-family: var(--font-stack-bold), monospace; }
+
 
 `;

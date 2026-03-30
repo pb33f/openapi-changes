@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && BUNDLE_LITE=1 vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node ../../../cowboy-components/node_modules/vitest/vitest.mjs run --config vitest.config.ts"
   },
   "dependencies": {
     "@pb33f/cowboy-components": "file:../../../cowboy-components",

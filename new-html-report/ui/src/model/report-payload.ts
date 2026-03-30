@@ -61,8 +61,11 @@ export interface Change {
     changeText: string;
     context: ChangeContext;
     new: any;
+    newEncoded?: string;
     original: any;
+    originalEncoded?: string;
     property: string;
+    reference?: string;
     type: string;
     path: string;
 }

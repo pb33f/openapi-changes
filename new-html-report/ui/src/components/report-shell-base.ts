@@ -8,7 +8,7 @@ import './diff-viewer.js';
 
 // Import cowboy-components via the static-report entrypoint.
 // This registers the custom elements as side effects.
-import { HeaderComponent, HttpMethodComponent, PathRenderComponent, ModelTreeNodeClicked } from '@pb33f/cowboy-components/static-report';
+import { HeaderComponent, HttpMethodComponent, PathRenderComponent, RenderJSONPathComponent, ModelTreeNodeClicked } from '@pb33f/cowboy-components/static-report';
 import type { NodeClickedEvent } from '@pb33f/cowboy-components/static-report';
 import type { DiffViewer } from './diff-viewer.js';
 
@@ -16,6 +16,7 @@ import type { DiffViewer } from './diff-viewer.js';
 void HeaderComponent;
 void HttpMethodComponent;
 void PathRenderComponent;
+void RenderJSONPathComponent;
 
 // Shoelace components used directly in the shell template
 import '@shoelace-style/shoelace/dist/components/tab-group/tab-group.js';
@@ -63,6 +64,7 @@ export abstract class ReportShellBase extends LitElement {
     @state() protected activeItemIndex: number = 0;
     @state() protected error: string = '';
     @state() protected activeMainTab: string = 'report';
+    @state() protected selectedDiffChanges: Change[] = [];
 
     private _cachedChartIndex: number = -1;
     private _cachedData: ReportPayload | null = null;
@@ -113,6 +115,7 @@ export abstract class ReportShellBase extends LitElement {
 
     protected selectItem(index: number): void {
         this.activeItemIndex = index;
+        this.selectedDiffChanges = [];
     }
 
     protected updateModelTree(): void {
@@ -206,19 +209,11 @@ export abstract class ReportShellBase extends LitElement {
     }
 
     protected navigateToDiffForChanges(changes: Change[]): void {
-        const change = changes.find(c =>
-            (c.context?.originalLine > 0) || (c.context?.newLine > 0)
-        );
-        if (!change) return;
-
-        const originalLine = change.context?.originalLine || 0;
-        const modifiedLine = change.context?.newLine || 0;
+        if (!changes || changes.length === 0) return;
+        this.selectedDiffChanges = [...changes];
 
         if (this.mainTabGroup) {
             this.mainTabGroup.show('diff');
-            this.mainTabGroup.updateComplete.then(() => {
-                this.diffViewer?.scrollToLine(originalLine, modifiedLine);
-            });
         }
     }
 
@@ -335,6 +330,7 @@ export abstract class ReportShellBase extends LitElement {
                         .modifiedSpec=${item.modifiedSpec}
                         .originalHighlighted=${item.originalHighlighted || {}}
                         .modifiedHighlighted=${item.modifiedHighlighted || {}}
+                        .selectedChanges=${this.selectedDiffChanges}
                     ></openapi-changes-diff-viewer>
                 </sl-tab-panel>
             </sl-tab-group>
