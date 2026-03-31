@@ -8,7 +8,11 @@ import './diff-viewer.js';
 
 // Import cowboy-components via the static-report entrypoint.
 // This registers the custom elements as side effects.
-import { HeaderComponent, HttpMethodComponent, PathRenderComponent, RenderJSONPathComponent, ModelTreeNodeClicked } from '@pb33f/cowboy-components/static-report';
+import {
+    HeaderComponent, HttpMethodComponent, PathRenderComponent, RenderJSONPathComponent,
+    TimelineComponent, TimelineItemComponent, SpecSummaryTimelineItem,
+    ModelTreeNodeClicked,
+} from '@pb33f/cowboy-components/static-report';
 import type { NodeClickedEvent } from '@pb33f/cowboy-components/static-report';
 import type { DiffViewer } from './diff-viewer.js';
 
@@ -17,6 +21,9 @@ void HeaderComponent;
 void HttpMethodComponent;
 void PathRenderComponent;
 void RenderJSONPathComponent;
+void TimelineComponent;
+void TimelineItemComponent;
+void SpecSummaryTimelineItem;
 
 // Shoelace components used directly in the shell template
 import '@shoelace-style/shoelace/dist/components/tab-group/tab-group.js';
@@ -25,6 +32,7 @@ import '@shoelace-style/shoelace/dist/components/tab/tab.js';
 import '@shoelace-style/shoelace/dist/components/tooltip/tooltip.js';
 import '@shoelace-style/shoelace/dist/components/icon/icon.js';
 import '@shoelace-style/shoelace/dist/components/split-panel/split-panel.js';
+import '@shoelace-style/shoelace/dist/components/relative-time/relative-time.js';
 
 const CHANGE_LABELS = ['MODIFIED', 'ADDED', 'REMOVED'];
 const BREAKING_LABELS = ['BREAKING', 'NON-BREAKING'];
@@ -47,6 +55,10 @@ interface ChartElement extends HTMLElement {
     buildChart(): void;
 }
 
+interface DoughnutChartElement extends HTMLElement {
+    chart?: { resize(): void };
+}
+
 interface TabGroupElement extends HTMLElement {
     show(panel: string): void;
     updateComplete: Promise<boolean>;
@@ -63,7 +75,7 @@ export abstract class ReportShellBase extends LitElement {
     @state() protected data: ReportPayload | null = null;
     @state() protected activeItemIndex: number = 0;
     @state() protected error: string = '';
-    @state() protected activeMainTab: string = 'report';
+    @state() protected activeMainTab: string = 'overview';
     @state() protected selectedDiffChanges: Change[] = [];
 
     private _cachedChartIndex: number = -1;
@@ -76,6 +88,9 @@ export abstract class ReportShellBase extends LitElement {
     @query('.tab-content > sl-tab-group') protected mainTabGroup: TabGroupElement;
     @query('openapi-changes-diff-viewer') protected diffViewer!: DiffViewer;
 
+    private _overviewResizeObserver: ResizeObserver | null = null;
+    private _chartsInitialized = false;
+
     connectedCallback(): void {
         super.connectedCallback();
         this.loadData();
@@ -85,6 +100,7 @@ export abstract class ReportShellBase extends LitElement {
     disconnectedCallback(): void {
         super.disconnectedCallback();
         this.removeEventListener(ModelTreeNodeClicked, this._onTreeNodeClicked as EventListener);
+        this._overviewResizeObserver?.disconnect();
     }
 
     private loadData(): void {
@@ -162,8 +178,32 @@ export abstract class ReportShellBase extends LitElement {
     protected onDataOrIndexChanged(changedProperties: Map<string, unknown>): void {
         this.updateModelTree();
         if (changedProperties.has('data')) {
-            this.updateBeefyChart();
+            // Shoelace tab group doesn't auto-activate the first tab when rendered
+            // inside a Lit shadow DOM. Explicitly activate and observe for visibility.
+            requestAnimationFrame(() => {
+                if (this.mainTabGroup) {
+                    this.mainTabGroup.show('overview');
+                }
+                this._observeOverviewPanel();
+            });
         }
+    }
+
+    private _observeOverviewPanel(): void {
+        if (this._overviewResizeObserver) return;
+        const overview = this.renderRoot.querySelector('.overview-content');
+        if (!overview) return;
+
+        this._overviewResizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.contentRect.width > 0 && entry.contentRect.height > 0 && !this._chartsInitialized) {
+                    this._chartsInitialized = true;
+                    this.updateBeefyChart();
+                    this.resizeDoughnutCharts();
+                }
+            }
+        });
+        this._overviewResizeObserver.observe(overview);
     }
 
     /** Bound handler for use in lit templates. Delegates to the overridable onTabShow(). */
@@ -174,6 +214,22 @@ export abstract class ReportShellBase extends LitElement {
     /** Override in subclasses to extend tab-show behavior (e.g. center explorer on graph tab). */
     protected onTabShow(event: SlTabShowEvent): void {
         this.activeMainTab = event.detail.name;
+        if (event.detail.name === 'overview') {
+            this.updateComplete.then(() => {
+                this.updateBeefyChart();
+                this.resizeDoughnutCharts();
+            });
+        }
+    }
+
+    private resizeDoughnutCharts(): void {
+        const doughnuts = this.renderRoot.querySelectorAll<DoughnutChartElement>('pb33f-doughnut-chart');
+        for (const d of doughnuts) {
+            if (d.chart) {
+                d.chart.resize();
+                d.chart.update();
+            }
+        }
     }
 
     private updateChartData(): void {
@@ -235,18 +291,33 @@ export abstract class ReportShellBase extends LitElement {
                     ${this.isMultiCommit ? html`
                         <sl-tab-panel name="timeline">
                             <div class="timeline-scroll-container">
-                                ${this.data!.items.map((item, i) => html`
-                                    <div class="commit-item ${i === this.activeItemIndex ? 'active' : ''}"
-                                         @click=${() => this.selectItem(i)}>
-                                        <div class="commit-hash">${item.commit.hash.substring(0, 8)}</div>
-                                        <div class="commit-message">${item.commit.message || 'No message'}</div>
-                                        <div class="commit-date">${new Date(item.commit.date).toLocaleDateString()}</div>
-                                        <pb33f-spec-summary-timeline-item
-                                            .specSummary=${item.summary}
-                                            .hideScore=${true}
-                                        ></pb33f-spec-summary-timeline-item>
-                                    </div>
-                                `)}
+                                <pb33f-timeline ?skinny=${true}>
+                                    ${this.data!.items.map((item, i) => {
+                                        const hasBreaking = (item.summary.breakingChanges || 0) > 0;
+                                        return html`
+                                            <pb33f-timeline-item ?skinny=${true}
+                                                class="${i === this.activeItemIndex ? 'selected' : ''}"
+                                                @click=${() => this.selectItem(i)}>
+                                                <sl-icon slot="icon"
+                                                    name="${hasBreaking ? 'heartbreak-fill' : 'caret-right-fill'}"
+                                                    class="${hasBreaking ? 'breaking-change' : 'change-icon'}">
+                                                </sl-icon>
+                                                <div slot="time"
+                                                    class="time ${hasBreaking ? 'heart-breaker' : 'dream-maker'} ${i === this.activeItemIndex ? 'selected-bar' : ''}">
+                                                    <sl-relative-time date="${item.commit.date}" format="narrow"></sl-relative-time>
+                                                </div>
+                                                <div slot="content">
+                                                    <div class="change-content ${hasBreaking ? 'heart-breaker' : 'dream-maker'} ${i === this.activeItemIndex ? 'selected-bar' : ''}">
+                                                        <pb33f-spec-summary-timeline-item
+                                                            .specSummary=${item.summary}
+                                                            .hideScore=${true}>
+                                                        </pb33f-spec-summary-timeline-item>
+                                                    </div>
+                                                </div>
+                                            </pb33f-timeline-item>
+                                        `;
+                                    })}
+                                </pb33f-timeline>
                             </div>
                         </sl-tab-panel>
                     ` : nothing}
@@ -289,24 +360,47 @@ export abstract class ReportShellBase extends LitElement {
                 <pb33f-chart
                     .datasets=${this.data.history.changeData.datasets}
                     .labels=${this.data.history.changeData.labels}
+                    .height=${200}
                     style="height: 200px; display: block;"
                 ></pb33f-chart>
             </div>
         `;
     }
 
+    protected renderOverview(): TemplateResult {
+        const item = this.activeItem;
+        if (!item) return html``;
+
+        return html`
+            <div class="overview-content">
+                <div class="commit-info">
+                    <span class="commit-hash">${item.commit.hash.substring(0, 8)}</span>
+                    <span class="commit-message">${item.commit.message || 'No message'}</span>
+                    <span class="commit-date">${new Date(item.commit.date).toLocaleDateString()}</span>
+                </div>
+                ${this.renderSummary()}
+                ${this.renderHistoryChart()}
+            </div>
+        `;
+    }
+
     /**
-     * Render the content tabs (Change Report, Changed Items, Change List, View Diff).
-     * The full shell overrides this to add the "Explore Changes" graph tab.
+     * Render the content tabs (Overview, Change Report, Changed Items, Change List, View Diff).
+     * The full shell overrides renderExtraTabNavs/Panels to add the "Explore Changes" graph tab.
      */
     protected renderContentTabs(item: ReportItem): TemplateResult {
         return html`
             <sl-tab-group @sl-tab-show=${this.handleTabShow}>
+                <sl-tab slot="nav" panel="overview">Overview</sl-tab>
                 <sl-tab slot="nav" panel="report">Change Report</sl-tab>
                 <sl-tab slot="nav" panel="changelist">Changed Items</sl-tab>
                 <sl-tab slot="nav" panel="list">Change List</sl-tab>
                 ${this.renderExtraTabNavs()}
                 <sl-tab slot="nav" panel="diff">View Diff</sl-tab>
+
+                <sl-tab-panel name="overview">
+                    ${this.renderOverview()}
+                </sl-tab-panel>
 
                 <sl-tab-panel name="report">
                     <div class="change-report">
@@ -369,8 +463,6 @@ export abstract class ReportShellBase extends LitElement {
                         ${this.renderNavigator()}
                     </div>
                     <div slot="end" class="main-content">
-                        ${this.renderSummary()}
-                        ${this.renderHistoryChart()}
                         <div class="tab-content">
                             ${this.renderContentTabs(item)}
                         </div>

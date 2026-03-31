@@ -133,7 +133,7 @@ export default css`
         overflow: auto;
     }
 
-    /* ── Timeline tab (commit list) ── */
+    /* ── Timeline tab ── */
     .timeline-scroll-container {
         flex: 1;
         min-height: 0;
@@ -141,46 +141,57 @@ export default css`
         padding: 0 10px;
     }
 
-    .commit-item {
-        padding: 8px 10px;
+    /* Timeline icon styles */
+    .breaking-change {
+        color: var(--error-color);
+        font-size: 1.5rem;
+        background: var(--background-color);
+    }
+
+    .change-icon {
+        color: var(--secondary-color);
+        font-size: 1rem;
+        background: var(--background-color);
+    }
+
+    /* Left-border accents */
+    .heart-breaker {
+        border-left: 3px solid var(--error-color);
+        padding-left: 5px;
+    }
+
+    .dream-maker {
+        border-left: 3px solid var(--secondary-color-lowalpha);
+        padding-left: 5px;
+    }
+
+    .change-content {
+        height: 30px;
+    }
+
+    /* Selected state */
+    pb33f-timeline-item.selected {
+        background: linear-gradient(90deg, var(--background-color) 0%, var(--primary-color-verylowalpha) 100%);
+        border-right: 4px solid var(--primary-color);
+    }
+
+    .selected-bar {
+        border-left: 3px solid var(--primary-color) !important;
+    }
+
+    /* Hover */
+    pb33f-timeline-item:hover {
+        background-color: var(--secondary-color-very-lowalpha);
         cursor: pointer;
-        border-radius: 0;
-        margin-bottom: 4px;
-        border: 1px dashed transparent;
-        transition: all 0.15s ease;
     }
 
-    .commit-item:hover {
-        background: var(--secondary-color-very-lowalpha);
-        border-color: var(--secondary-color-dimmer);
+    pb33f-timeline-item.selected:hover {
+        background-color: var(--primary-color-verylowalpha);
+        cursor: pointer;
     }
 
-    .commit-item.active {
-        background: var(--secondary-color-very-lowalpha);
-        border-color: var(--secondary-color);
-    }
-
-    .commit-hash {
-        font-family: var(--font-stack), monospace;
-        font-size: 11px;
-        color: var(--primary-color);
-    }
-
-    .commit-message {
-        font-size: 12px;
-        color: var(--font-color);
-        font-family: var(--font-stack), monospace;
-        margin-top: 2px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .commit-date {
-        font-size: 10px;
-        color: var(--font-color-sub2);
-        font-family: var(--font-stack), monospace;
-        margin-top: 2px;
+    sl-relative-time {
+        text-transform: uppercase;
     }
 
     /* ── Main content area ── */
@@ -191,16 +202,50 @@ export default css`
         height: 100%;
     }
 
-    /* ── Summary row (top of right panel) ── */
+    /* ── Overview tab content ── */
+    .overview-content {
+        padding: 20px;
+        overflow: auto;
+    }
+
+    .commit-info {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px dashed var(--secondary-color-dimmer);
+    }
+
+    .commit-hash {
+        font-family: var(--font-stack), monospace;
+        font-size: 12px;
+        color: var(--primary-color);
+    }
+
+    .commit-message {
+        font-size: 13px;
+        color: var(--font-color);
+        font-family: var(--font-stack), monospace;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+    }
+
+    .commit-date {
+        font-size: 11px;
+        color: var(--font-color-sub2);
+        font-family: var(--font-stack), monospace;
+        flex-shrink: 0;
+    }
+
     .change-summary {
         display: flex;
         align-items: center;
         gap: 15px;
-        padding: 10px 20px;
-        background: var(--background-color);
-        border-bottom: 1px dashed var(--secondary-color-dimmer);
+        padding: 10px 0;
         flex-wrap: wrap;
-        flex-shrink: 0;
     }
 
     .charts-row {
@@ -210,12 +255,17 @@ export default css`
         flex-wrap: wrap;
     }
 
+    .charts-row pb33f-doughnut-chart {
+        display: block;
+        width: 250px;
+        height: 120px;
+    }
+
     /* ── Content tabs ── */
     .tab-content {
         flex: 1;
         min-height: 0;
-        overflow: auto;
-        margin-top: 8px;
+        overflow: hidden;
     }
 
     sl-tab-group {
@@ -249,13 +299,13 @@ export default css`
 
     sl-tab-panel[name="graph"] pb33f-explorer {
         display: block;
-        height: calc(100vh - 200px); /* header(57) + summary(~105) + tabs(30) + margins(8) */
+        height: calc(100vh - 95px); /* header(57) + tabs(30) + margins(8) */
     }
 
     sl-tab-panel[name="diff"] {
         padding: 0;
         overflow: hidden;
-        height: calc(100vh - 236px); /* header(57) + summary(~141) + tabs(30) + margins(8) */
+        height: calc(100vh - 95px); /* header(57) + tabs(30) + margins(8) */
     }
 
     sl-tab-panel[name="diff"]::part(base) {
