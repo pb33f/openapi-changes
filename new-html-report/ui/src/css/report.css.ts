@@ -25,6 +25,10 @@ export default css`
         --divider-width: 2px;
     }
 
+    .split-panel::part(panel), .split-panel::part(start), .split-panel::part(end) {
+        overflow: hidden;
+    }
+
     .split-panel::part(divider) {
         background-color: var(--secondary-color);
     }
@@ -347,9 +351,18 @@ export default css`
         height: 100%;
     }
 
+    /* ── Combined report (single comparison mode) ── */
+    .combined-report .change-report {
+        margin-top: var(--global-padding-double);
+    }
+
+    .combined-report .change-summary {
+        contain: layout style;
+    }
+
     /* ── Change report (doctor-rendered HTML) ── */
     .change-report {
-        padding: 0 var(--global-padding) var(--global-padding-double) calc(var(--global-padding-double) * 2);
+        padding: 0 var(--global-padding) var(--global-padding-double) calc(var(--global-padding-double));
         overflow: auto;
     }
 
@@ -367,35 +380,32 @@ export default css`
     }
 
     .change-report strong {
-        color: var(--secondary-color);
         font-family: var(--font-stack-bold), monospace;
         font-weight: normal;
     }
 
     /* Headings */
     .change-report h1, .change-report h2, .change-report h3, .change-report h4, .change-report h5 {
-        color: var(--primary-color);
         font-family: var(--font-stack-bold), monospace;
         font-weight: normal;
-        border-bottom: 1px dashed var(--secondary-color-dimmer);
-        padding-bottom: var(--global-padding);
     }
-
+    
     .change-report h2 {
         text-transform: uppercase;
-        letter-spacing: 0.02em;
         font-size: 1.6rem;
+        border-bottom: 1px dashed var(--hrcolor);
+        padding-bottom: var(--global-padding);
     }
 
     .change-report h3 {
         text-transform: uppercase;
-        letter-spacing: 0.02em;
         font-size: 1.4rem;
+        margin-top: 80px;
     }
 
     .change-report h4 {
-        letter-spacing: 0.02em;
         font-size: 1.2rem;
+  
     }
 
     .change-report h4 > code, .change-report h3 > code {
@@ -411,28 +421,29 @@ export default css`
 
     .change-report .heading-anchor {
         text-decoration: none;
-        color: var(--primary-color);
+        color: var(--font-color);
     }
 
     /* Horizontal rules */
     .change-report hr {
-        margin-top: calc(var(--global-padding-double) * 2);
+        margin-top: var(--global-padding);
         border-top: none;
-        border-bottom: 1px dashed var(--secondary-color);
+        border-bottom: 1px dashed var(--primary-color-lowalpha);
         margin-bottom: calc(var(--global-padding-double) * 2);
         height: 1px;
         border-left: none;
         border-right: none;
     }
+     
 
     /* Links */
     .change-report a, .change-report a:visited, .change-report a:active {
         text-decoration: none;
-        color: var(--primary-color);
+        font-color: var(--font-color);
         font-family: var(--font-stack-bold), monospace;
         font-weight: normal;
     }
-
+    
     .change-report a:hover {
         color: var(--primary-color);
         text-decoration: underline;
@@ -441,6 +452,7 @@ export default css`
     /* Lists */
     .change-report ul {
         padding-left: var(--global-padding);
+        margin-bottom: var(--global-padding-double);
     }
 
     .change-report ul > li {
@@ -638,8 +650,8 @@ export default css`
     .change-report .breaking {
         color: var(--error-color);
         font-family: var(--font-stack-bold), sans-serif;
-        padding: var(--global-padding-half) var(--global-padding);
-        border: 1px solid var(--error-color);
+        padding: var(--global-padding-half);
+      
     }
 
     .change-report .breaking > sl-icon {
@@ -701,7 +713,7 @@ export default css`
         margin: 0 0 var(--global-padding) 0;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        padding-bottom: var(--global
+        padding-bottom: var(--global-padding);
         border-bottom: 1px dashed var(--hrcolor);
     }
 `;

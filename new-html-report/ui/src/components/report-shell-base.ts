@@ -108,6 +108,7 @@ export abstract class ReportShellBase extends LitElement {
     @state() protected selectedNodeId: string | null = null;
     @state() protected selectedNodeChanges: Change[] = [];
 
+    private _graphNodeMap: Map<string, any> = new Map();
     private _cachedChartIndex: number = -1;
     private _cachedData: ReportPayload | null = null;
     protected _changeDataset: ChartDataset[] = [];
@@ -168,11 +169,10 @@ export abstract class ReportShellBase extends LitElement {
 
     protected selectNode(nodeId: string): void {
         this.selectedNodeId = nodeId;
-        const item = this.activeItem;
-        if (item?.graph?.nodes) {
-            const node = (item.graph.nodes as any[]).find((n: any) => n.id === nodeId);
-            this.selectedNodeChanges = node?.timeline || [];
-            this.selectedDiffChanges = node?.timeline || [];
+        const node = this._graphNodeMap.get(nodeId);
+        if (node) {
+            this.selectedNodeChanges = node.timeline || [];
+            this.selectedDiffChanges = node.timeline || [];
         }
     }
 
@@ -184,6 +184,7 @@ export abstract class ReportShellBase extends LitElement {
         for (const node of item.graph.nodes) {
             nodeMap.set(node.id, node);
         }
+        this._graphNodeMap = nodeMap;
         this.modelTree.nodeMap = nodeMap;
         this.modelTree.node = nodeMap.get('root') || null;
         this.modelTree.changesEnabled = true;
@@ -523,25 +524,46 @@ export abstract class ReportShellBase extends LitElement {
      * Render the content tabs (Overview, Change Report, Changed Items, Change List, View Diff).
      * The full shell overrides renderExtraTabNavs/Panels to add the "Explore Changes" graph tab.
      */
+    private renderHtmlReport(item: ReportItem): TemplateResult {
+        return item.htmlReport
+            ? html`<div class="change-report">${unsafeHTML(item.htmlReport)}</div>`
+            : html`<p>No report available</p>`;
+    }
+
+    protected renderCombinedReport(item: ReportItem): TemplateResult {
+        return html`
+            <div class="combined-report overview-content">
+                ${this.renderSummary()}
+                ${this.renderHtmlReport(item)}
+            </div>
+        `;
+    }
+
     protected renderContentTabs(item: ReportItem): TemplateResult {
         return html`
             <sl-tab-group @sl-tab-show=${this.handleTabShow}>
-                <sl-tab slot="nav" panel="overview">Overview</sl-tab>
-                <sl-tab slot="nav" panel="report">Change Report</sl-tab>
+                ${this.isMultiCommit ? html`
+                    <sl-tab slot="nav" panel="overview">Overview</sl-tab>
+                    <sl-tab slot="nav" panel="report">Change Report</sl-tab>
+                ` : html`
+                    <sl-tab slot="nav" panel="overview">Change Report</sl-tab>
+                `}
                 <sl-tab slot="nav" panel="changelist">Changed Items</sl-tab>
                 <sl-tab slot="nav" panel="list">Change List</sl-tab>
                 ${this.renderExtraTabNavs()}
                 <sl-tab slot="nav" panel="diff">View Diff</sl-tab>
 
                 <sl-tab-panel name="overview">
-                    ${this.renderOverview()}
+                    ${this.isMultiCommit
+                        ? this.renderOverview()
+                        : this.renderCombinedReport(item)}
                 </sl-tab-panel>
 
-                <sl-tab-panel name="report">
-                    <div class="change-report">
-                        ${item.htmlReport ? unsafeHTML(item.htmlReport) : html`<p>No report available</p>`}
-                    </div>
-                </sl-tab-panel>
+                ${this.isMultiCommit ? html`
+                    <sl-tab-panel name="report">
+                        ${this.renderHtmlReport(item)}
+                    </sl-tab-panel>
+                ` : nothing}
 
                 <sl-tab-panel name="changelist">
                     <pb33f-changes-component .changes=${item.graph.changes || []}></pb33f-changes-component>

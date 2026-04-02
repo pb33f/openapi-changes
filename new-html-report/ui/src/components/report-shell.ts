@@ -90,6 +90,7 @@ export class ReportShell extends ReportShellBase {
         this.explorer.embeddedMode = true;
         this.explorer.renderEqualizer = false;
         this.explorer.disablePovMode = true;
+        this.explorer.hideExamples = true;
         if (this.explorer.equalizer) {
             this.explorer.equalizer.renderEqualizer = false;
         }
