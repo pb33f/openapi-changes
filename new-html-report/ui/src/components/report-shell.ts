@@ -4,7 +4,7 @@ import type { SlTabShowEvent } from '@shoelace-style/shoelace/dist/events/sl-tab
 import { ReportShellBase } from './report-shell-base.js';
 import type { Change } from '../model/report-payload.js';
 
-import { ExplorerComponent } from '@pb33f/cowboy-components/static-report';
+import { ExplorerComponent, ExplorerNodeClicked } from '@pb33f/cowboy-components/static-report';
 import type { NodeClickedEvent } from '@pb33f/cowboy-components/static-report';
 import { createElkLayoutWorker } from '../elk-layout-worker-inline.js';
 import { createGraphDependentWorker } from '../graph-dependent-worker-inline.js';
@@ -17,38 +17,70 @@ export class ReportShell extends ReportShellBase {
 
     @query('pb33f-explorer') private explorer!: ExplorerComponent;
 
+    private _onExplorerNodeClicked = (e: Event) => {
+        const nodeId = (e as CustomEvent).detail?.nodeId;
+        if (!nodeId) return;
+        this.selectNode(nodeId);
+        if (this.modelTree) {
+            this.modelTree.explorerClicked(nodeId);
+        }
+        if (this.explorer && this.activeMainTab === 'graph') {
+            this.explorer.revealPathToNode(nodeId);
+        }
+    };
+
+    connectedCallback(): void {
+        super.connectedCallback();
+        this.addEventListener(ExplorerNodeClicked, this._onExplorerNodeClicked);
+    }
+
+    disconnectedCallback(): void {
+        this.removeEventListener(ExplorerNodeClicked, this._onExplorerNodeClicked);
+        super.disconnectedCallback();
+    }
+
     protected override onDataOrIndexChanged(changedProperties: Map<string, unknown>): void {
         this.updateExplorer();
         super.onDataOrIndexChanged(changedProperties);
     }
 
+    protected override selectItem(index: number): void {
+        if (this.explorer) {
+            this.explorer.resetSelection();
+        }
+        super.selectItem(index);
+    }
+
     protected override onTabShow(event: SlTabShowEvent): void {
         super.onTabShow(event);
-
-        if (event.detail.name !== 'graph') return;
-
-        this.updateComplete.then(() => {
-            if (this.explorer) {
-                // Use centerOnRoot() instead of reset() — reset() triggers a full ELK
-                // re-layout that causes the container to scroll out of view.
-                setTimeout(() => {
-                    this.explorer.centerOnRoot();
-                }, 200);
+        if (event.detail.name === 'graph' && this.explorer) {
+            if (this.selectedNodeId) {
+                this.updateComplete.then(() => {
+                    const node = this.explorer.nodeMap?.get(this.selectedNodeId!);
+                    if (node) {
+                        this.explorer.revealPathToNode(this.selectedNodeId!);
+                    }
+                });
+            } else {
+                this.updateComplete.then(() => {
+                    setTimeout(() => this.explorer.centerOnRoot(), 200);
+                });
             }
-        });
+        }
+        if (event.detail.name === 'diff' && this.selectedNodeChanges.length > 0) {
+            this.selectedDiffChanges = [...this.selectedNodeChanges];
+        }
     }
 
     protected override handleTreeNodeClicked(evt: CustomEvent<NodeClickedEvent>): void {
-        const { nodeId, changes } = evt.detail;
-
-        if (this.activeMainTab === 'graph' && this.explorer && nodeId) {
+        const { nodeId } = evt.detail;
+        if (!nodeId) return;
+        this.selectNode(nodeId);
+        if (this.activeMainTab === 'graph' && this.explorer) {
             this.explorer.revealPathToNode(nodeId);
             return;
         }
-
-        if (changes && changes.length > 0) {
-            this.navigateToDiffForChanges(changes as Change[]);
-        }
+        super.handleTreeNodeClicked(evt);
     }
 
     private updateExplorer(): void {
@@ -57,6 +89,7 @@ export class ReportShell extends ReportShellBase {
 
         this.explorer.embeddedMode = true;
         this.explorer.renderEqualizer = false;
+        this.explorer.disablePovMode = true;
         if (this.explorer.equalizer) {
             this.explorer.equalizer.renderEqualizer = false;
         }

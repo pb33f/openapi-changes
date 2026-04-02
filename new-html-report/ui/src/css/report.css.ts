@@ -56,6 +56,12 @@ export default css`
         height: 100%;
         background: var(--background-color);
         overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    .navigator-panel *::selection {
+        background: transparent;
     }
 
     .navigator-content {
@@ -73,6 +79,8 @@ export default css`
         display: flex;
         flex-direction: column;
         height: 100%;
+        user-select: none;
+        -webkit-user-select: none;
     }
 
     .navigator-tabs::part(base) {
@@ -93,8 +101,7 @@ export default css`
         text-transform: uppercase;
         letter-spacing: 0.05em;
         font-family: var(--font-stack), monospace;
-        font-size: 0.9rem;
-        padding: 0 0.8rem;
+        padding: 0 var(--global-padding);
     }
 
     .navigator-tabs sl-tab-panel::part(base) {
@@ -139,19 +146,28 @@ export default css`
         min-height: 0;
         overflow: auto;
         padding: 0 10px;
+        user-select: none;
+        -webkit-user-select: none;
     }
 
     /* Timeline icon styles */
+    .breaking-change,
+    .change-icon {
+        background: var(--background-color);
+        outline: none;
+    }
+
+    .breaking-change:focus,
+    .change-icon:focus {
+        outline: none;
+    }
+
     .breaking-change {
         color: var(--error-color);
-        font-size: 1.5rem;
-        background: var(--background-color);
     }
 
     .change-icon {
         color: var(--secondary-color);
-        font-size: 1rem;
-        background: var(--background-color);
     }
 
     /* Left-border accents */
@@ -163,6 +179,10 @@ export default css`
     .dream-maker {
         border-left: 3px solid var(--secondary-color-lowalpha);
         padding-left: 5px;
+    }
+    
+    .change-heading {
+        text-transform: none;
     }
 
     .change-content {
@@ -204,7 +224,7 @@ export default css`
 
     /* ── Overview tab content ── */
     .overview-content {
-        padding: 20px;
+        padding: var(--global-padding) var(--global-padding) var(--global-padding) var(--global-padding-double);
         overflow: auto;
     }
 
@@ -219,12 +239,10 @@ export default css`
 
     .commit-hash {
         font-family: var(--font-stack), monospace;
-        font-size: 12px;
         color: var(--primary-color);
     }
 
     .commit-message {
-        font-size: 13px;
         color: var(--font-color);
         font-family: var(--font-stack), monospace;
         overflow: hidden;
@@ -233,25 +251,35 @@ export default css`
         flex: 1;
     }
 
+    .commit-meta {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+
+    .commit-author {
+        color: var(--secondary-color);
+        font-family: var(--font-stack), monospace;
+    }
+
     .commit-date {
-        font-size: 11px;
         color: var(--font-color-sub2);
         font-family: var(--font-stack), monospace;
-        flex-shrink: 0;
     }
 
     .change-summary {
         display: flex;
         align-items: center;
-        gap: 15px;
-        padding: 10px 0;
+        gap: var(--global-padding);
+        padding: var(--global-padding) 0;
         flex-wrap: wrap;
     }
 
     .charts-row {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: var(--global-padding);
         flex-wrap: wrap;
     }
 
@@ -265,7 +293,8 @@ export default css`
     .tab-content {
         flex: 1;
         min-height: 0;
-        overflow: hidden;
+        overflow: auto;
+        padding-top: calc(var(--global-padding-half) + 3px);
     }
 
     sl-tab-group {
@@ -281,11 +310,10 @@ export default css`
     }
 
     sl-tab::part(base) {
-        padding: 0 0.8rem;
+        padding: 0 var(--global-padding);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         font-family: var(--font-stack), monospace;
-        font-size: 0.9rem;
     }
 
     
@@ -321,17 +349,13 @@ export default css`
 
     /* ── Change report (doctor-rendered HTML) ── */
     .change-report {
-        padding: 0 20px;
-        line-height: 1.7em;
+        padding: 0 var(--global-padding) var(--global-padding-double) calc(var(--global-padding-double) * 2);
         overflow: auto;
-        font-size: 0.8rem;
     }
 
     /* Text formatting */
     .change-report p {
-        line-height: 1.7em;
-        margin-bottom: 30px;
-        font-family: var(--font-stack-paragraph), monospace;
+        font-family: var(--font-stack), monospace;
     }
 
     .change-report em {
@@ -354,22 +378,24 @@ export default css`
         font-family: var(--font-stack-bold), monospace;
         font-weight: normal;
         border-bottom: 1px dashed var(--secondary-color-dimmer);
-        padding-bottom: 5px;
+        padding-bottom: var(--global-padding);
     }
 
     .change-report h2 {
         text-transform: uppercase;
         letter-spacing: 0.02em;
+        font-size: 1.6rem;
     }
 
     .change-report h3 {
         text-transform: uppercase;
         letter-spacing: 0.02em;
+        font-size: 1.4rem;
     }
 
     .change-report h4 {
-        text-transform: uppercase;
         letter-spacing: 0.02em;
+        font-size: 1.2rem;
     }
 
     .change-report h4 > code, .change-report h3 > code {
@@ -390,10 +416,10 @@ export default css`
 
     /* Horizontal rules */
     .change-report hr {
-        margin-top: 40px;
+        margin-top: calc(var(--global-padding-double) * 2);
         border-top: none;
         border-bottom: 1px dashed var(--secondary-color);
-        margin-bottom: 40px;
+        margin-bottom: calc(var(--global-padding-double) * 2);
         height: 1px;
         border-left: none;
         border-right: none;
@@ -414,20 +440,20 @@ export default css`
 
     /* Lists */
     .change-report ul {
-        padding-left: 20px;
+        padding-left: var(--global-padding);
     }
 
     .change-report ul > li {
         font-family: var(--font-stack-paragraph), monospace;
         font-weight: normal;
         list-style-type: none;
-        line-height: 1.8em;
+        padding: var(--global-padding-half) 0;
     }
 
     .change-report ul li:before {
         color: var(--primary-color);
         font-family: var(--font-stack-bold), monospace;
-        margin-right: 10px;
+        margin-right: var(--global-padding);
     }
 
     .change-report ul > li:before { content: ">"; }
@@ -439,18 +465,18 @@ export default css`
     }
 
     .change-report ul > li > ul {
-        margin-top: 5px;
-        padding-left: 25px;
+        margin-top: var(--global-padding);
+        padding-left: var(--global-padding-double);
     }
 
     .change-report ul > li > ul > li > ul {
-        margin-top: 5px;
-        padding-left: 25px;
+        margin-top: var(--global-padding);
+        padding-left: var(--global-padding-double);
     }
 
     .change-report ul > li code.code {
         vertical-align: baseline;
-        height: 20px;
+        height: var(--global-padding-double);
         display: inline-block;
     }
 
@@ -458,6 +484,7 @@ export default css`
         border: none;
         background: none;
         padding: 0;
+   
     }
 
     /* Inline code */
@@ -466,12 +493,10 @@ export default css`
         border: 1px solid var(--secondary-color-lowalpha);
         color: var(--secondary-color);
         border-radius: 0;
-        padding: 0 5px 1px 5px;
-        margin: 0 0 2px 0;
+        padding: 2px var(--global-padding-half);
         display: inline-block;
         background-color: var(--secondary-color-very-lowalpha);
         vertical-align: middle;
-        font-size: 0.95rem;
     }
 
     /* Code blocks */
@@ -480,10 +505,9 @@ export default css`
         border-left: 2px solid var(--secondary-color);
         border-top: 1px dashed var(--secondary-color-lowalpha);
         border-bottom: 1px dashed var(--secondary-color-lowalpha);
-        padding: 10px 0 10px 20px;
+        padding: var(--global-padding) 0 var(--global-padding) var(--global-padding);
         margin-top: 0;
-        margin-bottom: 20px;
-        line-height: 1.4rem;
+        margin-bottom: var(--global-padding);
         width: calc(100% - 22px);
         background-image: linear-gradient(to right, var(--chroma-gradient-start, #171d25), var(--background-color));
     }
@@ -494,7 +518,6 @@ export default css`
         padding: 0;
         margin: 0;
         display: block;
-        font-size: 0.85rem;
     }
 
     .change-report pre[class*="language-"] {
@@ -504,13 +527,13 @@ export default css`
     /* Blockquotes */
     .change-report blockquote {
         border-left: 5px solid var(--secondary-color);
-        margin: 30px 0 30px 30px;
+        margin: var(--global-padding-double);
         padding: 0;
         width: 80%;
     }
 
     .change-report blockquote p {
-        padding: 5px 0 10px 20px;
+        padding: var(--global-padding) 0 var(--global-padding) var(--global-padding-double);
         display: block;
         margin: 0;
         color: var(--font-color-sub1);
@@ -520,10 +543,9 @@ export default css`
     /* Reference links / component refs */
     .change-report .reflink {
         color: var(--terminal-text);
-        font-size: 1.1rem;
         vertical-align: middle;
-        margin-left: 8px;
-        margin-right: 5px;
+        margin-left: var(--global-padding);
+        margin-right: var(--global-padding);
     }
 
     .change-report .component-reference {
@@ -561,11 +583,10 @@ export default css`
         font-family: var(--font-stack-bold), sans-serif;
         background-color: var(--table-header-background-solid);
         text-align: left;
-        padding: 10px;
+        padding: var(--global-padding);
         color: var(--font-color);
         border-bottom: 1px dashed var(--kv-table-dividers);
         border-top: 1px dashed var(--kv-table-header-border-top);
-        font-weight: normal;
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
@@ -587,7 +608,7 @@ export default css`
     .change-report table.object-change-summary > tbody > tr > td {
         font-family: var(--font-stack-paragraph), monospace;
         color: var(--font-color-sub1);
-        padding: 10px;
+        padding: var(--global-padding);
         border-bottom: 1px dashed var(--secondary-color-dimmer);
     }
 
@@ -610,14 +631,14 @@ export default css`
 
     .change-report table.object-change-summary pb33f-model-icon {
         vertical-align: middle;
-        margin-right: 5px;
+        margin-right: var(--global-padding);
     }
 
     /* Breaking change badges */
     .change-report .breaking {
         color: var(--error-color);
         font-family: var(--font-stack-bold), sans-serif;
-        padding: 1px 3px;
+        padding: var(--global-padding-half) var(--global-padding);
         border: 1px solid var(--error-color);
     }
 
@@ -628,16 +649,19 @@ export default css`
     /* Floating metadata sidebar */
     .change-report .metadata-sidebar {
         float: right;
+        position: relative;
+        z-index: 1;
         width: 45%;
-        margin: 0 0 20px 10px;
-        padding: 10px;
+        margin: 0 0 var(--global-padding-double) var(--global-padding);
+        padding: var(--global-padding);
         border: 1px solid var(--secondary-color);
         border-radius: 0;
         text-transform: uppercase;
+        background-color: var(--background-color);
     }
 
     .change-report .metadata-sidebar table {
-        font-size: 0.85rem;
+       
     }
 
     .change-report .report-clearfix::after {
@@ -650,7 +674,7 @@ export default css`
         .change-report .metadata-sidebar {
             float: none;
             width: 100%;
-            margin: 0 0 1rem 0;
+            margin: 0 0 var(--global-padding) 0;
         }
     }
 
@@ -665,17 +689,19 @@ export default css`
     }
 
     .history-section {
-        padding: 10px 20px;
+        padding: var(--global-padding);
         flex-shrink: 0;
     }
 
-    .history-section h3 {
+
+    .history-section h2 {
         color: var(--primary-color);
         font-family: var(--font-stack-bold), monospace;
         font-weight: normal;
-        font-size: 14px;
-        margin: 0 0 10px 0;
+        margin: 0 0 var(--global-padding) 0;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        padding-bottom: var(--global
+        border-bottom: 1px dashed var(--hrcolor);
     }
 `;

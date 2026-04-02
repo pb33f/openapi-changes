@@ -12,7 +12,6 @@ export default css`
         width: 100%;
         height: calc(100% - 37px); /* 37px = .view-toggle bar height */
         font-family: var(--font-stack);
-        font-size: 12px;
         line-height: 1.5;
     }
 
@@ -43,7 +42,6 @@ export default css`
     .diff-container {
         display: flex;
         font-family: var(--font-stack);
-        font-size: 12px;
         line-height: 1.5;
         height: calc(100% - 37px); /* 37px = .view-toggle bar height */
     }
@@ -69,13 +67,12 @@ export default css`
     }
 
     .diff-header {
-        padding: 6px 12px;
+        padding: var(--global-padding);
         background: var(--background-color);
-        font-family: var(--font-stack-bold, inherit), monospace;
-        font-weight: normal;
+        font-family: var(--font-stack, inherit), monospace;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
         color: var(--font-color-sub1);
+        
         border-bottom: 1px dashed var(--secondary-color-dimmer);
         position: sticky;
         top: 0;
@@ -90,11 +87,12 @@ export default css`
 
     .visible-lines {
         contain: layout style;
+        font-size: 0.9rem;
     }
 
     .diff-line {
         display: flex;
-        height: 20px;
+        height: var(--global-padding-double);
         white-space: pre;
         contain: layout style;
     }
@@ -184,9 +182,10 @@ export default css`
 
     .view-radio-group sl-radio-button::part(button) {
         font-family: var(--font-stack), monospace;
-        letter-spacing: 0.05em;
+        font-size: 1rem;
         text-transform: uppercase;
         border-radius: 0;
+        font-size: 0.9rem;
         background: transparent;
         color: var(--font-color-sub3);
         border-color: var(--font-color-sub3);
@@ -225,7 +224,6 @@ export default css`
     .focused-diff-panel.full {
         height: calc(100% - 37px); /* 37px = .view-toggle bar height */
         font-family: var(--font-stack);
-        font-size: 12px;
         line-height: 1.5;
     }
 
@@ -263,15 +261,14 @@ export default css`
     .change-card-meta h3 {
         margin: 0;
         border: 0;
-        font-size: 1.5rem;
         padding: 0;
         color: var(--font-color);
     }
 
     .change-path {
         display: block;
-        font-size: 0.8rem;
         word-break: break-word;
+        font-size: 0.8rem;
     }
 
     .breaking-pill {
@@ -281,6 +278,7 @@ export default css`
         text-transform: uppercase;
         letter-spacing: 0.05em;
         white-space: nowrap;
+        font-size: 0.8rem;
         margin-top: var(--global-padding);
     }
 
@@ -304,18 +302,17 @@ export default css`
     }
 
     .focus-panel-header {
-        padding: 6px 12px;
+        padding: var(--global-padding-half) var(--global-padding);
         border-bottom: 1px solid var(--hrcolor);
         text-transform: uppercase;
-        letter-spacing: 0.05em;
         color: var(--font-color-sub1);
-        font-family: var(--font-stack-bold, inherit), monospace;
-        font-weight: normal;
+        font-family: var(--font-stack), monospace;
         background: var(--background-color);
     }
 
     .focus-panel-body {
         padding: 0;
+        font-size: 0.9rem;
     }
 
     .value-panel .focus-panel-body {

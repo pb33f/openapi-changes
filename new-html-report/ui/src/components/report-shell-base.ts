@@ -33,9 +33,37 @@ import '@shoelace-style/shoelace/dist/components/tooltip/tooltip.js';
 import '@shoelace-style/shoelace/dist/components/icon/icon.js';
 import '@shoelace-style/shoelace/dist/components/split-panel/split-panel.js';
 import '@shoelace-style/shoelace/dist/components/relative-time/relative-time.js';
+import '@shoelace-style/shoelace/dist/components/format-number/format-number.js';
+import '@shoelace-style/shoelace/dist/components/badge/badge.js';
+import '@shoelace-style/shoelace/dist/components/icon-button/icon-button.js';
+import '@shoelace-style/shoelace/dist/components/tag/tag.js';
+import '@shoelace-style/shoelace/dist/components/input/input.js';
+import '@shoelace-style/shoelace/dist/components/button/button.js';
+import '@shoelace-style/shoelace/dist/components/range/range.js';
+import '@shoelace-style/shoelace/dist/components/switch/switch.js';
+import '@shoelace-style/shoelace/dist/components/tree/tree.js';
+import '@shoelace-style/shoelace/dist/components/tree-item/tree-item.js';
+import '@shoelace-style/shoelace/dist/components/radio-group/radio-group.js';
+import '@shoelace-style/shoelace/dist/components/radio-button/radio-button.js';
 
 const CHANGE_LABELS = ['MODIFIED', 'ADDED', 'REMOVED'];
 const BREAKING_LABELS = ['BREAKING', 'NON-BREAKING'];
+
+// Maps dataset labels to Colorful property names on pb33f-chart
+const HISTORY_COLOR_KEYS: Record<string, string> = {
+    'Additions': 'ok',
+    'Modifications': 'tertiary',
+    'Removals': 'error',
+};
+
+function formatChartDate(iso: string): string {
+    try {
+        const d = new Date(iso);
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch {
+        return iso;
+    }
+}
 
 interface ChartDataset {
     labels: string[];
@@ -77,6 +105,8 @@ export abstract class ReportShellBase extends LitElement {
     @state() protected error: string = '';
     @state() protected activeMainTab: string = 'overview';
     @state() protected selectedDiffChanges: Change[] = [];
+    @state() protected selectedNodeId: string | null = null;
+    @state() protected selectedNodeChanges: Change[] = [];
 
     private _cachedChartIndex: number = -1;
     private _cachedData: ReportPayload | null = null;
@@ -132,6 +162,18 @@ export abstract class ReportShellBase extends LitElement {
     protected selectItem(index: number): void {
         this.activeItemIndex = index;
         this.selectedDiffChanges = [];
+        this.selectedNodeId = null;
+        this.selectedNodeChanges = [];
+    }
+
+    protected selectNode(nodeId: string): void {
+        this.selectedNodeId = nodeId;
+        const item = this.activeItem;
+        if (item?.graph?.nodes) {
+            const node = (item.graph.nodes as any[]).find((n: any) => n.id === nodeId);
+            this.selectedNodeChanges = node?.timeline || [];
+            this.selectedDiffChanges = node?.timeline || [];
+        }
     }
 
     protected updateModelTree(): void {
@@ -151,9 +193,73 @@ export abstract class ReportShellBase extends LitElement {
     protected updateBeefyChart(): void {
         if (!this.beefyChart || !this.data?.history?.changeData) return;
         const cd = this.data.history.changeData;
-        this.beefyChart.datasets = cd.datasets;
-        this.beefyChart.labels = cd.labels;
+        const pointCount = cd.labels.length;
+        const activeIdx = this.activeItemIndex;
+
+        const chartEl = this.beefyChart as any;
+        const bg = chartEl.background || '#1a1e2e';
+        this.beefyChart.datasets = cd.datasets.map((ds: any) => {
+            const colorKey = HISTORY_COLOR_KEYS[ds.label] || '';
+            const color = ds.borderColor || (colorKey && chartEl[colorKey]) || '#888';
+            return {
+                ...ds,
+                borderColor: color,
+                borderWidth: 3,
+                tension: 0,
+                fill: false,
+                pointStyle: 'rect',
+                pointRadius: Array.from({ length: pointCount }, (_, i) => i === activeIdx ? 12 : 4),
+                pointBackgroundColor: Array.from({ length: pointCount }, (_, i) =>
+                    i === activeIdx ? bg : color),
+                pointBorderColor: Array(pointCount).fill(color),
+                pointBorderWidth: Array.from({ length: pointCount }, (_, i) => i === activeIdx ? 3 : 1),
+            };
+        });
+        this.beefyChart.labels = cd.labels.map((l: string) => formatChartDate(l));
         this.beefyChart.buildChart();
+        requestAnimationFrame(() => this._drawActiveGlow());
+    }
+
+    /** Draw a glow halo around the active points after chart renders. */
+    private _drawActiveGlow(): void {
+        const chartInst = (this.beefyChart as any)?.chart;
+        if (!chartInst) return;
+        const activeIdx = this.activeItemIndex;
+        const ctx = chartInst.ctx as CanvasRenderingContext2D;
+        for (const meta of chartInst.getSortedVisibleDatasetMetas()) {
+            const point = meta.data[activeIdx];
+            if (!point) continue;
+            const color = meta._dataset?.borderColor || '#fff';
+            const size = 12;
+            // Multiple passes for a stronger, softer glow — stroke only, no fill
+            for (let pass = 0; pass < 5; pass++) {
+                ctx.save();
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 25 + pass * 12;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.9;
+                ctx.strokeRect(point.x - size, point.y - size, size * 2, size * 2);
+                ctx.restore();
+            }
+        }
+    }
+
+    /** Update only the point highlight on the beefy chart without a full rebuild. */
+    private updateBeefyChartHighlight(): void {
+        const chartInst = (this.beefyChart as any)?.chart;
+        if (!chartInst) return;
+        const activeIdx = this.activeItemIndex;
+        const bg = (this.beefyChart as any).background || '#1a1e2e';
+        for (const ds of chartInst.data.datasets) {
+            const n = ds.data.length;
+            ds.pointRadius = Array.from({ length: n }, (_, i) => i === activeIdx ? 12 : 4);
+            ds.pointBackgroundColor = Array.from({ length: n }, (_, i) =>
+                i === activeIdx ? bg : ds.borderColor);
+            ds.pointBorderWidth = Array.from({ length: n }, (_, i) => i === activeIdx ? 3 : 1);
+        }
+        chartInst.update('none');
+        requestAnimationFrame(() => this._drawActiveGlow());
     }
 
     willUpdate(changedProperties: Map<string, unknown>): void {
@@ -167,7 +273,18 @@ export abstract class ReportShellBase extends LitElement {
         if (changedProperties.has('activeItemIndex') || changedProperties.has('data')) {
             this.updateComplete.then(() => {
                 this.onDataOrIndexChanged(changedProperties);
+                this._upgradeReportIcons();
             });
+        }
+    }
+
+    /** Upgrade model icons in the doctor-rendered HTML from tiny to medium. */
+    private _upgradeReportIcons(): void {
+        const icons = this.renderRoot.querySelectorAll('.change-report pb33f-model-icon');
+        for (const icon of icons) {
+            if (icon.getAttribute('size') !== 'medium') {
+                icon.setAttribute('size', 'medium');
+            }
         }
     }
 
@@ -186,6 +303,9 @@ export abstract class ReportShellBase extends LitElement {
                 }
                 this._observeOverviewPanel();
             });
+        }
+        if (changedProperties.has('activeItemIndex') && this._chartsInitialized) {
+            this.updateBeefyChartHighlight();
         }
     }
 
@@ -298,10 +418,6 @@ export abstract class ReportShellBase extends LitElement {
                                             <pb33f-timeline-item ?skinny=${true}
                                                 class="${i === this.activeItemIndex ? 'selected' : ''}"
                                                 @click=${() => this.selectItem(i)}>
-                                                <sl-icon slot="icon"
-                                                    name="${hasBreaking ? 'heartbreak-fill' : 'caret-right-fill'}"
-                                                    class="${hasBreaking ? 'breaking-change' : 'change-icon'}">
-                                                </sl-icon>
                                                 <div slot="time"
                                                     class="time ${hasBreaking ? 'heart-breaker' : 'dream-maker'} ${i === this.activeItemIndex ? 'selected-bar' : ''}">
                                                     <sl-relative-time date="${item.commit.date}" format="narrow"></sl-relative-time>
@@ -354,14 +470,27 @@ export abstract class ReportShellBase extends LitElement {
     protected renderHistoryChart(): TemplateResult | typeof nothing {
         if (!this.isMultiCommit || !this.data?.history?.changeData) return nothing;
 
+        const cd = this.data.history.changeData;
+        const pointCount = cd.labels.length;
+        const activeIdx = this.activeItemIndex;
+        const labels = cd.labels.map((l: string) => formatChartDate(l));
+        const datasets = cd.datasets.map((ds: any) => ({
+            ...ds,
+            borderWidth: 3,
+            tension: 0,
+            fill: false,
+        }));
+
         return html`
             <div class="history-section">
-                <h3>Change History</h3>
+                <h2>Change History Chart</h2>
                 <pb33f-chart
-                    .datasets=${this.data.history.changeData.datasets}
-                    .labels=${this.data.history.changeData.labels}
-                    .height=${200}
-                    style="height: 200px; display: block;"
+                    .datasets=${datasets}
+                    .labels=${labels}
+                    .height=${550}
+                    .legend=${true}
+                    .title=${''}
+                    style="height: 550px; display: block;"
                 ></pb33f-chart>
             </div>
         `;
@@ -376,7 +505,13 @@ export abstract class ReportShellBase extends LitElement {
                 <div class="commit-info">
                     <span class="commit-hash">${item.commit.hash.substring(0, 8)}</span>
                     <span class="commit-message">${item.commit.message || 'No message'}</span>
-                    <span class="commit-date">${new Date(item.commit.date).toLocaleDateString()}</span>
+                    <span class="commit-meta">
+                        ${item.commit.author ? html`<span class="commit-author">${item.commit.author}</span>` : nothing}
+                        <span class="commit-date">${new Date(item.commit.date).toLocaleString(undefined, {
+                            month: 'short', day: 'numeric', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit',
+                        })}</span>
+                    </span>
                 </div>
                 ${this.renderSummary()}
                 ${this.renderHistoryChart()}
