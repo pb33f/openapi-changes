@@ -234,6 +234,9 @@ func BuildReportItem(
 	for _, node := range result.ChangedNodes {
 		if node.Id == "root" {
 			result.BuildNodeChangeTree(node)
+			// Prepare change-view data: deduplicate, compute subtree counts,
+			// build child summaries, recalculate dimensions.
+			result.PrepareChangeViewGraph(node)
 			rootNode = node
 			break
 		}
