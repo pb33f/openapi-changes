@@ -9,13 +9,14 @@ import './diff-viewer.js';
 // Import cowboy-components via the static-report entrypoint.
 // This registers the custom elements as side effects.
 import {
-    HeaderComponent, HttpMethodComponent, PathRenderComponent, RenderJSONPathComponent,
+    HeaderComponent, FooterComponent, HttpMethodComponent, PathRenderComponent, RenderJSONPathComponent,
     TimelineComponent, TimelineItemComponent, SpecSummaryTimelineItem,
     ThemeSwitcher, ModelTreeNodeClicked,
 } from '@pb33f/cowboy-components/static-report';
 import type { NodeClickedEvent } from '@pb33f/cowboy-components/static-report';
 // Ensure components are registered (tree-shaking guard)
 void HeaderComponent;
+void FooterComponent;
 void HttpMethodComponent;
 void PathRenderComponent;
 void RenderJSONPathComponent;
@@ -644,7 +645,6 @@ export abstract class ReportShellBase extends LitElement {
                 <div class="header-content">
                     <span class="header-meta">
                         ${this.data?.appVersion ? html`<span class="header-version">v${this.data.appVersion}</span>` : nothing}
-                        <span class="header-date">${new Date(this.data?.dateGenerated || '').toLocaleString()}</span>
                     </span>
                     <pb33f-theme-switcher></pb33f-theme-switcher>
                 </div>
@@ -662,6 +662,10 @@ export abstract class ReportShellBase extends LitElement {
                     </div>
                 </sl-split-panel>
             </div>
+            <pb33f-footer fluid
+                url="https://pb33f.io/openapi-changes/"
+                .build=${'Generated ' + new Date(this.data?.dateGenerated || '').toLocaleString()}>
+            </pb33f-footer>
         `;
     }
 }

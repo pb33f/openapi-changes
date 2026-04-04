@@ -2,13 +2,19 @@ import { css } from 'lit';
 
 export default css`
     :host {
-        display: block;
+        display: flex;
+        flex-direction: column;
         width: 100%;
         height: 100vh;
         overflow-x: hidden;
         background-color: var(--background-color);
         color: var(--font-color);
         font-family: var(--font-stack), monospace;
+
+        --header-height: 57px;
+        --tab-chrome: 38px;
+        --footer-outer-height: 20px;
+        --chrome-total: calc(var(--header-height) + var(--tab-chrome) + var(--footer-outer-height));
     }
     
     pb33f-theme-switcher {
@@ -37,8 +43,13 @@ export default css`
     }
 
     .report-layout {
-        height: calc(100vh - 57px); /* 57px = pb33f-header height */
+        flex: 1;
+        min-height: 0;
         overflow: hidden;
+    }
+
+    pb33f-footer {
+        flex-shrink: 0;
     }
 
     /* ── Split panel ── */
@@ -356,13 +367,13 @@ export default css`
 
     sl-tab-panel[name="graph"] pb33f-explorer {
         display: block;
-        height: calc(100vh - 95px); /* header(57) + tabs(30) + margins(8) */
+        height: calc(100vh - var(--chrome-total));
     }
 
     sl-tab-panel[name="diff"] {
         padding: 0;
         overflow: hidden;
-        height: calc(100vh - 95px); /* header(57) + tabs(30) + margins(8) */
+        height: calc(100vh - var(--chrome-total));
     }
 
     sl-tab-panel[name="diff"]::part(base) {

@@ -1,5 +1,45 @@
 import { defineConfig, Plugin } from 'vite';
 import { resolve } from 'path';
+import { readFileSync } from 'fs';
+
+/**
+ * Inline font files as base64 data URIs in @font-face CSS declarations.
+ *
+ * The pb33f-theme.css references fonts via relative URLs (../fonts/BerkeleyMono-*.woff2).
+ * These break when the CSS is inlined into a <style> tag in the self-contained HTML report.
+ * This plugin resolves each url() reference to the actual font file and replaces it with
+ * a base64 data URI so fonts work for everyone, not just users with BerkeleyMono installed.
+ */
+function inlineFontDataURIs(): Plugin {
+  // cowboy-components/src/fonts/ is where the font files live
+  const fontsDir = resolve(__dirname, '../../../cowboy-components/src/fonts');
+
+  return {
+    name: 'inline-font-data-uris',
+    enforce: 'pre',
+    transform(code, id) {
+      if (!id.endsWith('.css') || !code.includes('BerkeleyMono-')) return null;
+
+      const result = code.replace(
+        /url\(\s*['"]?(\.\.\/fonts\/(BerkeleyMono-[^'")]+))\s*['"]?\)/g,
+        (_match, _relPath, filename) => {
+          const ext = filename.split('.').pop();
+          const mime = ext === 'woff2' ? 'font/woff2' : 'font/woff';
+          try {
+            const fontPath = resolve(fontsDir, filename);
+            const data = readFileSync(fontPath);
+            return `url(data:${mime};base64,${data.toString('base64')})`;
+          } catch {
+            // font file not found — leave the original reference
+            return _match;
+          }
+        }
+      );
+
+      return { code: result, map: null };
+    },
+  };
+}
 
 /**
  * Vite plugin that stubs ALL `?worker&inline` imports from cowboy-components.
@@ -44,6 +84,7 @@ const isLite = !!process.env.BUNDLE_LITE;
 
 export default defineConfig({
   plugins: [
+    inlineFontDataURIs(),
     stubWorkerInline(),
   ],
   resolve: {
