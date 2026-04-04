@@ -11,11 +11,9 @@ import './diff-viewer.js';
 import {
     HeaderComponent, HttpMethodComponent, PathRenderComponent, RenderJSONPathComponent,
     TimelineComponent, TimelineItemComponent, SpecSummaryTimelineItem,
-    ModelTreeNodeClicked,
+    ThemeSwitcher, ModelTreeNodeClicked,
 } from '@pb33f/cowboy-components/static-report';
 import type { NodeClickedEvent } from '@pb33f/cowboy-components/static-report';
-import type { DiffViewer } from './diff-viewer.js';
-
 // Ensure components are registered (tree-shaking guard)
 void HeaderComponent;
 void HttpMethodComponent;
@@ -24,6 +22,7 @@ void RenderJSONPathComponent;
 void TimelineComponent;
 void TimelineItemComponent;
 void SpecSummaryTimelineItem;
+void ThemeSwitcher;
 
 // Shoelace components used directly in the shell template
 import '@shoelace-style/shoelace/dist/components/tab-group/tab-group.js';
@@ -49,7 +48,7 @@ import '@shoelace-style/shoelace/dist/components/radio-button/radio-button.js';
 const CHANGE_LABELS = ['MODIFIED', 'ADDED', 'REMOVED'];
 const BREAKING_LABELS = ['BREAKING', 'NON-BREAKING'];
 
-// Maps dataset labels to Colorful property names on pb33f-chart
+// maps dataset labels to dynamic color property keys on pb33f-chart
 const HISTORY_COLOR_KEYS: Record<string, string> = {
     'Additions': 'ok',
     'Modifications': 'tertiary',
@@ -65,6 +64,15 @@ function formatChartDate(iso: string): string {
     }
 }
 
+function buildPointArrays(count: number, activeIdx: number, bg: string, color: string) {
+    return {
+        pointRadius: Array.from({ length: count }, (_, i) => i === activeIdx ? 12 : 4),
+        pointBackgroundColor: Array.from({ length: count }, (_, i) => i === activeIdx ? bg : color),
+        pointBorderColor: Array(count).fill(color),
+        pointBorderWidth: Array.from({ length: count }, (_, i) => i === activeIdx ? 3 : 1),
+    };
+}
+
 interface ChartDataset {
     labels: string[];
     data: number[];
@@ -75,16 +83,27 @@ interface ModelTreeElement extends HTMLElement {
     node: Node | null;
     changesEnabled: boolean;
     violationMap: Map<string, unknown>;
+    explorerClicked(nodeId: string): void;
 }
 
 interface ChartElement extends HTMLElement {
     datasets: unknown[];
     labels: string[];
+    background?: string;
+    chart?: ChartInstance;
     buildChart(): void;
+    [key: string]: unknown;
+}
+
+interface ChartInstance {
+    ctx: CanvasRenderingContext2D;
+    data: { datasets: any[] };
+    getSortedVisibleDatasetMetas(): any[];
+    update(mode?: string): void;
 }
 
 interface DoughnutChartElement extends HTMLElement {
-    chart?: { resize(): void };
+    chart?: { resize(): void; update(mode?: string): void };
 }
 
 interface TabGroupElement extends HTMLElement {
@@ -108,29 +127,38 @@ export abstract class ReportShellBase extends LitElement {
     @state() protected selectedNodeId: string | null = null;
     @state() protected selectedNodeChanges: Change[] = [];
 
-    private _graphNodeMap: Map<string, any> = new Map();
+    private _graphNodeMap: Map<string, Node> = new Map();
     private _cachedChartIndex: number = -1;
     private _cachedData: ReportPayload | null = null;
     protected _changeDataset: ChartDataset[] = [];
     protected _breakingDataset: ChartDataset[] = [];
 
-    @query('.navigator-panel pb33f-model-tree') protected modelTree: ModelTreeElement;
-    @query('pb33f-chart') protected beefyChart: ChartElement;
-    @query('.tab-content > sl-tab-group') protected mainTabGroup: TabGroupElement;
-    @query('openapi-changes-diff-viewer') protected diffViewer!: DiffViewer;
+    @query('.navigator-panel pb33f-model-tree') protected modelTree!: ModelTreeElement;
+    @query('pb33f-chart') protected beefyChart!: ChartElement;
+    @query('.tab-content > sl-tab-group') protected mainTabGroup!: TabGroupElement;
 
     private _overviewResizeObserver: ResizeObserver | null = null;
     private _chartsInitialized = false;
+
+    private _onThemeChange = () => {
+        // Delay to let Colorful base class re-resolve CSS variable colors
+        requestAnimationFrame(() => {
+            this.updateBeefyChart();
+            this.resizeDoughnutCharts();
+        });
+    };
 
     connectedCallback(): void {
         super.connectedCallback();
         this.loadData();
         this.addEventListener(ModelTreeNodeClicked, this._onTreeNodeClicked as EventListener);
+        window.addEventListener('pb33f-theme-change', this._onThemeChange);
     }
 
     disconnectedCallback(): void {
         super.disconnectedCallback();
         this.removeEventListener(ModelTreeNodeClicked, this._onTreeNodeClicked as EventListener);
+        window.removeEventListener('pb33f-theme-change', this._onThemeChange);
         this._overviewResizeObserver?.disconnect();
     }
 
@@ -197,11 +225,18 @@ export abstract class ReportShellBase extends LitElement {
         const pointCount = cd.labels.length;
         const activeIdx = this.activeItemIndex;
 
-        const chartEl = this.beefyChart as any;
-        const bg = chartEl.background || '#1a1e2e';
+        const bg = this.beefyChart.background || '#1a1e2e';
+        const isLight = document.documentElement.getAttribute('theme') === 'light';
+        const lightColors: Record<string, string> = {
+            'ok': '#000',
+            'tertiary': '#999',
+            'error': '#555',
+        };
         this.beefyChart.datasets = cd.datasets.map((ds: any) => {
             const colorKey = HISTORY_COLOR_KEYS[ds.label] || '';
-            const color = ds.borderColor || (colorKey && chartEl[colorKey]) || '#888';
+            const color = isLight
+                ? (lightColors[colorKey] || '#666')
+                : (ds.borderColor || (colorKey && this.beefyChart[colorKey]) || '#888');
             return {
                 ...ds,
                 borderColor: color,
@@ -209,11 +244,7 @@ export abstract class ReportShellBase extends LitElement {
                 tension: 0,
                 fill: false,
                 pointStyle: 'rect',
-                pointRadius: Array.from({ length: pointCount }, (_, i) => i === activeIdx ? 12 : 4),
-                pointBackgroundColor: Array.from({ length: pointCount }, (_, i) =>
-                    i === activeIdx ? bg : color),
-                pointBorderColor: Array(pointCount).fill(color),
-                pointBorderWidth: Array.from({ length: pointCount }, (_, i) => i === activeIdx ? 3 : 1),
+                ...buildPointArrays(pointCount, activeIdx, bg, color),
             };
         });
         this.beefyChart.labels = cd.labels.map((l: string) => formatChartDate(l));
@@ -221,12 +252,11 @@ export abstract class ReportShellBase extends LitElement {
         requestAnimationFrame(() => this._drawActiveGlow());
     }
 
-    /** Draw a glow halo around the active points after chart renders. */
     private _drawActiveGlow(): void {
-        const chartInst = (this.beefyChart as any)?.chart;
+        const chartInst = this.beefyChart?.chart;
         if (!chartInst) return;
         const activeIdx = this.activeItemIndex;
-        const ctx = chartInst.ctx as CanvasRenderingContext2D;
+        const ctx = chartInst.ctx;
         for (const meta of chartInst.getSortedVisibleDatasetMetas()) {
             const point = meta.data[activeIdx];
             if (!point) continue;
@@ -246,18 +276,14 @@ export abstract class ReportShellBase extends LitElement {
         }
     }
 
-    /** Update only the point highlight on the beefy chart without a full rebuild. */
     private updateBeefyChartHighlight(): void {
-        const chartInst = (this.beefyChart as any)?.chart;
+        const chartInst = this.beefyChart?.chart;
         if (!chartInst) return;
         const activeIdx = this.activeItemIndex;
-        const bg = (this.beefyChart as any).background || '#1a1e2e';
+        const bg = this.beefyChart.background || '#1a1e2e';
         for (const ds of chartInst.data.datasets) {
             const n = ds.data.length;
-            ds.pointRadius = Array.from({ length: n }, (_, i) => i === activeIdx ? 12 : 4);
-            ds.pointBackgroundColor = Array.from({ length: n }, (_, i) =>
-                i === activeIdx ? bg : ds.borderColor);
-            ds.pointBorderWidth = Array.from({ length: n }, (_, i) => i === activeIdx ? 3 : 1);
+            Object.assign(ds, buildPointArrays(n, activeIdx, bg, ds.borderColor));
         }
         chartInst.update('none');
         requestAnimationFrame(() => this._drawActiveGlow());
@@ -346,10 +372,7 @@ export abstract class ReportShellBase extends LitElement {
     private resizeDoughnutCharts(): void {
         const doughnuts = this.renderRoot.querySelectorAll<DoughnutChartElement>('pb33f-doughnut-chart');
         for (const d of doughnuts) {
-            if (d.chart) {
-                d.chart.resize();
-                d.chart.update();
-            }
+            d.chart?.resize();
         }
     }
 
@@ -443,18 +466,18 @@ export abstract class ReportShellBase extends LitElement {
         `;
     }
 
-    protected renderSummary(): TemplateResult {
+    protected renderSummary(): TemplateResult | typeof nothing {
         const item = this.activeItem;
-        if (!item) return html``;
+        if (!item) return nothing;
 
         return html`
             <div class="change-summary">
                 <div class="charts-row">
-                    <pb33f-doughnut-chart changesChart width=250 height=120
+                    <pb33f-doughnut-chart changesChart width=300 height=120
                         .datasets=${this._changeDataset} .labels=${CHANGE_LABELS}
                     ></pb33f-doughnut-chart>
                     ${(item.summary.breakingChanges || 0) > 0 ? html`
-                        <pb33f-doughnut-chart breakingChanges width=250 height=120
+                        <pb33f-doughnut-chart breakingChanges width=300 height=120
                             .datasets=${this._breakingDataset} .labels=${BREAKING_LABELS}
                         ></pb33f-doughnut-chart>
                     ` : nothing}
@@ -472,8 +495,6 @@ export abstract class ReportShellBase extends LitElement {
         if (!this.isMultiCommit || !this.data?.history?.changeData) return nothing;
 
         const cd = this.data.history.changeData;
-        const pointCount = cd.labels.length;
-        const activeIdx = this.activeItemIndex;
         const labels = cd.labels.map((l: string) => formatChartDate(l));
         const datasets = cd.datasets.map((ds: any) => ({
             ...ds,
@@ -497,9 +518,9 @@ export abstract class ReportShellBase extends LitElement {
         `;
     }
 
-    protected renderOverview(): TemplateResult {
+    protected renderOverview(): TemplateResult | typeof nothing {
         const item = this.activeItem;
-        if (!item) return html``;
+        if (!item) return nothing;
 
         return html`
             <div class="overview-content">
@@ -533,6 +554,13 @@ export abstract class ReportShellBase extends LitElement {
     protected renderCombinedReport(item: ReportItem): TemplateResult {
         return html`
             <div class="combined-report overview-content">
+                ${this.data?.originalPath && this.data?.modifiedPath ? html`
+                    <div class="spec-paths">
+                        <span class="spec-path-label">Original:</span> <code>${this.data.originalPath}</code>
+                        <span class="spec-path-arrow">→</span>
+                        <span class="spec-path-label">Modified:</span> <code>${this.data.modifiedPath}</code>
+                    </div>
+                ` : nothing}
                 ${this.renderSummary()}
                 ${this.renderHtmlReport(item)}
             </div>
@@ -612,7 +640,15 @@ export abstract class ReportShellBase extends LitElement {
         const item = this.activeItem!;
 
         return html`
-            <pb33f-header name="openapi-changes" fluid></pb33f-header>
+            <pb33f-header name="openapi-changes" fluid>
+                <div class="header-content">
+                    <span class="header-meta">
+                        ${this.data?.appVersion ? html`<span class="header-version">v${this.data.appVersion}</span>` : nothing}
+                        <span class="header-date">${new Date(this.data?.dateGenerated || '').toLocaleString()}</span>
+                    </span>
+                    <pb33f-theme-switcher></pb33f-theme-switcher>
+                </div>
+            </pb33f-header>
             <div class="report-layout">
                 <sl-split-panel class="split-panel" position="18">
                     <sl-icon slot="divider" name="grip-vertical" class="divider-vert" aria-hidden="true"></sl-icon>

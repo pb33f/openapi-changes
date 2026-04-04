@@ -147,6 +147,9 @@ export interface ReportItem {
 export interface ReportPayload {
     version: number;
     dateGenerated: string;
+    appVersion?: string;
+    originalPath?: string;
+    modifiedPath?: string;
     items: ReportItem[];
     history: HistoryData;
 }

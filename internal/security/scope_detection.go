@@ -61,12 +61,51 @@ func IsSecurityScopeChange(change *wcModel.Change) bool {
 
 // FormatSecurityScopeTitle formats security scope changes as "scheme/scope"
 func FormatSecurityScopeTitle(change *wcModel.Change) string {
+	scopeKey := func() string {
+		switch change.ChangeType {
+		case wcModel.ObjectAdded, wcModel.PropertyAdded:
+			if key, ok := change.NewObject.(string); ok && key != "" {
+				return key
+			}
+		case wcModel.ObjectRemoved, wcModel.PropertyRemoved:
+			if key, ok := change.OriginalObject.(string); ok && key != "" {
+				return key
+			}
+		}
+		return ""
+	}
+	scopeValue := func() string {
+		switch change.ChangeType {
+		case wcModel.ObjectAdded, wcModel.PropertyAdded:
+			return change.New
+		case wcModel.ObjectRemoved, wcModel.PropertyRemoved:
+			return change.Original
+		}
+		return ""
+	}
+
 	switch change.ChangeType {
 	case wcModel.ObjectAdded, wcModel.PropertyAdded:
+		if change.Property == "scopes" {
+			if key := scopeKey(); key != "" {
+				if value := scopeValue(); value != "" && value != key {
+					return change.Property + "/" + key + " (" + value + ")"
+				}
+				return change.Property + "/" + key
+			}
+		}
 		if change.New != "" {
 			return change.Property + "/" + change.New
 		}
 	case wcModel.ObjectRemoved, wcModel.PropertyRemoved:
+		if change.Property == "scopes" {
+			if key := scopeKey(); key != "" {
+				if value := scopeValue(); value != "" && value != key {
+					return change.Property + "/" + key + " (" + value + ")"
+				}
+				return change.Property + "/" + key
+			}
+		}
 		if change.Original != "" {
 			return change.Property + "/" + change.Original
 		}

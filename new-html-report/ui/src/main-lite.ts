@@ -7,7 +7,8 @@ import { registerReportIcons } from './icon-registry.js';
 import '@pb33f/cowboy-components/pb33f-theme.css';
 import '@pb33f/cowboy-components/cowboy-components.css';
 
-// Shoelace dark theme CSS
+// Shoelace theme CSS — light first so dark overrides as default
+import '@shoelace-style/shoelace/dist/themes/light.css';
 import '@shoelace-style/shoelace/dist/themes/dark.css';
 
 // Set theme attribute so CSS variables activate
@@ -17,10 +18,7 @@ document.documentElement.classList.add('sl-theme-dark');
 // Register inline SVG icons so the report works offline
 registerReportIcons();
 
-// Signal to the report shell that explorer is not available
-(window as any).__REPORT_NO_EXPLORER__ = true;
-
-// Import the report shell component (registers <openapi-changes-report>)
+// Import the lite report shell (excludes explorer component)
 import './components/report-shell-lite.js';
 
 // Remove preloader and mount the report

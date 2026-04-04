@@ -13,93 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pb33f/doctor/changerator"
-	drModel "github.com/pb33f/doctor/model"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/spf13/cobra"
 )
-
-// changeratorResult holds the output of runChangerator.
-// Caller must call Release() when done.
-type changeratorResult struct {
-	Changerator *changerator.Changerator
-	DocChanges  *whatChangedModel.DocumentChanges
-	RightDrDoc  *drModel.DrDocument
-	LeftDrDoc   *drModel.DrDocument
-}
-
-func (r *changeratorResult) Release() {
-	if r.RightDrDoc != nil {
-		r.RightDrDoc.Release()
-	}
-	if r.LeftDrDoc != nil {
-		r.LeftDrDoc.Release()
-	}
-}
-
-// runChangerator builds DrDocuments, runs the changerator, and returns the results.
-// Returns (nil, nil) if Documents are nil or no changes found.
-// Returns (nil, err) if model building fails.
-// Returns (result, nil) on success — caller must call result.Release().
-// Not safe for concurrent use due to global ApplyBreakingRulesConfig/ResetBreakingRulesConfig state.
-func runChangerator(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*changeratorResult, error) {
-	if commit.Document == nil || commit.OldDocument == nil {
-		return nil, nil
-	}
-
-	rightModel, err := commit.Document.BuildV3Model()
-	if err != nil {
-		return nil, fmt.Errorf("building right model: %w", err)
-	}
-	leftModel, err := commit.OldDocument.BuildV3Model()
-	if err != nil {
-		return nil, fmt.Errorf("building left model: %w", err)
-	}
-
-	rightDrDoc := drModel.NewDrDocumentAndGraph(rightModel)
-	leftDrDoc := drModel.NewDrDocumentAndGraph(leftModel)
-
-	if rightDrDoc == nil || leftDrDoc == nil {
-		if rightDrDoc != nil {
-			rightDrDoc.Release()
-		}
-		if leftDrDoc != nil {
-			leftDrDoc.Release()
-		}
-		return nil, fmt.Errorf("failed to create DrDocument models")
-	}
-
-	if breakingConfig != nil {
-		ApplyBreakingRulesConfig(breakingConfig)
-	}
-
-	ctr := changerator.NewChangerator(&changerator.ChangeratorConfig{
-		LeftDrDoc:       leftDrDoc.V3Document,
-		RightDrDoc:      rightDrDoc.V3Document,
-		Doctor:          rightDrDoc,
-		RightDocContent: commit.Data,
-	})
-
-	docChanges := ctr.Changerate()
-
-	if breakingConfig != nil {
-		ResetBreakingRulesConfig()
-	}
-
-	if docChanges == nil {
-		rightDrDoc.Release()
-		leftDrDoc.Release()
-		return nil, nil
-	}
-
-	return &changeratorResult{
-		Changerator: ctr,
-		DocChanges:  docChanges,
-		RightDrDoc:  rightDrDoc,
-		LeftDrDoc:   leftDrDoc,
-	}, nil
-}
 
 // changerateCommit runs the doctor changerator on a single commit to populate
 // commit.Changes. Returns true if changes were found.
@@ -264,7 +181,7 @@ func GetNewReportCommand() *cobra.Command {
 						return reportErr
 					}
 					if flat == nil {
-						fmt.Println(`{"message": "No changes found between specifications"}`)
+						printNoChangesJSON()
 						return nil
 					}
 					return printReportJSON(flat)
@@ -276,7 +193,7 @@ func GetNewReportCommand() *cobra.Command {
 				return reportErr
 			}
 			if flat == nil {
-				fmt.Println(`{"message": "No changes found between specifications"}`)
+				printNoChangesJSON()
 				return nil
 			}
 			return printReportJSON(flat)

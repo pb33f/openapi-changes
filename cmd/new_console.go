@@ -36,6 +36,22 @@ func bridgeRunChangerator(commit *model.Commit, breakingConfig *whatChangedModel
 	return result.Changerator, root, releaseFn, nil
 }
 
+func hasRenderableDocuments(commits []*model.Commit) bool {
+	for _, commit := range commits {
+		if commit.Document != nil && commit.OldDocument != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func wrapConsoleStartError(err error) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("console is unable to start; it requires an interactive terminal and cannot run headless: %w", err)
+}
+
 func GetNewConsoleCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		SilenceUsage: true,
@@ -76,20 +92,12 @@ func GetNewConsoleCommand() *cobra.Command {
 			}
 
 			if len(commits) == 0 {
-				fmt.Println("No changes found between specifications")
+				printNoChangesText()
 				return nil
 			}
 
-			// Check if all commits lack Documents
-			hasDocuments := false
-			for _, c := range commits {
-				if c.Document != nil && c.OldDocument != nil {
-					hasDocuments = true
-					break
-				}
-			}
-			if !hasDocuments {
-				fmt.Println("No changes found between specifications")
+			if !hasRenderableDocuments(commits) {
+				printNoChangesText()
 				return nil
 			}
 
@@ -97,7 +105,7 @@ func GetNewConsoleCommand() *cobra.Command {
 			m := v2tui.NewConsoleModel(commits, breakingConfig, opts.noColor, Version, bridgeRunChangerator)
 			p := tea.NewProgram(m)
 			if _, err := p.Run(); err != nil {
-				return fmt.Errorf("console error: %w", err)
+				return wrapConsoleStartError(err)
 			}
 			return nil
 		},

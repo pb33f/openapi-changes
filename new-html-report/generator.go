@@ -20,6 +20,7 @@ import (
 	"github.com/pb33f/doctor/changerator/renderer"
 	drModel "github.com/pb33f/doctor/model"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
+	"github.com/pb33f/openapi-changes/internal/changecounts"
 	"github.com/pb33f/openapi-changes/model"
 )
 
@@ -80,21 +81,24 @@ func GetReportTemplate() string {
 type ReportPayload struct {
 	Version       int           `json:"version"`
 	DateGenerated string        `json:"dateGenerated"`
+	AppVersion    string        `json:"appVersion,omitempty"`
+	OriginalPath  string        `json:"originalPath,omitempty"`
+	ModifiedPath  string        `json:"modifiedPath,omitempty"`
 	Items         []*ReportItem `json:"items"`
 	History       *HistoryData  `json:"history"`
 }
 
 // ReportItem represents a single commit/comparison in the report.
 type ReportItem struct {
-	ChangeId              string            `json:"changeId"`
-	Graph                 *GraphData        `json:"graph"`
-	Summary               *SummaryData      `json:"summary"`
-	HtmlReport            string            `json:"htmlReport"`
-	OriginalSpec          string            `json:"originalSpec"`
-	ModifiedSpec          string            `json:"modifiedSpec"`
-	OriginalHighlighted   map[int]string    `json:"originalHighlighted,omitempty"`
-	ModifiedHighlighted   map[int]string    `json:"modifiedHighlighted,omitempty"`
-	Commit                *CommitInfo       `json:"commit"`
+	ChangeId            string         `json:"changeId"`
+	Graph               *GraphData     `json:"graph"`
+	Summary             *SummaryData   `json:"summary"`
+	HtmlReport          string         `json:"htmlReport"`
+	OriginalSpec        string         `json:"originalSpec"`
+	ModifiedSpec        string         `json:"modifiedSpec"`
+	OriginalHighlighted map[int]string `json:"originalHighlighted,omitempty"`
+	ModifiedHighlighted map[int]string `json:"modifiedHighlighted,omitempty"`
+	Commit              *CommitInfo    `json:"commit"`
 }
 
 // highlightSpecLines uses Chroma to syntax-highlight each line of a spec,
@@ -235,17 +239,19 @@ func BuildReportItem(
 		}
 	}
 
-	changeStats := result.Calculatoratron()
+	deduplicatedChanges := result.DeduplicateChanges()
+	counts := changecounts.FromChanges(deduplicatedChanges)
 
 	htmlConfig := renderer.DefaultRenderConfig()
 	htmlConfig.HTML.EnableFloatingSidebar = true
 	htmlConfig.HTML.EnableNestedListFix = true
 	htmlRenderer := renderer.NewHTMLRenderer(htmlConfig)
 	htmlReport, err := htmlRenderer.RenderHTML(&renderer.RenderInput{
-		DocumentChanges: docChanges,
-		Doctor:          rightDrDoc,
-		RightDocContent: commit.Data,
-		Config:          htmlConfig,
+		DocumentChanges:     docChanges,
+		Doctor:              rightDrDoc,
+		RightDocContent:     commit.Data,
+		Config:              htmlConfig,
+		DeduplicatedChanges: deduplicatedChanges,
 	})
 	if err != nil {
 		htmlReport = fmt.Sprintf("<p>Error rendering report: %s</p>", err.Error())
@@ -264,7 +270,6 @@ func BuildReportItem(
 		return nil, fmt.Errorf("marshaling edges: %w", err)
 	}
 
-	deduplicatedChanges := result.DeduplicateChanges()
 	changesJSON, err := json.Marshal(deduplicatedChanges)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling changes: %w", err)
@@ -287,16 +292,14 @@ func BuildReportItem(
 		GraphMap:       graphMap,
 	}
 
-	// TotalChanges/BreakingChanges use raw counts from DocumentChanges.
-	// Additions/Modifications/Removals use deduplicated counts from Calculatoratron.
 	summary := &SummaryData{
 		ChangeId:        changeId,
 		Created:         commit.CommitDate.Format(time.RFC3339),
-		TotalChanges:    docChanges.TotalChanges(),
-		BreakingChanges: docChanges.TotalBreakingChanges(),
-		Additions:       changeStats.Additions,
-		Modifications:   changeStats.Modifications,
-		Removals:        changeStats.Deletions,
+		TotalChanges:    counts.Total,
+		BreakingChanges: counts.Breaking,
+		Additions:       counts.Additions,
+		Modifications:   counts.Modifications,
+		Removals:        counts.Removals,
 		GitCommitSha:    commit.Hash,
 		GitAuthor:       commit.Author,
 		GitMessage:      commit.Message,

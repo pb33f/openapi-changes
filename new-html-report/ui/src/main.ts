@@ -7,7 +7,8 @@ import { registerReportIcons } from './icon-registry.js';
 import '@pb33f/cowboy-components/pb33f-theme.css';
 import '@pb33f/cowboy-components/cowboy-components.css';
 
-// Shoelace dark theme CSS
+// Shoelace theme CSS — light first so dark overrides as default
+import '@shoelace-style/shoelace/dist/themes/light.css';
 import '@shoelace-style/shoelace/dist/themes/dark.css';
 
 // Set theme attribute so CSS variables activate

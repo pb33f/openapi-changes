@@ -5,10 +5,35 @@ export default css`
         display: block;
         width: 100%;
         height: 100vh;
+        overflow-x: hidden;
         background-color: var(--background-color);
         color: var(--font-color);
         font-family: var(--font-stack), monospace;
+    }
+    
+    pb33f-theme-switcher {
+        margin-right: var(--global-padding-double);
+    }
         
+    .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        height: 100%;
+        padding: 0 var(--global-padding);
+    }
+
+    .header-meta {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-family: var(--font-stack), monospace;
+        color: var(--font-color-sub2);
+    }
+
+    .header-version {
+        color: var(--primary-color);
     }
 
     .report-layout {
@@ -109,7 +134,7 @@ export default css`
     }
 
     .navigator-tabs sl-tab-panel::part(base) {
-        padding-top: 10px;
+        padding: 10px 0 0;
         overflow: hidden;
         height: 100%;
         display: flex;
@@ -289,7 +314,7 @@ export default css`
 
     .charts-row pb33f-doughnut-chart {
         display: block;
-        width: 250px;
+        width: 300px;
         height: 120px;
     }
 
@@ -352,6 +377,34 @@ export default css`
     }
 
     /* ── Combined report (single comparison mode) ── */
+    .spec-paths {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: var(--global-padding);
+        margin-bottom: var(--global-padding);
+        font-family: var(--font-stack), monospace;
+        font-size: 0.85rem;
+        color: var(--font-color-sub1);
+        border-bottom: 1px dashed var(--secondary-color-dimmer);
+    }
+
+    .spec-path-label {
+        color: var(--font-color-sub2);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.03em;
+    }
+
+    .spec-paths code {
+        color: var(--primary-color);
+        font-family: var(--font-stack-bold), monospace;
+    }
+
+    .spec-path-arrow {
+        color: var(--secondary-color);
+    }
+
     .combined-report .change-report {
         margin-top: var(--global-padding-double);
     }
@@ -389,22 +442,26 @@ export default css`
         font-family: var(--font-stack-bold), monospace;
         font-weight: normal;
     }
+
+    .change-report h1 {
+        text-transform: uppercase;
+    }
     
     .change-report h2 {
         text-transform: uppercase;
-        font-size: 1.6rem;
+        font-size: 2rem;
         border-bottom: 1px dashed var(--hrcolor);
         padding-bottom: var(--global-padding);
     }
 
     .change-report h3 {
         text-transform: uppercase;
-        font-size: 1.4rem;
+        font-size: 1.7rem;
         margin-top: 80px;
     }
 
     .change-report h4 {
-        font-size: 1.2rem;
+        font-size: 1.3rem;
   
     }
 
@@ -439,7 +496,7 @@ export default css`
     /* Links */
     .change-report a, .change-report a:visited, .change-report a:active {
         text-decoration: none;
-        font-color: var(--font-color);
+        color: var(--font-color);
         font-family: var(--font-stack-bold), monospace;
         font-weight: normal;
     }
@@ -452,7 +509,7 @@ export default css`
     /* Lists */
     .change-report ul {
         padding-left: var(--global-padding);
-        margin-bottom: var(--global-padding-double);
+        margin-bottom: calc(var(--global-padding-double) *2);
     }
 
     .change-report ul > li {
@@ -614,6 +671,7 @@ export default css`
     }
 
     .change-report table.object-change-summary > thead > tr > th:last-child {
+        text-align: center;
         background: var(--kv-table-header-background);
     }
 
@@ -672,8 +730,9 @@ export default css`
         background-color: var(--background-color);
     }
 
-    .change-report .metadata-sidebar table {
-       
+    .change-report .metadata-sidebar > p:first-child {
+        margin-top: 0;
+        padding-top: 0;
     }
 
     .change-report .report-clearfix::after {

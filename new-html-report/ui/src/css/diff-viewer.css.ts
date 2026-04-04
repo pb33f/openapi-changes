@@ -182,7 +182,6 @@ export default css`
 
     .view-radio-group sl-radio-button::part(button) {
         font-family: var(--font-stack), monospace;
-        font-size: 1rem;
         text-transform: uppercase;
         border-radius: 0;
         font-size: 0.9rem;
@@ -293,14 +292,6 @@ export default css`
         overflow: hidden;
     }
 
-    .focus-panel.added {
-        border-color: var(--hrcolor);
-    }
-
-    .focus-panel.removed {
-        border-color: var(--hrcolor);
-    }
-
     .focus-panel-header {
         padding: var(--global-padding-half) var(--global-padding);
         border-bottom: 1px solid var(--hrcolor);
@@ -342,6 +333,40 @@ export default css`
         height: 200px;
         color: var(--font-color-sub2);
         font-family: var(--font-stack, inherit), monospace;
+    }
+
+    /* Light/Roger mode overrides — greyscale, no color */
+    :host-context(html[theme="light"]) .diff-line[data-emphasis="range"].added,
+    :host-context(html[theme="light"]) .diff-line[data-emphasis="range"].added .line-number {
+        background: rgba(0, 0, 0, 0.06);
+    }
+    :host-context(html[theme="light"]) .diff-line[data-emphasis="range"].removed,
+    :host-context(html[theme="light"]) .diff-line[data-emphasis="range"].removed .line-number {
+        background: rgba(0, 0, 0, 0.12);
+    }
+    :host-context(html[theme="light"]) .diff-line.added {
+        background: rgba(0, 0, 0, 0.08);
+    }
+    :host-context(html[theme="light"]) .diff-line.added .line-number {
+        background: rgba(0, 0, 0, 0.12);
+    }
+    :host-context(html[theme="light"]) .diff-line.added .line-gutter {
+        color: #000;
+    }
+    :host-context(html[theme="light"]) .diff-line.removed {
+        background: rgba(0, 0, 0, 0.15);
+    }
+    :host-context(html[theme="light"]) .diff-line.removed .line-number {
+        background: rgba(0, 0, 0, 0.2);
+    }
+    :host-context(html[theme="light"]) .diff-line.removed .line-gutter {
+        color: #000;
+    }
+    :host-context(html[theme="light"]) .value-panel.added .focus-panel-body {
+        background: rgba(0, 0, 0, 0.05);
+    }
+    :host-context(html[theme="light"]) .value-panel.removed .focus-panel-body {
+        background: rgba(0, 0, 0, 0.1);
     }
 
     .diff-line.highlight {

@@ -188,24 +188,24 @@ function buildValueBlocks(change: Change): FocusValueBlock[] {
     switch (change.change) {
     case CHANGE_PROPERTY_ADDED:
     case CHANGE_OBJECT_ADDED:
-        return originalOrNewValueBlocks('Added Value', 'added', change.property, modified);
+        return originalOrNewValueBlocks('Added Value', 'added', modified);
     case CHANGE_OBJECT_REMOVED:
     case CHANGE_PROPERTY_REMOVED:
-        return originalOrNewValueBlocks('Removed Value', 'removed', change.property, original);
+        return originalOrNewValueBlocks('Removed Value', 'removed', original);
     case CHANGE_MODIFIED: {
         const blocks: FocusValueBlock[] = [];
         if (original) {
             blocks.push({
                 title: 'Original Value',
                 tone: 'removed',
-                lines: formatValueLines(change.property, original),
+                lines: formatValueLines(original),
             });
         }
         if (modified) {
             blocks.push({
                 title: 'Modified Value',
                 tone: 'added',
-                lines: formatValueLines(change.property, modified),
+                lines: formatValueLines(modified),
             });
         }
         return blocks;
@@ -218,18 +218,17 @@ function buildValueBlocks(change: Change): FocusValueBlock[] {
 function originalOrNewValueBlocks(
     title: string,
     tone: 'added' | 'removed',
-    property: string,
     value: string,
 ): FocusValueBlock[] {
     if (!value) return [];
     return [{
         title,
         tone,
-        lines: formatValueLines(property, value),
+        lines: formatValueLines(value),
     }];
 }
 
-function formatValueLines(_property: string, value: string): string[] {
+function formatValueLines(value: string): string[] {
     const lines = value.split('\n');
     if (lines.length > 0 && lines[lines.length - 1] === '') {
         lines.pop();

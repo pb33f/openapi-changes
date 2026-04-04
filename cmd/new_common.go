@@ -9,10 +9,32 @@ import (
 	"os"
 	"strings"
 
+	"charm.land/lipgloss/v2"
+	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/spf13/cobra"
 )
+
+const (
+	noChangesFoundMessage = "No changes found between specifications"
+	noPriorVersionMessage = "The file has no prior version to compare against — nothing to report"
+)
+
+// newSummaryOpts holds the flags shared by the new command family.
+type newSummaryOpts struct {
+	noColor         bool
+	markdown        bool
+	errorOnDiff     bool
+	latest          bool
+	limit           int
+	limitTime       int
+	base            string
+	baseCommit      string
+	remote          bool
+	extRefs         bool
+	globalRevisions bool
+}
 
 // readCommonFlags reads the flags shared by all new-* commands.
 func readCommonFlags(cmd *cobra.Command) (opts newSummaryOpts, configFlag string) {
@@ -41,6 +63,18 @@ func validateGitHubURL(arg string) bool {
 	return true
 }
 
+func printNoChangesText() {
+	fmt.Println(noChangesFoundMessage)
+}
+
+func printNoChangesJSON() {
+	fmt.Printf("{\"message\": %q}\n", noChangesFoundMessage)
+}
+
+func printNoPriorVersionText() {
+	fmt.Println(noPriorVersionMessage)
+}
+
 // loadCommitsFromArgs dispatches to the appropriate commit loader based on argument types.
 // Expects len(args) to be 1 or 2 (caller must validate arg count).
 func loadCommitsFromArgs(args []string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
@@ -59,4 +93,32 @@ func loadCommitsFromArgs(args []string, opts newSummaryOpts, breakingConfig *wha
 		return loadGitHistoryCommits(args[0], args[1], opts, breakingConfig)
 	}
 	return loadLeftRightCommits(args[0], args[1], opts, breakingConfig)
+}
+
+// printNewCommandUsage prints lipgloss-styled usage for any new-* command.
+func printNewCommandUsage(commandName, description string, noColor bool) {
+	title := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)).Bold(true)
+	desc := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGrey))
+	cmdStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)).Bold(true)
+
+	if noColor {
+		title = lipgloss.NewStyle()
+		desc = lipgloss.NewStyle()
+		cmdStyle = lipgloss.NewStyle()
+	}
+
+	fmt.Print(title.Render("How to use the "))
+	fmt.Print(cmdStyle.Render(commandName))
+	fmt.Println(title.Render(" command:"))
+	fmt.Println()
+	fmt.Println(desc.Render(description))
+	fmt.Println()
+	fmt.Println("  openapi-changes " + commandName + " [options] <arg1> [arg2]")
+	fmt.Println()
+	fmt.Println("Examples:")
+	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" ./specs/old.yaml ./specs/new.yaml"))
+	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" https://github.com/user/repo/blob/main/openapi.yaml"))
+	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" /path/to/git/repo path/to/openapi.yaml"))
+	fmt.Println()
+	fmt.Println("Use --help for full flag details.")
 }

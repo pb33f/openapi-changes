@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"text/template"
 	"time"
@@ -21,14 +22,12 @@ import (
 )
 
 type htmlReportStyles struct {
-	title   lipgloss.Style
 	success lipgloss.Style
 	warn    lipgloss.Style
 }
 
 func newHTMLReportStyles() htmlReportStyles {
 	return htmlReportStyles{
-		title:   lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)).Bold(true),
 		success: lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGreen)).Bold(true),
 		warn:    lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),
 	}
@@ -49,7 +48,7 @@ func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedMo
 	for i, commit := range commits {
 		result, err := runChangerator(commit, breakingConfig)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "warning: commit %s: %s\n", commit.Hash, err)
+			emitCommitWarning(commit.Hash, err)
 			lastErr = err
 			continue
 		}
@@ -68,7 +67,7 @@ func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedMo
 		result.Release()
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "warning: commit %s: building report item: %s\n", commit.Hash, err)
+			emitCommitWarning(commit.Hash, fmt.Errorf("building report item: %w", err))
 			lastErr = err
 			continue
 		}
@@ -83,7 +82,7 @@ func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedMo
 }
 
 // generateNewHTMLReport assembles the full HTML report from commits.
-func generateNewHTMLReport(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, useCDN, noExplorer bool) ([]byte, error) {
+func generateNewHTMLReport(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, useCDN, noExplorer bool, args ...string) ([]byte, error) {
 	items, err := buildHTMLReportItems(commits, breakingConfig)
 	if err != nil {
 		return nil, err
@@ -97,8 +96,15 @@ func generateNewHTMLReport(commits []*model.Commit, breakingConfig *whatChangedM
 	payload := &newHtmlReport.ReportPayload{
 		Version:       1,
 		DateGenerated: time.Now().Format(time.RFC3339),
+		AppVersion:    Version,
 		Items:         items,
 		History:       history,
+	}
+
+	// For left/right comparisons, include sanitized spec paths (basename only)
+	if len(args) == 2 && len(items) == 1 {
+		payload.OriginalPath = filepath.Base(args[0])
+		payload.ModifiedPath = filepath.Base(args[1])
 	}
 
 	// json.Marshal escapes <, >, & by default — prevents </script> injection.
@@ -190,13 +196,13 @@ func GetNewHTMLReportCommand() *cobra.Command {
 				return err
 			}
 
-			report, err := generateNewHTMLReport(commits, breakingConfig, useCDN, noExplorer)
+			report, err := generateNewHTMLReport(commits, breakingConfig, useCDN, noExplorer, args...)
 			if err != nil {
 				return err
 			}
 
 			if report == nil {
-				fmt.Println("No changes found between specifications")
+				printNoChangesText()
 				return nil
 			}
 			return writeHTMLReportFile(reportFile, report, styles)

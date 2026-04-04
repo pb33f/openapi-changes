@@ -19,19 +19,16 @@ import (
 )
 
 type markdownReportStyles struct {
-	title   lipgloss.Style
 	success lipgloss.Style
 	warn    lipgloss.Style
 }
 
 func newMarkdownReportStyles() markdownReportStyles {
 	return markdownReportStyles{
-		title:   lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)).Bold(true),
 		success: lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGreen)).Bold(true),
 		warn:    lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),
 	}
 }
-
 
 func printMarkdownReportUsage(noColor bool) {
 	printNewCommandUsage("new-markdown-report",
@@ -85,7 +82,7 @@ func generateNewMarkdownReport(commits []*model.Commit, breakingConfig *whatChan
 	for i, commit := range commits {
 		markdown, err := renderCommitMarkdown(commit, breakingConfig)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "warning: commit %s: %s\n", commit.Hash, err)
+			emitCommitWarning(commit.Hash, err)
 			errorCount++
 			continue
 		}
@@ -201,7 +198,7 @@ func GetNewMarkdownReportCommand() *cobra.Command {
 			}
 
 			if report == nil {
-				fmt.Println("No changes found between specifications")
+				printNoChangesText()
 				return nil
 			}
 			return writeMarkdownReportFile(reportFile, report, styles)

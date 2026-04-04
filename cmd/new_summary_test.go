@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"errors"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -16,6 +17,49 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+
+	oldStdout := os.Stdout
+	reader, writer, err := os.Pipe()
+	require.NoError(t, err)
+
+	os.Stdout = writer
+	t.Cleanup(func() {
+		os.Stdout = oldStdout
+	})
+
+	fn()
+
+	require.NoError(t, writer.Close())
+	output, err := io.ReadAll(reader)
+	require.NoError(t, err)
+	require.NoError(t, reader.Close())
+	os.Stdout = oldStdout
+
+	return string(output)
+}
+
+func mustMakeDoctorOnlyCommitFromSpecs(t *testing.T, hash, left, right string) *model.Commit {
+	t.Helper()
+
+	leftDoc, err := libopenapi.NewDocument([]byte(left))
+	require.NoError(t, err)
+	rightDoc, err := libopenapi.NewDocument([]byte(right))
+	require.NoError(t, err)
+
+	return &model.Commit{
+		Hash:        hash,
+		Message:     hash,
+		Author:      "test",
+		CommitDate:  time.Now(),
+		Data:        []byte(right),
+		OldData:     []byte(left),
+		Document:    rightDoc,
+		OldDocument: leftDoc,
+	}
+}
 
 func TestLoadGitHistoryCommits_ReturnsPopulateErrors(t *testing.T) {
 	originalExtract := extractHistoryFromFile
@@ -43,6 +87,34 @@ func TestLoadGitHistoryCommits_ReturnsPopulateErrors(t *testing.T) {
 	assert.Nil(t, commits)
 	assert.Contains(t, err.Error(), "malformed spec")
 	assert.Contains(t, err.Error(), "broken reference")
+}
+
+func TestLoadGitHistoryCommits_ReturnsFatalProgressErrors(t *testing.T) {
+	originalExtract := extractHistoryFromFile
+	originalPopulate := populateHistoryWithDocuments
+	t.Cleanup(func() {
+		extractHistoryFromFile = originalExtract
+		populateHistoryWithDocuments = originalPopulate
+	})
+
+	extractHistoryFromFile = func(repoDirectory, filePath, baseCommit string,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, globalRevisions bool, limit int, limitTime int,
+	) ([]*model.Commit, []error) {
+		return []*model.Commit{{Hash: "abc123"}}, nil
+	}
+	populateHistoryWithDocuments = func(commitHistory []*model.Commit, limit int, limitTime int,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+		breakingConfig *whatChangedModel.BreakingRulesConfig,
+	) ([]*model.Commit, []error) {
+		errorChan <- model.ProgressError{Message: "unable to parse original document", Fatal: true}
+		return commitHistory, nil
+	}
+
+	commits, err := loadGitHistoryCommits("..", "sample-specs/petstorev3.json", newSummaryOpts{}, nil)
+
+	require.Error(t, err)
+	assert.Nil(t, commits)
+	assert.Contains(t, err.Error(), "unable to parse original document")
 }
 
 func TestLoadGitHubCommits_ReturnsProcessErrors(t *testing.T) {
@@ -100,6 +172,29 @@ func TestLoadLeftRightCommits_IdenticalSpecsPreserveComparableRevision(t *testin
 	assert.Nil(t, commits[0].Changes)
 }
 
+func TestRenderNewSummary_DirectComparisonNoChangesUsesGenericMessage(t *testing.T) {
+	commits, err := loadLeftRightCommits(
+		"../sample-specs/petstorev3.json",
+		"../sample-specs/petstorev3.json",
+		newSummaryOpts{noColor: true},
+		nil,
+	)
+	require.NoError(t, err)
+
+	output, hasBreaking, hasChanges, err := renderNewSummary(
+		commits,
+		nil,
+		false,
+		true,
+		summaryStyles{},
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, "No changes found between specifications\n", output)
+	assert.False(t, hasBreaking)
+	assert.False(t, hasChanges)
+}
+
 func TestRenderNewSummary_UsesDoctorEngineWhenLegacyChangesMissing(t *testing.T) {
 	leftBytes, err := os.ReadFile("../sample-specs/petstorev3-original.json")
 	require.NoError(t, err)
@@ -135,5 +230,382 @@ func TestRenderNewSummary_UsesDoctorEngineWhenLegacyChangesMissing(t *testing.T)
 	assert.NotContains(t, output, "No changes found between specifications")
 	assert.True(t, hasChanges)
 	assert.NotEmpty(t, output)
+	assert.Contains(t, output, "Document Element")
+	assert.Contains(t, output, "paths")
+	assert.Contains(t, output, "components")
+	assert.Contains(t, output, "[+] 418")
+	assert.Contains(t, output, "[-] user")
+	assert.Contains(t, output, "[+] jazz")
+	assert.Contains(t, output, "[-] properties/name")
+	assert.NotContains(t, output, "[+] codes")
+	assert.NotContains(t, output, "[-] codes")
 	assert.Equal(t, hasBreaking, strings.Contains(output, "Breaking"))
+}
+
+func TestRenderNewSummary_RendersSecurityRequirementDetail(t *testing.T) {
+	leftBytes, err := os.ReadFile("../sample-specs/petstorev3-original.json")
+	require.NoError(t, err)
+	rightBytes, err := os.ReadFile("../sample-specs/petstorev3.json")
+	require.NoError(t, err)
+
+	leftDoc, err := libopenapi.NewDocument(leftBytes)
+	require.NoError(t, err)
+	rightDoc, err := libopenapi.NewDocument(rightBytes)
+	require.NoError(t, err)
+
+	commit := &model.Commit{
+		Hash:        "def456",
+		Message:     "security-detail",
+		Author:      "test",
+		CommitDate:  time.Now(),
+		Data:        rightBytes,
+		OldData:     leftBytes,
+		Document:    rightDoc,
+		OldDocument: leftDoc,
+		Changes:     nil,
+	}
+
+	output, _, _, err := renderNewSummary(
+		[]*model.Commit{commit},
+		nil,
+		false,
+		true,
+		summaryStyles{},
+	)
+
+	require.NoError(t, err)
+	assert.Contains(t, output, "Security Requirements")
+	assert.Contains(t, output, "petstore_auth/eat:tacos")
+}
+
+func TestRenderNewSummary_RendersOAuthFlowScopeDetail(t *testing.T) {
+	leftBytes, err := os.ReadFile("../sample-specs/petstorev3-original.json")
+	require.NoError(t, err)
+	rightBytes, err := os.ReadFile("../sample-specs/petstorev3.json")
+	require.NoError(t, err)
+
+	leftDoc, err := libopenapi.NewDocument(leftBytes)
+	require.NoError(t, err)
+	rightDoc, err := libopenapi.NewDocument(rightBytes)
+	require.NoError(t, err)
+
+	commit := &model.Commit{
+		Hash:        "fed654",
+		Message:     "oauth-detail",
+		Author:      "test",
+		CommitDate:  time.Now(),
+		Data:        rightBytes,
+		OldData:     leftBytes,
+		Document:    rightDoc,
+		OldDocument: leftDoc,
+		Changes:     nil,
+	}
+
+	output, _, _, err := renderNewSummary(
+		[]*model.Commit{commit},
+		nil,
+		false,
+		true,
+		summaryStyles{},
+	)
+
+	require.NoError(t, err)
+	assert.Contains(t, output, "oAuth Flows")
+	assert.Contains(t, output, "scopes/jazz:jazzy (enjoy more jazz.)")
+}
+
+func TestRenderNewSummary_RendersTopLevelTagTreeDetail(t *testing.T) {
+	leftBytes, err := os.ReadFile("../sample-specs/petstorev3-original.json")
+	require.NoError(t, err)
+	rightBytes, err := os.ReadFile("../sample-specs/petstorev3.json")
+	require.NoError(t, err)
+
+	leftDoc, err := libopenapi.NewDocument(leftBytes)
+	require.NoError(t, err)
+	rightDoc, err := libopenapi.NewDocument(rightBytes)
+	require.NoError(t, err)
+
+	commit := &model.Commit{
+		Hash:        "tags-detail",
+		Message:     "tags-detail",
+		Author:      "test",
+		CommitDate:  time.Now(),
+		Data:        rightBytes,
+		OldData:     leftBytes,
+		Document:    rightDoc,
+		OldDocument: leftDoc,
+		Changes:     nil,
+	}
+
+	output, _, _, err := renderNewSummary(
+		[]*model.Commit{commit},
+		nil,
+		false,
+		true,
+		summaryStyles{},
+	)
+
+	require.NoError(t, err)
+	assert.Contains(t, output, "Tags (1 changes)")
+	assert.Contains(t, output, "[+] jazz")
+	assert.NotContains(t, output, "(46:5)")
+	assert.NotContains(t, output, "└─┬jazz (1 changes)")
+}
+
+func TestRenderNewSummary_UsesDeduplicatedHeadlineCounts(t *testing.T) {
+	leftBytes, err := os.ReadFile("../sample-specs/petstorev3-original.json")
+	require.NoError(t, err)
+	rightBytes, err := os.ReadFile("../sample-specs/petstorev3.json")
+	require.NoError(t, err)
+
+	leftDoc, err := libopenapi.NewDocument(leftBytes)
+	require.NoError(t, err)
+	rightDoc, err := libopenapi.NewDocument(rightBytes)
+	require.NoError(t, err)
+
+	commit := &model.Commit{
+		Hash:        "headline-dedup",
+		Message:     "headline-dedup",
+		Author:      "test",
+		CommitDate:  time.Now(),
+		Data:        rightBytes,
+		OldData:     leftBytes,
+		Document:    rightDoc,
+		OldDocument: leftDoc,
+		Changes:     nil,
+	}
+
+	output, _, _, err := renderNewSummary(
+		[]*model.Commit{commit},
+		nil,
+		false,
+		true,
+		summaryStyles{},
+	)
+
+	require.NoError(t, err)
+	assert.Contains(t, output, "❌  18 Breaking changes out of 42")
+	assert.Contains(t, output, "  Additions: 12")
+	assert.Contains(t, output, "  Modifications: 20")
+	assert.Contains(t, output, "  Removals: 10")
+	assert.Contains(t, output, "  Breaking Modifications: 8")
+	assert.Contains(t, output, "  Breaking Removals: 10")
+}
+
+func TestRenderNewSummary_MatchesSecurityRequirementChangesToCorrectScheme(t *testing.T) {
+	left := `openapi: 3.0.3
+info:
+  title: Security Test
+  version: "1.0"
+paths:
+  /pets:
+    get:
+      responses:
+        "200":
+          description: ok
+      security:
+        - api_key: []
+        - petstore_auth:
+            - read:pets
+components:
+  securitySchemes:
+    petstore_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://example.com/auth
+          scopes:
+            read:pets: Read pets
+    api_key:
+      type: apiKey
+      in: header
+      name: api_key
+`
+	right := `openapi: 3.0.3
+info:
+  title: Security Test
+  version: "1.0"
+paths:
+  /pets:
+    get:
+      responses:
+        "200":
+          description: ok
+      security:
+        - api_key: []
+        - petstore_auth:
+            - read:pets
+            - eat:tacos
+components:
+  securitySchemes:
+    petstore_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://example.com/auth
+          scopes:
+            read:pets: Read pets
+    api_key:
+      type: apiKey
+      in: header
+      name: api_key
+`
+
+	commit := mustMakeDoctorOnlyCommitFromSpecs(t, "security-match", left, right)
+
+	output, _, _, err := renderNewSummary(
+		[]*model.Commit{commit},
+		nil,
+		false,
+		true,
+		summaryStyles{},
+	)
+
+	require.NoError(t, err)
+	assert.Contains(t, output, "Security Requirements")
+	assert.Contains(t, output, "petstore_auth (1 changes)")
+	assert.Contains(t, output, "petstore_auth/eat:tacos")
+	assert.NotContains(t, output, "api_key (1 changes)")
+}
+
+func TestRenderNewSummary_RendersDocumentSecurityRequirementDetail(t *testing.T) {
+	left := `openapi: 3.0.3
+info:
+  title: Document Security Test
+  version: "1.0"
+paths: {}
+security:
+  - api_key: []
+  - petstore_auth:
+      - read:pets
+components:
+  securitySchemes:
+    petstore_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://example.com/auth
+          scopes:
+            read:pets: Read pets
+    api_key:
+      type: apiKey
+      in: header
+      name: api_key
+`
+	right := `openapi: 3.0.3
+info:
+  title: Document Security Test
+  version: "1.0"
+paths: {}
+security:
+  - api_key: []
+  - petstore_auth:
+      - read:pets
+      - eat:tacos
+components:
+  securitySchemes:
+    petstore_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://example.com/auth
+          scopes:
+            read:pets: Read pets
+    api_key:
+      type: apiKey
+      in: header
+      name: api_key
+`
+
+	commit := mustMakeDoctorOnlyCommitFromSpecs(t, "document-security", left, right)
+
+	output, _, _, err := renderNewSummary(
+		[]*model.Commit{commit},
+		nil,
+		false,
+		true,
+		summaryStyles{},
+	)
+
+	require.NoError(t, err)
+	assert.Contains(t, output, "Security Requirements")
+	assert.Contains(t, output, "petstore_auth/eat:tacos")
+	assert.NotContains(t, output, "api_key (1 changes)")
+}
+
+func TestRenderNewSummary_RendersClientCredentialsFlowDetail(t *testing.T) {
+	left := `openapi: 3.0.3
+info:
+  title: OAuth Flow Test
+  version: "1.0"
+paths: {}
+components:
+  securitySchemes:
+    petstore_auth:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://example.com/token
+          scopes:
+            read:pets: Read pets
+`
+	right := `openapi: 3.0.3
+info:
+  title: OAuth Flow Test
+  version: "1.0"
+paths: {}
+components:
+  securitySchemes:
+    petstore_auth:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://example.com/token
+          scopes:
+            read:pets: Read pets
+            eat:tacos: Eat tacos
+`
+
+	commit := mustMakeDoctorOnlyCommitFromSpecs(t, "client-credentials", left, right)
+
+	output, _, _, err := renderNewSummary(
+		[]*model.Commit{commit},
+		nil,
+		false,
+		true,
+		summaryStyles{},
+	)
+
+	require.NoError(t, err)
+	assert.Contains(t, output, "oAuth Flows")
+	assert.Contains(t, output, "Client Credentials")
+	assert.Contains(t, output, "scopes/eat:tacos (Eat tacos)")
+}
+
+func TestNewSummaryCommand_NoComparableHistoryPrintsPriorVersionMessage(t *testing.T) {
+	originalExtract := extractHistoryFromFile
+	originalPopulate := populateHistoryWithDocuments
+	t.Cleanup(func() {
+		extractHistoryFromFile = originalExtract
+		populateHistoryWithDocuments = originalPopulate
+	})
+
+	extractHistoryFromFile = func(repoDirectory, filePath, baseCommit string,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, globalRevisions bool, limit int, limitTime int,
+	) ([]*model.Commit, []error) {
+		return []*model.Commit{{Hash: "abc123"}}, nil
+	}
+	populateHistoryWithDocuments = func(commitHistory []*model.Commit, limit int, limitTime int,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+		breakingConfig *whatChangedModel.BreakingRulesConfig,
+	) ([]*model.Commit, []error) {
+		return []*model.Commit{}, nil
+	}
+
+	cmd := newTestRootCmd(GetNewSummaryCommand(), "--no-logo", "--no-color", "..", "sample-specs/petstorev3.json")
+	output := captureStdout(t, func() {
+		require.NoError(t, cmd.Execute())
+	})
+
+	assert.Contains(t, output, "The file has no prior version to compare against")
 }

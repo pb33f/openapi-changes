@@ -98,3 +98,19 @@ func TestNewReportCommand_ZeroArgsWithNoColor(t *testing.T) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 }
+
+func TestRunNewLeftRightReport_Success(t *testing.T) {
+	report, err := runNewLeftRightReport(
+		"../sample-specs/petstorev3-original.json",
+		"../sample-specs/petstorev3.json",
+		newSummaryOpts{noColor: true},
+		nil,
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	assert.NotEmpty(t, report.Changes)
+	assert.Contains(t, report.Summary, "paths")
+	assert.Equal(t, 30, report.Summary["paths"].Total)
+	assert.Equal(t, 16, report.Summary["paths"].Breaking)
+}

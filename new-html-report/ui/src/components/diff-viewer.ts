@@ -1,4 +1,4 @@
-import { LitElement, html, PropertyValues } from 'lit';
+import { LitElement, html, nothing, PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import diffViewerCss from '../css/diff-viewer.css.js';
 import type { Change } from '../model/report-payload.js';
@@ -8,7 +8,6 @@ import {
     type FocusValueBlock,
     type FocusedDiffSection,
 } from './diff-focus.js';
-// @ts-ignore
 import DiffMatchPatch from 'diff-match-patch';
 import '@shoelace-style/shoelace/dist/components/split-panel/split-panel.js';
 import '@shoelace-style/shoelace/dist/components/icon/icon.js';
@@ -70,15 +69,16 @@ export class DiffViewer extends LitElement {
             this.contentMode = this.hasSelection ? 'change' : 'file';
         }
 
-        if (changedProperties.has('originalSpec') || changedProperties.has('modifiedSpec')) {
+        const specChanged = changedProperties.has('originalSpec') || changedProperties.has('modifiedSpec');
+
+        if (specChanged) {
             this.recomputeDiffs();
-            this._cachedFocusedSections = [];
         } else if (changedProperties.has('originalHighlighted') || changedProperties.has('modifiedHighlighted')) {
             this._applyHighlights();
-            this._cachedFocusedSections = [];
         }
 
-        if (changedProperties.has('selectedChanges') || changedProperties.has('originalSpec') || changedProperties.has('modifiedSpec')) {
+        if (specChanged || changedProperties.has('selectedChanges')
+            || changedProperties.has('originalHighlighted') || changedProperties.has('modifiedHighlighted')) {
             this._cachedFocusedSections = [];
         }
     }
@@ -102,20 +102,18 @@ export class DiffViewer extends LitElement {
 
             this.updateComplete.then(() => {
                 requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        let jumpLine = 0;
-                        let jumpModLine = 0;
-                        if (switchedFromFocused && this.selectedChanges.length > 0) {
-                            const change = this.selectedChanges.find(c =>
-                                (c.context?.originalLine > 0) || (c.context?.newLine > 0)
-                            );
-                            if (change) {
-                                jumpLine = change.context?.originalLine || 0;
-                                jumpModLine = change.context?.newLine || 0;
-                            }
+                    let jumpLine = 0;
+                    let jumpModLine = 0;
+                    if (switchedFromFocused && this.selectedChanges.length > 0) {
+                        const change = this.selectedChanges.find(c =>
+                            (c.context?.originalLine > 0) || (c.context?.newLine > 0)
+                        );
+                        if (change) {
+                            jumpLine = change.context?.originalLine || 0;
+                            jumpModLine = change.context?.newLine || 0;
                         }
-                        this._setupScrolling(jumpLine, jumpModLine);
-                    });
+                    }
+                    this._setupScrolling(jumpLine, jumpModLine);
                 });
             });
         }
@@ -124,6 +122,10 @@ export class DiffViewer extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         this._teardownScrolling();
+        if (this._highlightTimer) {
+            clearTimeout(this._highlightTimer);
+            this._highlightTimer = 0;
+        }
     }
 
     private get hasSelection(): boolean {
@@ -212,6 +214,8 @@ export class DiffViewer extends LitElement {
         const origHL = this.originalHighlighted || {};
         const modHL = this.modifiedHighlighted || {};
 
+        // left and right arrays cover all lines; equal lines share object refs
+        // with cachedUnified, so mutating here updates unified too.
         for (const line of this.cachedLeft) {
             if (line.type === 'spacer') continue;
             if (line.originalLineNum) line.highlightedContent = origHL[line.originalLineNum];
@@ -221,11 +225,6 @@ export class DiffViewer extends LitElement {
             if (line.type === 'spacer') continue;
             if (line.modifiedLineNum) line.highlightedContent = modHL[line.modifiedLineNum];
             else if (line.originalLineNum) line.highlightedContent = origHL[line.originalLineNum];
-        }
-        for (const line of this.cachedUnified) {
-            if (line.type === 'spacer') continue;
-            if (line.originalLineNum) line.highlightedContent = origHL[line.originalLineNum];
-            else if (line.modifiedLineNum) line.highlightedContent = modHL[line.modifiedLineNum];
         }
 
         this._renderStart = [-1, -1];
@@ -471,7 +470,7 @@ export class DiffViewer extends LitElement {
                         <sl-radio-button value="change" size="small">Focused</sl-radio-button>
                         <sl-radio-button value="file" size="small">File Diff</sl-radio-button>
                     </sl-radio-group>
-                ` : null}
+                ` : nothing}
                 ${this.contentMode === 'file' ? html`
                     <sl-radio-group class="view-radio-group" size="small"
                         value=${this.viewMode}
@@ -481,7 +480,7 @@ export class DiffViewer extends LitElement {
                         <sl-radio-button value="side-by-side" size="small">Side by Side</sl-radio-button>
                         <sl-radio-button value="unified" size="small">Unified</sl-radio-button>
                     </sl-radio-group>
-                ` : null}
+                ` : nothing}
             </div>
         `;
     }
@@ -514,9 +513,9 @@ export class DiffViewer extends LitElement {
                 <div class="change-card-header">
                     <div class="change-card-meta">
                         <h3>${section.title}</h3>
-                        ${section.path ? html`<pb33f-render-json-path class="change-path" .path=${section.path}></pb33f-render-json-path>` : null}
+                        ${section.path ? html`<pb33f-render-json-path class="change-path" .path=${section.path}></pb33f-render-json-path>` : nothing}
                     </div>
-                    ${section.breaking ? html`<div class="breaking-pill"><sl-icon name="heartbreak-fill"></sl-icon> Breaking Change</div>` : null}
+                    ${section.breaking ? html`<div class="breaking-pill"><sl-icon name="heartbreak-fill"></sl-icon> Breaking Change</div>` : nothing}
                 </div>
             `;
 
@@ -532,8 +531,8 @@ export class DiffViewer extends LitElement {
                 leftParts.push(html`
                     <section class="change-card">
                         ${header}
-                        ${leftValue ? this.renderValueBlock(leftValue) : null}
-                        ${leftContext ? this.renderContextBlock(leftContext) : null}
+                        ${leftValue ? this.renderValueBlock(leftValue) : nothing}
+                        ${leftContext ? this.renderContextBlock(leftContext) : nothing}
                     </section>
                 `);
             }
@@ -541,8 +540,8 @@ export class DiffViewer extends LitElement {
                 rightParts.push(html`
                     <section class="change-card">
                         ${header}
-                        ${rightValue ? this.renderValueBlock(rightValue) : null}
-                        ${rightContext ? this.renderContextBlock(rightContext) : null}
+                        ${rightValue ? this.renderValueBlock(rightValue) : nothing}
+                        ${rightContext ? this.renderContextBlock(rightContext) : nothing}
                     </section>
                 `);
             }
