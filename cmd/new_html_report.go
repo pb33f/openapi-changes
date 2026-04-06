@@ -6,6 +6,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,16 +41,16 @@ func printHTMLReportUsage(noColor bool) {
 }
 
 // buildHTMLReportItems runs the changerator pipeline on each commit and produces
-// ReportItems for the HTML report. Returns (items, nil) on success.
+// ReportItems for the HTML report. Any commit/render failure aborts report generation.
 func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*newHtmlReport.ReportItem, error) {
 	items := make([]*newHtmlReport.ReportItem, 0, len(commits))
-	var lastErr error
+	var buildErrors []error
 
 	for i, commit := range commits {
 		result, err := runChangerator(commit, breakingConfig)
 		if err != nil {
 			emitCommitWarning(commit.Hash, err)
-			lastErr = err
+			buildErrors = append(buildErrors, err)
 			continue
 		}
 		if result == nil {
@@ -68,15 +69,18 @@ func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedMo
 
 		if err != nil {
 			emitCommitWarning(commit.Hash, fmt.Errorf("building report item: %w", err))
-			lastErr = err
+			buildErrors = append(buildErrors, err)
 			continue
 		}
 
 		items = append(items, item)
 	}
 
-	if len(items) == 0 && lastErr != nil {
-		return nil, fmt.Errorf("all commits failed to build report items: %w", lastErr)
+	if len(buildErrors) > 0 {
+		if len(items) == 0 {
+			return nil, fmt.Errorf("all %d commits failed to build report items: %w", len(buildErrors), errors.Join(buildErrors...))
+		}
+		return nil, fmt.Errorf("%d commits failed to build report items: %w", len(buildErrors), errors.Join(buildErrors...))
 	}
 	return items, nil
 }

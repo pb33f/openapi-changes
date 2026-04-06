@@ -6,6 +6,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -47,9 +49,19 @@ func renderCommitMarkdown(commit *model.Commit, breakingConfig *whatChangedModel
 		return "", nil
 	}
 	defer result.Release()
+	deduplicatedChanges := result.Changerator.DeduplicateChanges()
 
-	reporter := renderer.NewMarkdownReporter(result.DocChanges, result.RightDrDoc, commit.Data, renderer.DefaultRenderConfig())
-	return reporter.Generate(), nil
+	markdown, err := renderer.NewHTMLRenderer(renderer.DefaultRenderConfig()).RenderMarkdown(&renderer.RenderInput{
+		DocumentChanges:     result.DocChanges,
+		Doctor:              result.RightDrDoc,
+		RightDocContent:     commit.Data,
+		DeduplicatedChanges: deduplicatedChanges,
+		Config:              renderer.DefaultRenderConfig(),
+	})
+	if err != nil {
+		return "", err
+	}
+	return rewriteMarkdownSummary(markdown, deduplicatedChanges), nil
 }
 
 // generateUnifiedDiff produces a unified diff between original and modified strings.
@@ -69,6 +81,168 @@ func generateUnifiedDiff(original, modified string) string {
 	return text
 }
 
+func rewriteMarkdownSummary(markdown string, deduplicatedChanges []*whatChangedModel.Change) string {
+	if markdown == "" || len(deduplicatedChanges) == 0 {
+		return markdown
+	}
+
+	total := len(deduplicatedChanges)
+	breaking := 0
+	additions := 0
+	modifications := 0
+	removals := 0
+
+	for _, change := range deduplicatedChanges {
+		if change == nil {
+			continue
+		}
+		if change.Breaking {
+			breaking++
+		}
+		switch change.ChangeType {
+		case whatChangedModel.PropertyAdded, whatChangedModel.ObjectAdded:
+			additions++
+		case whatChangedModel.Modified:
+			modifications++
+		case whatChangedModel.PropertyRemoved, whatChangedModel.ObjectRemoved:
+			removals++
+		}
+	}
+
+	markdown = regexp.MustCompile(`(?m)^\*\*\d+\*\* changes detected, \*\*\d+\*\* are \*\*\(💔 breaking\)\*\*\.$`).
+		ReplaceAllString(markdown, fmt.Sprintf("**%d** changes detected, **%d** are **(💔 breaking)**.", total, breaking))
+	markdown = regexp.MustCompile(`(?m)^- Additions: \*\*\d+\*\*$`).
+		ReplaceAllString(markdown, fmt.Sprintf("- Additions: **%d**", additions))
+	markdown = regexp.MustCompile(`(?m)^- Modifications: \*\*\d+\*\*$`).
+		ReplaceAllString(markdown, fmt.Sprintf("- Modifications: **%d**", modifications))
+	markdown = regexp.MustCompile(`(?m)^- Removals: \*\*\d+\*\*$`).
+		ReplaceAllString(markdown, fmt.Sprintf("- Removals: **%d**", removals))
+
+	if table := buildDeduplicatedObjectStatsTable(deduplicatedChanges); table != "" {
+		start := strings.Index(markdown, "| Object")
+		breakdown := strings.Index(markdown, "## Change Breakdown")
+		if start >= 0 && breakdown > start {
+			markdown = markdown[:start] + table + markdown[breakdown:]
+		}
+	}
+
+	return markdown
+}
+
+type markdownObjectStat struct {
+	label    string
+	total    int
+	breaking int
+	order    int
+}
+
+func buildDeduplicatedObjectStatsTable(deduplicatedChanges []*whatChangedModel.Change) string {
+	typeOrders := map[string]int{
+		"Contact":              10,
+		"Info":                 20,
+		"Operation":            30,
+		"Parameter":            40,
+		"PathItem":             50,
+		"Request Body":         60,
+		"Response":             70,
+		"Responses":            80,
+		"Schema":               90,
+		"Security Requirement": 100,
+		"Security Scheme":      110,
+		"OAuth Flow":           120,
+		"Tag":                  130,
+	}
+
+	normalizeType := func(changeType string) string {
+		switch changeType {
+		case "contact":
+			return "Contact"
+		case "info":
+			return "Info"
+		case "operation":
+			return "Operation"
+		case "parameter":
+			return "Parameter"
+		case "pathItem":
+			return "PathItem"
+		case "requestBody":
+			return "Request Body"
+		case "response":
+			return "Response"
+		case "responses":
+			return "Responses"
+		case "schema":
+			return "Schema"
+		case "security":
+			return "Security Requirement"
+		case "securityScheme":
+			return "Security Scheme"
+		case "oauthFlow":
+			return "OAuth Flow"
+		case "tag", "tags":
+			return "Tag"
+		default:
+			return ""
+		}
+	}
+
+	statsByLabel := make(map[string]*markdownObjectStat)
+	for _, change := range deduplicatedChanges {
+		if change == nil {
+			continue
+		}
+		label := normalizeType(change.Type)
+		if label == "" {
+			continue
+		}
+		stat := statsByLabel[label]
+		if stat == nil {
+			stat = &markdownObjectStat{label: label, order: typeOrders[label]}
+			statsByLabel[label] = stat
+		}
+		stat.total++
+		if change.Breaking {
+			stat.breaking++
+		}
+	}
+
+	if len(statsByLabel) == 0 {
+		return ""
+	}
+
+	rows := make([]*markdownObjectStat, 0, len(statsByLabel))
+	for _, stat := range statsByLabel {
+		rows = append(rows, stat)
+	}
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].order != rows[j].order {
+			return rows[i].order < rows[j].order
+		}
+		return rows[i].label < rows[j].label
+	})
+
+	var sb strings.Builder
+	sb.WriteString("| Object               | Total Changes | Breaking Changes |\n")
+	sb.WriteString("|----------------------|---------------|------------------|\n")
+	for _, row := range rows {
+		breaking := "-"
+		if row.breaking > 0 {
+			breaking = fmt.Sprintf("%d", row.breaking)
+		}
+		sb.WriteString(fmt.Sprintf("| %s | %d | %s |\n", row.label, row.total, breaking))
+	}
+	sb.WriteString("\n")
+	return sb.String()
+}
+
+func isSyntheticLeftRightCommit(commit *model.Commit) bool {
+	if commit == nil {
+		return false
+	}
+	return strings.HasPrefix(commit.Message, "Original: ") ||
+		strings.HasPrefix(commit.Message, "Uploaded modification")
+}
+
 // generateNewMarkdownReport assembles markdown from all commits.
 // Returns (nil, nil) if no commits produce changes and no errors occurred.
 // Returns (nil, err) if all commits failed to render.
@@ -78,6 +252,7 @@ func generateNewMarkdownReport(commits []*model.Commit, breakingConfig *whatChan
 	successCount := 0
 	errorCount := 0
 	headerWritten := false
+	includeCommitMetadata := true
 
 	for i, commit := range commits {
 		markdown, err := renderCommitMarkdown(commit, breakingConfig)
@@ -98,12 +273,16 @@ func generateNewMarkdownReport(commits []*model.Commit, breakingConfig *whatChan
 		}
 
 		successCount++
+		if successCount == 1 {
+			includeCommitMetadata = !isSyntheticLeftRightCommit(commit)
+		}
 
-		// Section heading
-		sb.WriteString(fmt.Sprintf("## Commit %d: %s\n\n", i+1, commit.Message))
-		sb.WriteString(fmt.Sprintf("- **Hash**: %s\n", commit.Hash))
-		sb.WriteString(fmt.Sprintf("- **Author**: %s\n", commit.Author))
-		sb.WriteString(fmt.Sprintf("- **Date**: %s\n\n", commit.CommitDate.Format(time.RFC3339)))
+		if includeCommitMetadata {
+			sb.WriteString(fmt.Sprintf("## Commit %d: %s\n\n", i+1, commit.Message))
+			sb.WriteString(fmt.Sprintf("- **Hash**: %s\n", commit.Hash))
+			sb.WriteString(fmt.Sprintf("- **Author**: %s\n", commit.Author))
+			sb.WriteString(fmt.Sprintf("- **Date**: %s\n\n", commit.CommitDate.Format(time.RFC3339)))
+		}
 
 		// Strip the doctor heading prefix
 		content := markdown

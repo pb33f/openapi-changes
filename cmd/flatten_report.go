@@ -6,6 +6,7 @@ package cmd
 import (
 	"sort"
 	"strings"
+	"time"
 
 	v3 "github.com/pb33f/doctor/model/high/v3"
 	wcModel "github.com/pb33f/libopenapi/what-changed/model"
@@ -24,6 +25,7 @@ func flattenReport(report *model.Report, normalizer *changePathNormalizer) *mode
 
 	flatReport := &model.FlatReport{}
 	flatReport.Summary = report.Summary
+	flatReport.DateGenerated = time.Now().Format(time.RFC3339)
 	var changes []*model.HashedChange
 	rpt := report.Commit.Changes
 	for _, change := range rpt.GetAllChanges() {

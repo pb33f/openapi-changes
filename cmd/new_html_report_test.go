@@ -15,6 +15,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func makeSwagger2Commit(t *testing.T) *model.Commit {
+	t.Helper()
+
+	swagger2Spec := `swagger: "2.0"
+info:
+  title: test
+  version: "1.0"
+paths: {}`
+
+	doc, err := libopenapi.NewDocument([]byte(swagger2Spec))
+	require.NoError(t, err)
+
+	return &model.Commit{
+		Hash:        "abc123",
+		Message:     "swagger commit",
+		Author:      "test",
+		CommitDate:  time.Now(),
+		Data:        []byte(swagger2Spec),
+		OldData:     []byte(swagger2Spec),
+		Document:    doc,
+		OldDocument: doc,
+	}
+}
+
 func TestGenerateNewHTMLReport_UnchangedLeftRight(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3.json",
@@ -55,30 +79,49 @@ func TestGenerateNewHTMLReport_LeftRightIncludesSanitizedPaths(t *testing.T) {
 }
 
 func TestBuildHTMLReportItems_AllCommitsFail(t *testing.T) {
-	swagger2Spec := `swagger: "2.0"
-info:
-  title: test
-  version: "1.0"
-paths: {}`
-
-	doc, err := libopenapi.NewDocument([]byte(swagger2Spec))
-	require.NoError(t, err)
-
-	commit := &model.Commit{
-		Hash:        "abc123",
-		Message:     "swagger commit",
-		Author:      "test",
-		CommitDate:  time.Now(),
-		Data:        []byte(swagger2Spec),
-		OldData:     []byte(swagger2Spec),
-		Document:    doc,
-		OldDocument: doc,
-	}
-
-	items, err := buildHTMLReportItems([]*model.Commit{commit}, nil)
+	items, err := buildHTMLReportItems([]*model.Commit{makeSwagger2Commit(t)}, nil)
 	require.Error(t, err)
 	assert.Nil(t, items)
-	assert.Contains(t, err.Error(), "all commits failed to build report items")
+	assert.Contains(t, err.Error(), "all 1 commits failed to build report items")
+}
+
+func TestBuildHTMLReportItems_PartialFailureReturnsError(t *testing.T) {
+	commits, err := loadLeftRightCommits(
+		"../sample-specs/petstorev3-original.json",
+		"../sample-specs/petstorev3.json",
+		newSummaryOpts{noColor: true},
+		nil,
+	)
+	require.NoError(t, err)
+	require.NotEmpty(t, commits)
+
+	mixed := append(commits, makeSwagger2Commit(t))
+
+	items, err := buildHTMLReportItems(mixed, nil)
+	require.Error(t, err)
+	assert.Nil(t, items)
+	assert.Contains(t, err.Error(), "1 commits failed to build report items")
+}
+
+func TestGenerateNewHTMLReport_PartialFailureReturnsError(t *testing.T) {
+	commits, err := loadLeftRightCommits(
+		"../sample-specs/petstorev3-original.json",
+		"../sample-specs/petstorev3.json",
+		newSummaryOpts{noColor: true},
+		nil,
+	)
+	require.NoError(t, err)
+	require.NotEmpty(t, commits)
+
+	mixed := append(commits, makeSwagger2Commit(t))
+
+	report, err := generateNewHTMLReport(mixed, nil, false,
+		"../sample-specs/petstorev3-original.json",
+		"../sample-specs/petstorev3.json",
+	)
+	require.Error(t, err)
+	assert.Nil(t, report)
+	assert.Contains(t, err.Error(), "1 commits failed to build report items")
 }
 
 func TestNewHTMLReportCommand_LeftRightFiles(t *testing.T) {

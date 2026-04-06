@@ -71,13 +71,14 @@ type Report struct {
 	Summary   map[string]*reports.Changed `gorm:"-" json:"reportSummary"`
 	CreatedAt time.Time                   `json:"-"`
 	UpdatedAt time.Time                   `json:"-"`
-	Commit    *Commit                     `gorm:"foreignKey:ID" json:"commitDetails"`
+	Commit    *Commit                     `gorm:"foreignKey:ID" json:"commitDetails,omitempty"`
 }
 
 type FlatReport struct {
-	Summary map[string]*reports.Changed `json:"reportSummary"`
-	Changes []*HashedChange             `json:"changes"`
-	Commit  *Commit                     `gorm:"foreignKey:ID" json:"commitDetails"`
+	Summary       map[string]*reports.Changed `json:"reportSummary"`
+	Changes       []*HashedChange             `json:"changes"`
+	DateGenerated string                      `json:"dateGenerated,omitempty"`
+	Commit        *Commit                     `gorm:"foreignKey:ID" json:"commitDetails,omitempty"`
 }
 
 type FlatHistoricalReport struct {

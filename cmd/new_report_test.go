@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -110,9 +111,28 @@ func TestRunNewLeftRightReport_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, report)
 	assert.NotEmpty(t, report.Changes)
+	assert.NotEmpty(t, report.DateGenerated)
+	assert.Nil(t, report.Commit)
 	assert.Contains(t, report.Summary, "paths")
 	assert.Equal(t, 30, report.Summary["paths"].Total)
 	assert.Equal(t, 16, report.Summary["paths"].Breaking)
+}
+
+func TestRunNewLeftRightReport_OmitsCommitDetailsInJSON(t *testing.T) {
+	report, err := runNewLeftRightReport(
+		"../sample-specs/petstorev3-original.json",
+		"../sample-specs/petstorev3.json",
+		newSummaryOpts{noColor: true},
+		nil,
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+
+	encoded, err := json.Marshal(report)
+	require.NoError(t, err)
+	assert.Contains(t, string(encoded), "dateGenerated")
+	assert.NotContains(t, string(encoded), "commitDetails")
 }
 
 func TestRunNewLeftRightReport_NormalizesParameterPaths(t *testing.T) {

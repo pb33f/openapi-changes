@@ -69,7 +69,9 @@ func runNewLeftRightReport(left, right string, opts newSummaryOpts, breakingConf
 		return nil, nil
 	}
 	defer result.Release()
-	return FlattenReportWithRoots(createReport(commits[0]), result.LeftDrDoc.V3Document.Node, result.RightDrDoc.V3Document.Node), nil
+	flat := FlattenReportWithRoots(createReport(commits[0]), result.LeftDrDoc.V3Document.Node, result.RightDrDoc.V3Document.Node)
+	flat.Commit = nil
+	return flat, nil
 }
 
 func runNewGitHistoryReport(gitPath, filePath string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatHistoricalReport, error) {

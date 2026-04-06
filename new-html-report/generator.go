@@ -250,7 +250,7 @@ func BuildReportItem(
 		DeduplicatedChanges: deduplicatedChanges,
 	})
 	if err != nil {
-		htmlReport = fmt.Sprintf("<p>Error rendering report: %s</p>", err.Error())
+		return nil, fmt.Errorf("rendering HTML report: %w", err)
 	}
 
 	result.ClearContextCache()
