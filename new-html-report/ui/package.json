@@ -7,18 +7,17 @@
     "dev": "vite",
     "build": "vite build && BUNDLE_LITE=1 vite build",
     "preview": "vite preview",
-    "test": "node ../../../cowboy-components/node_modules/vitest/vitest.mjs run --config vitest.config.ts"
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
-    "@pb33f/cowboy-components": "file:../../../cowboy-components",
-    "@shoelace-style/shoelace": "^2.15.0",
-    "chart.js": "^4.4.8",
-    "diff-match-patch": "^1.0.5",
-    "lit": "^3.1.0"
+    "@pb33f/cowboy-components": "*",
+    "@shoelace-style/shoelace": "^2.20.1",
+    "chart.js": "^4.5.1",
+    "lit": "^3.3.2"
   },
   "devDependencies": {
-    "@types/diff-match-patch": "^1.0.36",
-    "typescript": "^5.3.3",
-    "vite": "^8.0.1"
+    "typescript": "^5.9.3",
+    "vite": "^8.0.1",
+    "vitest": "^4.1.2"
   }
 }

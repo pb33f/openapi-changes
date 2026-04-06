@@ -43,15 +43,11 @@ var bundledCSS string
 type ReportData struct {
 	BundledJS  string
 	BundledCSS string
-	UseCDN     bool
-	JsCDN      string
-	CssCDN     string
-	TestMode   bool
 	Report     string
 }
 
 // NewReportData creates a ReportData for template rendering.
-func NewReportData(payloadJSON string, useCDN, noExplorer bool) *ReportData {
+func NewReportData(payloadJSON string, noExplorer bool) *ReportData {
 	js := bundledJS
 	if noExplorer {
 		js = bundledLiteJS
@@ -59,9 +55,6 @@ func NewReportData(payloadJSON string, useCDN, noExplorer bool) *ReportData {
 	return &ReportData{
 		BundledJS:  js,
 		BundledCSS: bundledCSS,
-		UseCDN:     useCDN,
-		JsCDN:      "https://pb33f.github.io/openapi-changes/new-html-report/ui/build/static/bundle.js",
-		CssCDN:     "https://pb33f.github.io/openapi-changes/new-html-report/ui/build/static/bundle.css",
 		Report:     payloadJSON,
 	}
 }

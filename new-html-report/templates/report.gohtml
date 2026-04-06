@@ -10,22 +10,14 @@
         <div></div>
     </div>
     <br/>
-    OpenAPI Changes report is loading...
+    OPENAPI-CHANGES report is loading...
 </div>
 <div id="app"></div>
 <script type="application/json" id="report-data">
 {{ .Report }}
 </script>
-{{- if not .TestMode -}}
-    {{- if not .UseCDN -}}
-    <script>
-        {{ .BundledJS }}
-    </script>
-    {{- else -}}
-        <script src="{{- .JsCDN -}}" async></script>
-    {{- end -}}
-{{- else -}}
-    <script src="http://localhost:5173/src/main.ts" type="module"></script>
-{{- end -}}
+<script>
+    {{ .BundledJS }}
+</script>
 </body>
 </html>

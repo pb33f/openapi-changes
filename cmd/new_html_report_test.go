@@ -24,7 +24,7 @@ func TestGenerateNewHTMLReport_UnchangedLeftRight(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	report, err := generateNewHTMLReport(commits, nil, false, false,
+	report, err := generateNewHTMLReport(commits, nil, false,
 		"../sample-specs/petstorev3.json",
 		"../sample-specs/petstorev3.json",
 	)
@@ -41,7 +41,7 @@ func TestGenerateNewHTMLReport_LeftRightIncludesSanitizedPaths(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	report, err := generateNewHTMLReport(commits, nil, false, true,
+	report, err := generateNewHTMLReport(commits, nil, true,
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
 	)

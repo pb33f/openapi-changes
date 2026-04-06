@@ -161,8 +161,8 @@ func buildConsoleTreeNode(list *[]pterm.LeveledListItem, object any, level int, 
 			reflect.TypeOf(map[string]*wcModel.ServerVariableChanges{}),
 			reflect.TypeOf(map[string]*wcModel.MediaTypeChanges{}),
 			reflect.TypeOf(map[string]*wcModel.SecuritySchemeChanges{}),
-			reflect.TypeOf(map[string]*wcModel.LinkChanges{}),
-			reflect.TypeOf(map[string]*wcModel.OperationChanges{}):
+				reflect.TypeOf(map[string]*wcModel.LinkChanges{}),
+				reflect.TypeOf(map[string]*wcModel.OperationChanges{}):
 			if !field.IsZero() && len(field.MapKeys()) > 0 {
 				label := getLabelForMapField(fName)
 				BuildLabeledTreeMapNode(list, field, level, label, markdown)

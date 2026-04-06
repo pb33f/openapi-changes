@@ -2,14 +2,14 @@ import { html, nothing, TemplateResult, PropertyValues } from 'lit';
 import { customElement, query, state } from 'lit/decorators.js';
 import type { SlTabShowEvent } from '@shoelace-style/shoelace/dist/events/sl-tab-show.js';
 import { ReportShellBase } from './report-shell-base.js';
-import type { Change } from '../model/report-payload.js';
+import type { Change } from '@pb33f/cowboy-components/static-report';
 
-import { ExplorerComponent, ExplorerChangePanel, ExplorerNodeClicked } from '@pb33f/cowboy-components/static-report';
+import { ExplorerComponent, ExplorerChangePanel, ExplorerNodeClicked, FocusedDiffPanel } from '@pb33f/cowboy-components/static-report';
 import type { NodeClickedEvent } from '@pb33f/cowboy-components/static-report';
 void ExplorerChangePanel;
+void FocusedDiffPanel;
 import { createElkLayoutWorker } from '../elk-layout-worker-inline.js';
 import { createGraphDependentWorker } from '../graph-dependent-worker-inline.js';
-import './focused-diff-panel.js';
 
 ExplorerComponent.elkWorkerFactory = createElkLayoutWorker;
 ExplorerComponent.graphDependentWorkerFactory = createGraphDependentWorker;
@@ -189,13 +189,13 @@ export class ReportShell extends ReportShellBase {
                         .changes=${this.selectedNodeChanges}
                         ?panel-hidden=${!this._changePanelExpanded}>
                         ${this._changePanelExpanded && item ? html`
-                            <openapi-changes-focused-diff-panel compact
+                            <pb33f-focused-diff-panel compact
                                 .changes=${this.selectedNodeChanges}
                                 .originalSpec=${item.originalSpec || ''}
                                 .modifiedSpec=${item.modifiedSpec || ''}
                                 .originalHighlighted=${item.originalHighlighted || {}}
                                 .modifiedHighlighted=${item.modifiedHighlighted || {}}>
-                            </openapi-changes-focused-diff-panel>
+                            </pb33f-focused-diff-panel>
                         ` : nothing}
                     </pb33f-explorer-change-panel>
                 </sl-split-panel>

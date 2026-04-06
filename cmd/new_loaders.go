@@ -6,9 +6,12 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,6 +25,7 @@ var processGithubRepo = git.ProcessGithubRepoWithDocuments
 var extractHistoryFromFile = git.ExtractHistoryFromFile
 var populateHistoryWithDocuments = git.PopulateHistoryWithDocuments
 var buildCommitTimeline = git.BuildCommitTimeline
+var httpGet = http.Get
 
 // progressDrainer drains git progress channels that use synchronous sends.
 // Call close() before reading collected warnings or errors.
@@ -196,14 +200,17 @@ func loadLeftRightCommits(left, right string, opts newSummaryOpts, breakingConfi
 	}()
 
 	var err error
-	left, err = checkURL(left, d.ErrorChan)
+	left, leftCleanup, err := resolveLeftRightInput(left)
 	if err != nil {
 		return nil, err
 	}
-	right, err = checkURL(right, d.ErrorChan)
+	defer leftCleanup()
+
+	right, rightCleanup, err := resolveLeftRightInput(right)
 	if err != nil {
 		return nil, err
 	}
+	defer rightCleanup()
 
 	leftBytes, err := os.ReadFile(left)
 	if err != nil {
@@ -243,4 +250,48 @@ func loadLeftRightCommits(left, right string, opts newSummaryOpts, breakingConfi
 		return nil, fatalErr
 	}
 	return commits, nil
+}
+
+func resolveLeftRightInput(raw string) (string, func(), error) {
+	specURL, err := url.Parse(raw)
+	if err != nil || specURL == nil || !strings.HasPrefix(specURL.Scheme, "http") {
+		return raw, func() {}, nil
+	}
+
+	resp, err := httpGet(raw)
+	if err != nil {
+		return "", func() {}, fmt.Errorf("error downloading file '%s': %w", raw, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return "", func() {}, fmt.Errorf("error downloading file '%s': unexpected status %s", raw, resp.Status)
+	}
+
+	bits, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", func() {}, fmt.Errorf("error reading downloaded file '%s': %w", raw, err)
+	}
+	if len(bits) == 0 {
+		return "", func() {}, fmt.Errorf("downloaded file '%s' is empty", raw)
+	}
+
+	tmpFile, err := os.CreateTemp("", "openapi-changes-*")
+	if err != nil {
+		return "", func() {}, fmt.Errorf("cannot create temp file for '%s': %w", raw, err)
+	}
+	if _, err = tmpFile.Write(bits); err != nil {
+		tmpName := tmpFile.Name()
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpName)
+		return "", func() {}, fmt.Errorf("downloaded file '%s' cannot be written: %w", raw, err)
+	}
+	if err = tmpFile.Close(); err != nil {
+		tmpName := tmpFile.Name()
+		_ = os.Remove(tmpName)
+		return "", func() {}, fmt.Errorf("downloaded file '%s' cannot be closed: %w", raw, err)
+	}
+
+	tmpName := tmpFile.Name()
+	return tmpName, func() { _ = os.Remove(tmpName) }, nil
 }

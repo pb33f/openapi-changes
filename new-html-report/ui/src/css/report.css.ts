@@ -1,5 +1,5 @@
 import { css } from 'lit';
-import { scrollbarCss } from './scrollbar.css.js';
+import { scrollbarCss } from '@pb33f/cowboy-components/static-report';
 
 export default [scrollbarCss, css`
     :host {
@@ -140,7 +140,7 @@ export default [scrollbarCss, css`
 
     .navigator-tabs sl-tab::part(base) {
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: var(--title-spacing);
         font-family: var(--font-stack), monospace;
         padding: 0 var(--global-padding);
     }
@@ -341,7 +341,7 @@ export default [scrollbarCss, css`
     sl-tab::part(base) {
         padding: 0 var(--global-padding);
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: var(--title-spacing);
         font-family: var(--font-stack), monospace;
     }
 
@@ -439,7 +439,7 @@ export default [scrollbarCss, css`
         color: var(--font-color-sub2);
         text-transform: uppercase;
         font-size: 0.75rem;
-        letter-spacing: 0.03em;
+        letter-spacing: var(--title-spacing);
     }
 
     .spec-paths code {
@@ -703,7 +703,7 @@ export default [scrollbarCss, css`
         border-bottom: 1px dashed var(--kv-table-dividers);
         border-top: 1px dashed var(--kv-table-header-border-top);
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: var(--title-spacing);
     }
 
     .change-report table.object-change-summary > thead > tr > th:first-child {
@@ -732,7 +732,7 @@ export default [scrollbarCss, css`
         color: var(--primary-color);
         border-right: 1px dashed var(--secondary-color-dimmer);
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: var(--title-spacing);
     }
 
     .change-report table.object-change-summary > tbody > tr > td:nth-child(2),
@@ -817,7 +817,7 @@ export default [scrollbarCss, css`
         font-weight: normal;
         margin: 0 0 var(--global-padding) 0;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: var(--title-spacing);
         padding-bottom: var(--global-padding);
         border-bottom: 1px dashed var(--hrcolor);
     }

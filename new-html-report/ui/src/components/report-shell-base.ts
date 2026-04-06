@@ -3,17 +3,17 @@ import { state, query } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import type { SlTabShowEvent } from '@shoelace-style/shoelace/dist/events/sl-tab-show.js';
 import reportCss from '../css/report.css.js';
-import type { ReportPayload, ReportItem, Change, Node } from '../model/report-payload.js';
-import './diff-viewer.js';
 
 // Import cowboy-components via the static-report entrypoint.
 // This registers the custom elements as side effects.
 import {
     HeaderComponent, FooterComponent, HttpMethodComponent, PathRenderComponent, RenderJSONPathComponent,
     TimelineComponent, TimelineItemComponent, SpecSummaryTimelineItem,
-    ThemeSwitcher, ModelTreeNodeClicked,
+    ThemeSwitcher, ModelTreeNodeClicked, DiffViewer,
 } from '@pb33f/cowboy-components/static-report';
-import type { NodeClickedEvent } from '@pb33f/cowboy-components/static-report';
+import type {
+    NodeClickedEvent, ReportPayload, ReportItem, Change, Node, ChangeHistory,
+} from '@pb33f/cowboy-components/static-report';
 // Ensure components are registered (tree-shaking guard)
 void HeaderComponent;
 void FooterComponent;
@@ -24,6 +24,7 @@ void TimelineComponent;
 void TimelineItemComponent;
 void SpecSummaryTimelineItem;
 void ThemeSwitcher;
+void DiffViewer;
 
 // Shoelace components used directly in the shell template
 import '@shoelace-style/shoelace/dist/components/tab-group/tab-group.js';
@@ -610,13 +611,13 @@ export abstract class ReportShellBase extends LitElement {
                 ${this.renderExtraTabPanels()}
 
                 <sl-tab-panel name="diff">
-                    <openapi-changes-diff-viewer
+                    <pb33f-diff-viewer
                         .originalSpec=${item.originalSpec}
                         .modifiedSpec=${item.modifiedSpec}
                         .originalHighlighted=${item.originalHighlighted || {}}
                         .modifiedHighlighted=${item.modifiedHighlighted || {}}
                         .selectedChanges=${this.selectedDiffChanges}
-                    ></openapi-changes-diff-viewer>
+                    ></pb33f-diff-viewer>
                 </sl-tab-panel>
             </sl-tab-group>
         `;

@@ -6,6 +6,8 @@ package cmd
 import (
 	"errors"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -146,6 +148,7 @@ func TestRenderNewSummary_ReturnsErrorWhenAllCommitsFailToRender(t *testing.T) {
 		nil,
 		false,
 		true,
+		false,
 		summaryStyles{},
 	)
 
@@ -154,6 +157,37 @@ func TestRenderNewSummary_ReturnsErrorWhenAllCommitsFailToRender(t *testing.T) {
 	assert.Contains(t, output, "Error: building right model")
 	assert.False(t, hasBreaking)
 	assert.False(t, hasChanges)
+}
+
+func TestRenderNewSummary_ReturnsErrorWhenSomeCommitsFailToRender(t *testing.T) {
+	validCommit := mustMakeDoctorOnlyCommitFromSpecs(t, "good123", `openapi: 3.0.3
+info:
+  title: Test
+  version: "1.0"
+paths: {}
+`, `openapi: 3.0.3
+info:
+  title: Test
+  version: "1.1"
+paths: {}
+`)
+	badCommit := mustMakeSwagger2Commit(t)
+
+	output, hasBreaking, hasChanges, err := renderNewSummary(
+		[]*model.Commit{validCommit, badCommit},
+		nil,
+		false,
+		true,
+		false,
+		summaryStyles{},
+	)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "1 commits failed to render")
+	assert.Contains(t, output, "Date:")
+	assert.Contains(t, output, "Error: building right model")
+	assert.False(t, hasBreaking)
+	assert.True(t, hasChanges)
 }
 
 func TestLoadLeftRightCommits_IdenticalSpecsPreserveComparableRevision(t *testing.T) {
@@ -186,6 +220,7 @@ func TestRenderNewSummary_DirectComparisonNoChangesUsesGenericMessage(t *testing
 		nil,
 		false,
 		true,
+		false,
 		summaryStyles{},
 	)
 
@@ -223,6 +258,7 @@ func TestRenderNewSummary_UsesDoctorEngineWhenLegacyChangesMissing(t *testing.T)
 		nil,
 		false,
 		true,
+		false,
 		summaryStyles{},
 	)
 
@@ -230,16 +266,101 @@ func TestRenderNewSummary_UsesDoctorEngineWhenLegacyChangesMissing(t *testing.T)
 	assert.NotContains(t, output, "No changes found between specifications")
 	assert.True(t, hasChanges)
 	assert.NotEmpty(t, output)
+	assert.Contains(t, output, "Breaking Highlights")
+	assert.Contains(t, output, "Counts are deduplicated by JSONPath + property.")
 	assert.Contains(t, output, "Document Element")
 	assert.Contains(t, output, "paths")
 	assert.Contains(t, output, "components")
 	assert.Contains(t, output, "[+] 418")
-	assert.Contains(t, output, "[-] user")
+	assert.Contains(t, output, "tags: user -> [cookies, jazz]")
 	assert.Contains(t, output, "[+] jazz")
-	assert.Contains(t, output, "[-] properties/name")
+	assert.Contains(t, output, "properties: name -> jazz")
+	assert.Contains(t, output, "password (1 changes, 1 breaking)")
+	assert.Contains(t, output, "[M] required: false -> true{X}")
+	assert.Contains(t, output, "username (1 changes, 1 breaking)")
+	assert.Contains(t, output, "[M] type: string -> integer{X}")
 	assert.NotContains(t, output, "[+] codes")
 	assert.NotContains(t, output, "[-] codes")
 	assert.Equal(t, hasBreaking, strings.Contains(output, "Breaking"))
+}
+
+func TestRenderNewSummary_RendersTreeForFirstRenderableCommit(t *testing.T) {
+	validCommit := mustMakeDoctorOnlyCommitFromSpecs(t, "good123", `openapi: 3.0.3
+info:
+  title: Test
+  version: "1.0"
+paths: {}
+`, `openapi: 3.0.3
+info:
+  title: Test
+  version: "1.1"
+paths: {}
+`)
+
+	output, hasBreaking, hasChanges, err := renderNewSummary(
+		[]*model.Commit{{Hash: "empty123"}, validCommit},
+		nil,
+		false,
+		true,
+		false,
+		summaryStyles{},
+	)
+
+	require.NoError(t, err)
+	assert.Contains(t, output, "No changes detected between empty123 and good123")
+	assert.Contains(t, output, "info")
+	assert.Contains(t, output, "Document Element")
+	assert.False(t, hasBreaking)
+	assert.True(t, hasChanges)
+}
+
+func TestLoadLeftRightCommits_DownloadedFilesAreCleanedUp(t *testing.T) {
+	originalHTTPGet := httpGet
+	originalBuildCommitTimeline := buildCommitTimeline
+	t.Cleanup(func() {
+		httpGet = originalHTTPGet
+		buildCommitTimeline = originalBuildCommitTimeline
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`openapi: 3.0.3
+info:
+  title: Downloaded
+  version: "1.0"
+paths: {}
+`))
+	}))
+	defer server.Close()
+
+	var originalPath string
+	var modifiedPath string
+	buildCommitTimeline = func(commits []*model.Commit, progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
+		base string, remote, extRefs bool, breakingConfig *whatChangedModel.BreakingRulesConfig,
+	) ([]*model.Commit, []error) {
+		originalPath = strings.TrimPrefix(commits[1].Message, "Original file: ")
+		modifiedPath = strings.TrimPrefix(commits[0].Message, "Original: "+originalPath+", Modified: ")
+		return commits, nil
+	}
+
+	commits, err := loadLeftRightCommits(server.URL+"/left.yaml", server.URL+"/right.yaml", newSummaryOpts{}, nil)
+
+	require.NoError(t, err)
+	require.Len(t, commits, 2)
+	assert.NoFileExists(t, originalPath)
+	assert.NoFileExists(t, modifiedPath)
+}
+
+func TestLoadLeftRightCommits_ReturnsHTTPStatusErrors(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "missing", http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	commits, err := loadLeftRightCommits(server.URL+"/left.yaml", "../sample-specs/petstorev3.json", newSummaryOpts{}, nil)
+
+	require.Error(t, err)
+	assert.Nil(t, commits)
+	assert.Contains(t, err.Error(), "unexpected status 404 Not Found")
 }
 
 func TestRenderNewSummary_RendersSecurityRequirementDetail(t *testing.T) {
@@ -270,6 +391,7 @@ func TestRenderNewSummary_RendersSecurityRequirementDetail(t *testing.T) {
 		nil,
 		false,
 		true,
+		false,
 		summaryStyles{},
 	)
 
@@ -306,6 +428,7 @@ func TestRenderNewSummary_RendersOAuthFlowScopeDetail(t *testing.T) {
 		nil,
 		false,
 		true,
+		false,
 		summaryStyles{},
 	)
 
@@ -342,14 +465,15 @@ func TestRenderNewSummary_RendersTopLevelTagTreeDetail(t *testing.T) {
 		nil,
 		false,
 		true,
+		false,
 		summaryStyles{},
 	)
 
 	require.NoError(t, err)
-	assert.Contains(t, output, "Tags (1 changes)")
+	assert.Contains(t, output, "├─┬Tags")
 	assert.Contains(t, output, "[+] jazz")
 	assert.NotContains(t, output, "(46:5)")
-	assert.NotContains(t, output, "└─┬jazz (1 changes)")
+	assert.NotContains(t, output, "└─┬jazz")
 }
 
 func TestRenderNewSummary_UsesDeduplicatedHeadlineCounts(t *testing.T) {
@@ -380,16 +504,56 @@ func TestRenderNewSummary_UsesDeduplicatedHeadlineCounts(t *testing.T) {
 		nil,
 		false,
 		true,
+		false,
 		summaryStyles{},
 	)
 
 	require.NoError(t, err)
 	assert.Contains(t, output, "❌  18 Breaking changes out of 42")
+	assert.Contains(t, output, "Counts are deduplicated by JSONPath + property.")
+	assert.Contains(t, output, "│ components       │             9 │                2 │")
+	assert.Contains(t, output, "│ paths            │            28 │               16 │")
 	assert.Contains(t, output, "  Additions: 12")
 	assert.Contains(t, output, "  Modifications: 20")
 	assert.Contains(t, output, "  Removals: 10")
 	assert.Contains(t, output, "  Breaking Modifications: 8")
 	assert.Contains(t, output, "  Breaking Removals: 10")
+}
+
+func TestRenderNewSummary_WithLinesIncludesSourceLocations(t *testing.T) {
+	leftBytes, err := os.ReadFile("../sample-specs/petstorev3-original.json")
+	require.NoError(t, err)
+	rightBytes, err := os.ReadFile("../sample-specs/petstorev3.json")
+	require.NoError(t, err)
+
+	leftDoc, err := libopenapi.NewDocument(leftBytes)
+	require.NoError(t, err)
+	rightDoc, err := libopenapi.NewDocument(rightBytes)
+	require.NoError(t, err)
+
+	commit := &model.Commit{
+		Hash:        "with-lines",
+		Message:     "with-lines",
+		Author:      "test",
+		CommitDate:  time.Now(),
+		Data:        rightBytes,
+		OldData:     leftBytes,
+		Document:    rightDoc,
+		OldDocument: leftDoc,
+	}
+
+	output, _, _, err := renderNewSummary(
+		[]*model.Commit{commit},
+		nil,
+		false,
+		true,
+		true,
+		summaryStyles{},
+	)
+
+	require.NoError(t, err)
+	assert.Contains(t, output, "(4:14)")
+	assert.Contains(t, output, "(8:16)")
 }
 
 func TestRenderNewSummary_MatchesSecurityRequirementChangesToCorrectScheme(t *testing.T) {
@@ -458,12 +622,12 @@ components:
 		nil,
 		false,
 		true,
+		false,
 		summaryStyles{},
 	)
 
 	require.NoError(t, err)
 	assert.Contains(t, output, "Security Requirements")
-	assert.Contains(t, output, "petstore_auth (1 changes)")
 	assert.Contains(t, output, "petstore_auth/eat:tacos")
 	assert.NotContains(t, output, "api_key (1 changes)")
 }
@@ -524,6 +688,7 @@ components:
 		nil,
 		false,
 		true,
+		false,
 		summaryStyles{},
 	)
 
@@ -573,12 +738,13 @@ components:
 		nil,
 		false,
 		true,
+		false,
 		summaryStyles{},
 	)
 
 	require.NoError(t, err)
 	assert.Contains(t, output, "oAuth Flows")
-	assert.Contains(t, output, "Client Credentials")
+	assert.Contains(t, output, "oAuth Flow")
 	assert.Contains(t, output, "scopes/eat:tacos (Eat tacos)")
 }
 

@@ -15,9 +15,7 @@ import (
 	v3 "github.com/pb33f/doctor/model/high/v3"
 	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
-	"github.com/pb33f/libopenapi/what-changed/reports"
 	"github.com/pb33f/openapi-changes/internal/changecounts"
-	"github.com/pb33f/openapi-changes/internal/security"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/spf13/cobra"
 )
@@ -62,24 +60,111 @@ type elementSummary struct {
 	breaking int
 }
 
-func buildElementSummaries(changes *whatChangedModel.DocumentChanges) []elementSummary {
-	report := reports.CreateOverallReport(changes)
-	if report == nil || len(report.ChangeReport) == 0 {
+func buildElementSummaries(changes []*whatChangedModel.Change) []elementSummary {
+	if len(changes) == 0 {
 		return nil
 	}
 
-	summaries := make([]elementSummary, 0, len(report.ChangeReport))
-	for name, stats := range report.ChangeReport {
-		summaries = append(summaries, elementSummary{
-			name:     name,
-			total:    stats.Total,
-			breaking: stats.Breaking,
-		})
+	type counts struct {
+		total    int
+		breaking int
+	}
+	grouped := make(map[string]*counts)
+	for _, change := range changes {
+		if change == nil {
+			continue
+		}
+		name := summarizeTopLevelElement(change.Path)
+		if name == "" {
+			name = "document"
+		}
+		if grouped[name] == nil {
+			grouped[name] = &counts{}
+		}
+		grouped[name].total++
+		if change.Breaking {
+			grouped[name].breaking++
+		}
+	}
+
+	summaries := make([]elementSummary, 0, len(grouped))
+	for name, stats := range grouped {
+		summaries = append(summaries, elementSummary{name: name, total: stats.total, breaking: stats.breaking})
 	}
 	sort.Slice(summaries, func(i, j int) bool {
 		return summaries[i].name < summaries[j].name
 	})
 	return summaries
+}
+
+func summarizeTopLevelElement(path string) string {
+	if path == "" || path == "$" {
+		return "document"
+	}
+	s := strings.TrimPrefix(path, "$")
+	s = strings.TrimPrefix(s, ".")
+	if s == "" {
+		return "document"
+	}
+
+	end := len(s)
+	for i, r := range s {
+		if r == '.' || r == '[' {
+			end = i
+			break
+		}
+	}
+	token := s[:end]
+	if token == "" {
+		return "document"
+	}
+	if strings.HasPrefix(token, "x-") {
+		return "extensions"
+	}
+	return token
+}
+
+func renderDedupedCountsNote(markdown bool, styles summaryStyles) string {
+	note := "Counts are deduplicated by JSONPath + property."
+	if markdown {
+		return note + "\n\n"
+	}
+	if styles.stat.GetForeground() != nil {
+		return styles.stat.Render(note) + "\n\n"
+	}
+	return note + "\n\n"
+}
+
+func renderBreakingHighlights(highlights []string, markdown bool, styles summaryStyles) string {
+	if len(highlights) == 0 {
+		return ""
+	}
+
+	var sb strings.Builder
+	title := "Breaking Highlights"
+	if markdown {
+		sb.WriteString("**" + title + "**\n")
+		for _, item := range highlights {
+			sb.WriteString("- " + item + "\n")
+		}
+		sb.WriteString("\n")
+		return sb.String()
+	}
+
+	if styles.breaking.GetForeground() != nil {
+		sb.WriteString(styles.breaking.Render(title))
+		sb.WriteString("\n")
+	} else {
+		sb.WriteString(title)
+		sb.WriteString("\n")
+	}
+	for _, item := range highlights {
+		sb.WriteString("  - ")
+		sb.WriteString(item)
+		sb.WriteString("\n")
+	}
+	sb.WriteString("\n")
+	return sb.String()
 }
 
 func renderElementSummaryTable(summaries []elementSummary, markdown bool, styles summaryStyles) string {
@@ -172,65 +257,6 @@ func renderElementSummaryTable(summaries []elementSummary, markdown bool, styles
 	return sb.String()
 }
 
-func enrichSummaryTreeLabels(root *v3.Node) {
-	if root == nil {
-		return
-	}
-	enrichSummaryNodeLabels(root)
-}
-
-func enrichSummaryNodeLabels(node *v3.Node) {
-	if node == nil {
-		return
-	}
-	for _, changed := range node.GetChanges() {
-		if changed == nil {
-			continue
-		}
-		for _, change := range changed.GetPropertyChanges() {
-			enrichSummaryChangeLabel(node, change)
-		}
-	}
-	for _, child := range node.Children {
-		enrichSummaryNodeLabels(child)
-	}
-}
-
-func enrichSummaryChangeLabel(node *v3.Node, change *whatChangedModel.Change) {
-	if node == nil || change == nil {
-		return
-	}
-
-	if security.IsSecurityScopeChange(change) {
-		change.Property = security.FormatSecurityScopeTitle(change)
-		return
-	}
-
-	switch {
-	case node.Type == "responses" && change.Property == "codes":
-		if label := firstNonEmpty(change.New, change.Original); label != "" {
-			change.Property = label
-		}
-	case node.Type == "tags" && change.Property == "tags":
-		if label := firstNonEmpty(change.New, change.Original); label != "" {
-			change.Property = label
-		}
-	case node.Type == "schema" && change.Property == "properties":
-		if label := firstNonEmpty(change.New, change.Original); label != "" {
-			change.Property = fmt.Sprintf("properties/%s", label)
-		}
-	}
-}
-
-func firstNonEmpty(values ...string) string {
-	for _, value := range values {
-		if value != "" {
-			return value
-		}
-	}
-	return ""
-}
-
 func isDirectFileComparison(commits []*model.Commit) bool {
 	if len(commits) != 2 {
 		return false
@@ -246,6 +272,7 @@ func renderNewSummary(
 	breakingConfig *whatChangedModel.BreakingRulesConfig,
 	markdown bool,
 	noColor bool,
+	withLines bool,
 	styles summaryStyles,
 ) (string, bool, bool, error) {
 	if len(commits) == 0 {
@@ -256,6 +283,7 @@ func renderNewSummary(
 	totalChanges := 0
 	totalBreaking := 0
 	renderedCommits := 0
+	treeRendered := false
 	var renderErrors []error
 
 	for c, commit := range commits {
@@ -284,10 +312,18 @@ func renderNewSummary(
 
 		deduplicatedChanges := result.Changerator.DeduplicateChanges()
 
-		// Build node change tree and render tree for first commit only
-		if c == 0 {
-			result.Changerator.BuildNodeChangeTree(result.RightDrDoc.V3Document.Node)
-			enrichSummaryTreeLabels(result.RightDrDoc.V3Document.Node)
+		// Build node change tree and render tree for the first renderable commit only.
+		if !treeRendered {
+			var changeRoot *v3.Node
+			for _, node := range result.Changerator.ChangedNodes {
+				if node != nil && node.Id == "root" {
+					changeRoot = node
+					break
+				}
+			}
+			if changeRoot == nil {
+				changeRoot = result.RightDrDoc.V3Document.Node
+			}
 
 			var colorScheme terminal.ColorScheme
 			if noColor || markdown {
@@ -296,13 +332,16 @@ func renderNewSummary(
 				colorScheme = lipglossColorScheme{styles: styles}
 			}
 
-			treeRenderer := renderer.NewTreeRenderer(result.RightDrDoc.V3Document.Node, &renderer.TreeConfig{
+			result.Changerator.BuildNodeChangeTree(changeRoot)
+			semanticRenderer := renderer.NewSemanticTreeRenderer(changeRoot, result.DocChanges.GetAllChanges(), &renderer.TreeConfig{
 				UseEmojis:       markdown,
-				ShowLineNumbers: false,
+				ShowLineNumbers: withLines,
 				ShowStatistics:  true,
 				ColorScheme:     colorScheme,
 			})
-			treeOutput := treeRenderer.Render()
+
+			sb.WriteString(renderBreakingHighlights(semanticRenderer.Highlights(8), markdown, styles))
+			treeOutput := semanticRenderer.Render()
 
 			if markdown {
 				sb.WriteString("```\n")
@@ -312,9 +351,11 @@ func renderNewSummary(
 				sb.WriteString(treeOutput)
 				sb.WriteString("\n")
 			}
+			treeRendered = true
 		}
 
-		sb.WriteString(renderElementSummaryTable(buildElementSummaries(result.DocChanges), markdown, styles))
+		sb.WriteString(renderDedupedCountsNote(markdown, styles))
+		sb.WriteString(renderElementSummaryTable(buildElementSummaries(deduplicatedChanges), markdown, styles))
 
 		counts := changecounts.FromChanges(deduplicatedChanges)
 		breaking := counts.Breaking
@@ -405,6 +446,9 @@ func renderNewSummary(
 	if renderedCommits == 0 && len(renderErrors) > 0 {
 		return sb.String(), false, false, fmt.Errorf("all %d commits failed to render: %w", len(renderErrors), errors.Join(renderErrors...))
 	}
+	if len(renderErrors) > 0 {
+		return sb.String(), hasBreaking, hasChanges, fmt.Errorf("%d commits failed to render: %w", len(renderErrors), errors.Join(renderErrors...))
+	}
 	if !hasChanges && len(renderErrors) == 0 {
 		if sb.Len() == 0 {
 			return noChangesFoundMessage + "\n", false, false, nil
@@ -469,7 +513,7 @@ func GetNewSummaryCommand() *cobra.Command {
 			}
 
 			output, hasBreaking, hasChanges, renderErr := renderNewSummary(
-				commits, breakingConfig, opts.markdown, opts.noColor, styles,
+				commits, breakingConfig, opts.markdown, opts.noColor, opts.withLines, styles,
 			)
 			if output != "" {
 				fmt.Print(output)
@@ -488,6 +532,7 @@ func GetNewSummaryCommand() *cobra.Command {
 	}
 	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
 	cmd.Flags().BoolP("markdown", "m", false, "Render output in markdown, using emojis")
+	cmd.Flags().Bool("with-lines", false, "Include source line and column locations in semantic tree leaves")
 	cmd.Flags().BoolP("error-on-diff", "", false, "Treat any differences as errors")
 	return cmd
 }

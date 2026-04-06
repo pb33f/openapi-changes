@@ -25,6 +25,7 @@ const (
 type newSummaryOpts struct {
 	noColor         bool
 	markdown        bool
+	withLines       bool
 	errorOnDiff     bool
 	latest          bool
 	limit           int
@@ -39,6 +40,7 @@ type newSummaryOpts struct {
 // readCommonFlags reads the flags shared by all new-* commands.
 func readCommonFlags(cmd *cobra.Command) (opts newSummaryOpts, configFlag string) {
 	opts.noColor, _ = cmd.Flags().GetBool("no-color")
+	opts.withLines, _ = cmd.Flags().GetBool("with-lines")
 	opts.latest, _ = cmd.Flags().GetBool("top")
 	opts.limit, _ = cmd.Flags().GetInt("limit")
 	opts.limitTime, _ = cmd.Flags().GetInt("limit-time")
