@@ -28,6 +28,7 @@ type summaryStyles struct {
 	modification lipgloss.Style
 	removal      lipgloss.Style
 	stat         lipgloss.Style
+	detail       lipgloss.Style
 }
 
 func newSummaryStyles() summaryStyles {
@@ -38,6 +39,7 @@ func newSummaryStyles() summaryStyles {
 		modification: lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossYellow)),
 		removal:      lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)),
 		stat:         lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGrey)),
+		detail:       lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossLightGrey)),
 	}
 }
 
@@ -53,6 +55,7 @@ func (l lipglossColorScheme) Breaking(s string) string     { return l.styles.bre
 func (l lipglossColorScheme) TreeBranch(s string) string   { return l.styles.stat.Render(s) }
 func (l lipglossColorScheme) LocationInfo(s string) string { return l.styles.stat.Render(s) }
 func (l lipglossColorScheme) Statistics(s string) string   { return l.styles.stat.Render(s) }
+func (l lipglossColorScheme) Detail(s string) string       { return l.styles.detail.Render(s) }
 
 type elementSummary struct {
 	name     string
