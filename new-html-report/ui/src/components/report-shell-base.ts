@@ -118,7 +118,7 @@ interface TabGroupElement extends HTMLElement {
  * Subclasses register the custom element and override hooks for explorer-specific behavior.
  */
 export abstract class ReportShellBase extends LitElement {
-    static styles = [reportCss];
+    static styles = reportCss;
 
     @state() protected data: ReportPayload | null = null;
     @state() protected activeItemIndex: number = 0;
@@ -202,6 +202,11 @@ export abstract class ReportShellBase extends LitElement {
         if (node) {
             this.selectedNodeChanges = node.timeline || [];
             this.selectedDiffChanges = node.timeline || [];
+        } else {
+            this.selectedNodeChanges = [];
+            this.selectedDiffChanges = [];
+            this.selectedNodeLabel = '';
+            this.selectedNodeType = '';
         }
     }
 
@@ -261,7 +266,7 @@ export abstract class ReportShellBase extends LitElement {
         for (const meta of chartInst.getSortedVisibleDatasetMetas()) {
             const point = meta.data[activeIdx];
             if (!point) continue;
-            const color = meta._dataset?.borderColor || '#fff';
+            const color = (chartInst.data.datasets[meta.index] as any)?.borderColor || '#fff';
             const size = 12;
             // Multiple passes for a stronger, softer glow — stroke only, no fill
             for (let pass = 0; pass < 5; pass++) {

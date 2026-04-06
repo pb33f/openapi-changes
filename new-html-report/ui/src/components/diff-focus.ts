@@ -48,6 +48,7 @@ export function buildFocusedDiffSections(
     modifiedSpec: string,
     originalHighlighted: Record<number, string>,
     modifiedHighlighted: Record<number, string>,
+    contextRadius: number = CONTEXT_RADIUS,
 ): FocusedDiffSection[] {
     const originalLines = splitSpecLines(originalSpec);
     const modifiedLines = splitSpecLines(modifiedSpec);
@@ -60,6 +61,7 @@ export function buildFocusedDiffSections(
             modifiedLines,
             originalHighlighted || {},
             modifiedHighlighted || {},
+            contextRadius,
         );
 
         return {
@@ -242,6 +244,7 @@ function buildContextBlocks(
     modifiedLines: string[],
     originalHighlighted: Record<number, string>,
     modifiedHighlighted: Record<number, string>,
+    contextRadius: number = CONTEXT_RADIUS,
 ): FocusContextBlock[] {
     const blocks: FocusContextBlock[] = [];
     const originalLine = change.context?.originalLine || 0;
@@ -258,6 +261,7 @@ function buildContextBlocks(
                 modifiedLines,
                 modifiedHighlighted,
                 computeBlockRangeForChange(modifiedLines, modifiedLine, change),
+                contextRadius,
             ));
         }
         break;
@@ -270,6 +274,7 @@ function buildContextBlocks(
                 originalLines,
                 originalHighlighted,
                 computeBlockRangeForChange(originalLines, originalLine, change),
+                contextRadius,
             ));
         }
         break;
@@ -283,6 +288,7 @@ function buildContextBlocks(
                 multilineValue
                     ? computeBlockRangeForChange(originalLines, originalLine, change)
                     : singleLineRange(originalLine),
+                contextRadius,
             ));
         }
         if (modifiedLine > 0) {
@@ -294,6 +300,7 @@ function buildContextBlocks(
                 multilineValue
                     ? computeBlockRangeForChange(modifiedLines, modifiedLine, change)
                     : singleLineRange(modifiedLine),
+                contextRadius,
             ));
         }
         break;
@@ -310,9 +317,10 @@ function buildContextBlock(
     specLines: string[],
     highlighted: Record<number, string>,
     range: FocusRange,
+    contextRadius: number = CONTEXT_RADIUS,
 ): FocusContextBlock {
-    const start = Math.max(1, range.start - CONTEXT_RADIUS);
-    const end = Math.min(specLines.length, range.end + CONTEXT_RADIUS);
+    const start = Math.max(1, range.start - contextRadius);
+    const end = Math.min(specLines.length, range.end + contextRadius);
     const lines: FocusContextLine[] = [];
 
     for (let lineNum = start; lineNum <= end; lineNum++) {

@@ -1,13 +1,15 @@
-import { html, nothing, TemplateResult } from 'lit';
-import { customElement, query } from 'lit/decorators.js';
+import { html, nothing, TemplateResult, PropertyValues } from 'lit';
+import { customElement, query, state } from 'lit/decorators.js';
 import type { SlTabShowEvent } from '@shoelace-style/shoelace/dist/events/sl-tab-show.js';
 import { ReportShellBase } from './report-shell-base.js';
 import type { Change } from '../model/report-payload.js';
 
-import { ExplorerComponent, ExplorerNodeClicked } from '@pb33f/cowboy-components/static-report';
+import { ExplorerComponent, ExplorerChangePanel, ExplorerNodeClicked } from '@pb33f/cowboy-components/static-report';
 import type { NodeClickedEvent } from '@pb33f/cowboy-components/static-report';
+void ExplorerChangePanel;
 import { createElkLayoutWorker } from '../elk-layout-worker-inline.js';
 import { createGraphDependentWorker } from '../graph-dependent-worker-inline.js';
+import './focused-diff-panel.js';
 
 ExplorerComponent.elkWorkerFactory = createElkLayoutWorker;
 ExplorerComponent.graphDependentWorkerFactory = createGraphDependentWorker;
@@ -16,6 +18,70 @@ ExplorerComponent.graphDependentWorkerFactory = createGraphDependentWorker;
 export class ReportShell extends ReportShellBase {
 
     @query('pb33f-explorer') private explorer!: ExplorerComponent;
+    @query('.graph-split') private graphSplit!: HTMLElement & { position: number; disabled: boolean };
+    @query('.graph-split > sl-icon[slot="divider"]') private graphSplitDivider!: HTMLElement;
+    @state() private _changePanelExpanded = false;
+    private _manuallyCollapsed = false;
+    private _lastExpandedPosition = 70;
+
+    private _applySplitCollapsed() {
+        const s = this.graphSplit;
+        if (!s) return;
+        s.position = 100;
+        s.disabled = true;
+        s.style.setProperty('--min', '20px');
+        s.style.setProperty('--max', 'calc(100% - 20px)');
+        s.style.setProperty('--divider-width', '0px');
+        s.classList.add('collapsed');
+        if (this.graphSplitDivider) this.graphSplitDivider.style.display = 'none';
+    }
+
+    private _applySplitExpanded() {
+        const s = this.graphSplit;
+        if (!s) return;
+        s.position = this._lastExpandedPosition;
+        s.disabled = false;
+        s.style.setProperty('--min', '200px');
+        s.style.setProperty('--max', 'calc(100% - 200px)');
+        s.style.setProperty('--divider-width', '2px');
+        s.classList.remove('collapsed');
+        if (this.graphSplitDivider) this.graphSplitDivider.style.display = '';
+    }
+
+    protected override updated(changedProperties: PropertyValues): void {
+        super.updated(changedProperties);
+        if (changedProperties.has('_changePanelExpanded')) {
+            if (this._changePanelExpanded) {
+                this._applySplitExpanded();
+            } else {
+                this._applySplitCollapsed();
+            }
+            // After split panel resize, the explorer's viewBox needs to update
+            // for its new container width so node centering works correctly.
+            requestAnimationFrame(() => {
+                if (this.explorer?.updateViewBoxForContainer) {
+                    this.explorer.updateViewBoxForContainer();
+                }
+            });
+        }
+    }
+
+    private _onSplitReposition = (e: Event) => {
+        const split = e.target as HTMLElement & { position: number };
+        if (split && this._changePanelExpanded) {
+            this._lastExpandedPosition = split.position;
+        }
+    };
+
+    private _onChangePanelToggled = (e: Event) => {
+        const hidden = (e as CustomEvent).detail.hidden;
+        // Save current position before collapsing so we can restore on re-expand
+        if (hidden && this.graphSplit?.position && this.graphSplit.position < 100) {
+            this._lastExpandedPosition = this.graphSplit.position;
+        }
+        this._changePanelExpanded = !hidden;
+        this._manuallyCollapsed = hidden;
+    };
 
     private _onExplorerNodeClicked = (e: Event) => {
         const nodeId = (e as CustomEvent).detail?.nodeId;
@@ -32,10 +98,12 @@ export class ReportShell extends ReportShellBase {
     connectedCallback(): void {
         super.connectedCallback();
         this.addEventListener(ExplorerNodeClicked, this._onExplorerNodeClicked);
+        this.addEventListener('explorer-change-panel-toggled', this._onChangePanelToggled);
     }
 
     disconnectedCallback(): void {
         this.removeEventListener(ExplorerNodeClicked, this._onExplorerNodeClicked);
+        this.removeEventListener('explorer-change-panel-toggled', this._onChangePanelToggled);
         super.disconnectedCallback();
     }
 
@@ -48,6 +116,7 @@ export class ReportShell extends ReportShellBase {
         if (this.explorer) {
             this.explorer.resetSelection();
         }
+        this._manuallyCollapsed = false;
         super.selectItem(index);
     }
 
@@ -69,6 +138,13 @@ export class ReportShell extends ReportShellBase {
         }
         if (event.detail.name === 'diff' && this.selectedNodeChanges.length > 0) {
             this.selectedDiffChanges = [...this.selectedNodeChanges];
+        }
+    }
+
+    protected override selectNode(nodeId: string): void {
+        super.selectNode(nodeId);
+        if (this.selectedNodeChanges.length > 0 && !this._manuallyCollapsed && !this._changePanelExpanded) {
+            this._changePanelExpanded = true; // triggers updated() → _applySplitExpanded()
         }
     }
 
@@ -103,9 +179,26 @@ export class ReportShell extends ReportShellBase {
     }
 
     protected override renderExtraTabPanels(): TemplateResult | typeof nothing {
+        const item = this.activeItem;
         return html`
             <sl-tab-panel name="graph">
-                <pb33f-explorer></pb33f-explorer>
+                <sl-split-panel class="graph-split" @sl-reposition=${this._onSplitReposition}>
+                    <sl-icon slot="divider" name="grip-vertical" class="divider-vert" aria-hidden="true"></sl-icon>
+                    <pb33f-explorer slot="start"></pb33f-explorer>
+                    <pb33f-explorer-change-panel slot="end"
+                        .changes=${this.selectedNodeChanges}
+                        ?panel-hidden=${!this._changePanelExpanded}>
+                        ${this._changePanelExpanded && item ? html`
+                            <openapi-changes-focused-diff-panel compact
+                                .changes=${this.selectedNodeChanges}
+                                .originalSpec=${item.originalSpec || ''}
+                                .modifiedSpec=${item.modifiedSpec || ''}
+                                .originalHighlighted=${item.originalHighlighted || {}}
+                                .modifiedHighlighted=${item.modifiedHighlighted || {}}>
+                            </openapi-changes-focused-diff-panel>
+                        ` : nothing}
+                    </pb33f-explorer-change-panel>
+                </sl-split-panel>
             </sl-tab-panel>
         `;
     }

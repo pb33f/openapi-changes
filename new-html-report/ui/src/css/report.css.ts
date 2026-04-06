@@ -1,12 +1,13 @@
 import { css } from 'lit';
+import { scrollbarCss } from './scrollbar.css.js';
 
-export default css`
+export default [scrollbarCss, css`
     :host {
         display: flex;
         flex-direction: column;
         width: 100%;
         height: 100vh;
-        overflow-x: hidden;
+        overflow: hidden;
         background-color: var(--background-color);
         color: var(--font-color);
         font-family: var(--font-stack), monospace;
@@ -156,23 +157,7 @@ export default css`
         height: 100%;
     }
 
-    /* Shared scrollbar styling */
-    .tree-scroll-container::-webkit-scrollbar,
-    .timeline-scroll-container::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-    }
-
-    .tree-scroll-container::-webkit-scrollbar-track,
-    .timeline-scroll-container::-webkit-scrollbar-track {
-        background-color: var(--terminal-background);
-    }
-
-    .tree-scroll-container::-webkit-scrollbar-thumb,
-    .timeline-scroll-container::-webkit-scrollbar-thumb {
-        box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
-        background: var(--secondary-color-lowalpha);
-    }
+    /* scrollbar styling inherited from scrollbarCss shared fragment */
 
     .tree-scroll-container {
         flex: 1;
@@ -335,7 +320,11 @@ export default css`
         min-height: 0;
         overflow: auto;
         padding-top: calc(var(--global-padding-half) + 3px);
+        scrollbar-width: thin;
+       
     }
+
+    /* scrollbar styling inherited from scrollbarCss shared fragment */
 
     sl-tab-group {
         --indicator-color: var(--secondary-color);
@@ -363,11 +352,57 @@ export default css`
 
     sl-tab-panel[name="graph"] {
         padding: 0;
+        overflow: hidden;
+        height: calc(100vh - var(--chrome-total) - var(--global-padding-half) - 3px);
+        min-height: 0;
+    }
+
+    sl-tab-panel[name="graph"]::part(base) {
+        overflow: hidden;
+        padding: 0;
+        height: 100%;
+        min-height: 0;
+    }
+
+    .graph-split {
+        width: 100%;
+        height: calc(100vh - var(--chrome-total));
+        min-height: 0;
+        overflow: hidden;
+        --divider-width: 0px;
+        --min: 20px;
+        --max: calc(100% - 20px);
+    }
+
+    .graph-split::part(panel) {
+        min-height: 0;
+    }
+
+    .graph-split::part(start) {
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    .graph-split::part(end) {
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .graph-split::part(divider) {
+        background-color: var(--secondary-color);
     }
 
     sl-tab-panel[name="graph"] pb33f-explorer {
         display: block;
-        height: calc(100vh - var(--chrome-total));
+        height: 100%;
+        min-height: 0;
+    }
+
+    sl-tab-panel[name="graph"] pb33f-explorer-change-panel {
+        display: block;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
     }
 
     sl-tab-panel[name="diff"] {
@@ -786,4 +821,4 @@ export default css`
         padding-bottom: var(--global-padding);
         border-bottom: 1px dashed var(--hrcolor);
     }
-`;
+`];

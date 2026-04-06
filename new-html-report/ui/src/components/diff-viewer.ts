@@ -28,7 +28,7 @@ const OVERSCAN = 20;
 
 @customElement('openapi-changes-diff-viewer')
 export class DiffViewer extends LitElement {
-    static styles = [diffViewerCss];
+    static styles = diffViewerCss;
 
     @property() originalSpec: string = '';
     @property() modifiedSpec: string = '';

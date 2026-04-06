@@ -63,7 +63,11 @@ class InlineElkLayoutWorker {
         this.onmessage = null;
         this.onerror = null;
         if (this.elk?.terminateWorker) {
-            this.elk.terminateWorker();
+            try {
+                this.elk.terminateWorker();
+            } catch {
+                // ELK's internal worker may not support terminate in inline mode
+            }
         }
         this.elk = null;
     }
