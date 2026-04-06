@@ -23,7 +23,7 @@ func TestExtractHistoryFromFile(t *testing.T) {
 	c := make(chan *model.ProgressUpdate, 32)
 	e := make(chan model.ProgressError, 32)
 
-	history, errs := ExtractHistoryFromFile("./", "read_local.go", "", c, e, false, 25, -1)
+	history, errs := ExtractHistoryFromFile("./", "read_local.go", c, e, HistoryOptions{Limit: 25, LimitTime: -1})
 	require.Empty(t, errs)
 	require.NotEmpty(t, history)
 
@@ -49,7 +49,7 @@ func TestExtractHistoryFromFile_Fail(t *testing.T) {
 		}
 	}()
 
-	history, _ := ExtractHistoryFromFile("./", "no_file_nope", "", c, e, false, 5, -1)
+	history, _ := ExtractHistoryFromFile("./", "no_file_nope", c, e, HistoryOptions{Limit: 5, LimitTime: -1})
 	<-d
 	assert.Len(t, history, 0)
 }
@@ -76,7 +76,7 @@ func TestReadFile(t *testing.T) {
 	assert.NotEmpty(t, contentRaw)
 }
 
-func TestBuildCommitChangelog_IdenticalLeftRightPreservesSentinelCommit(t *testing.T) {
+func TestBuildChangelog_IdenticalLeftRightPreservesSentinelCommit(t *testing.T) {
 	specBytes := mustReadTestFile(t, "../sample-specs/petstorev3.json")
 	progressChan := make(chan *model.ProgressUpdate, 32)
 	errorChan := make(chan model.ProgressError, 32)
@@ -98,14 +98,14 @@ func TestBuildCommitChangelog_IdenticalLeftRightPreservesSentinelCommit(t *testi
 		},
 	}
 
-	cleaned, errs := BuildCommitChangelog(commits, progressChan, errorChan, "", true, false, nil)
+	cleaned, errs := BuildChangelog(commits, progressChan, errorChan, HistoryOptions{Remote: true}, nil)
 	require.Empty(t, errs)
 	require.Len(t, cleaned, 1)
 	assert.Nil(t, cleaned[0].Changes)
 	assert.NotNil(t, cleaned[0].Document)
 }
 
-func TestBuildCommitTimeline_IdenticalLeftRightPreservesComparableRevision(t *testing.T) {
+func TestBuildChangelog_IdenticalLeftRightPreservesComparableRevision(t *testing.T) {
 	specBytes := mustReadTestFile(t, "../sample-specs/petstorev3.json")
 	progressChan := make(chan *model.ProgressUpdate, 32)
 	errorChan := make(chan model.ProgressError, 32)
@@ -127,7 +127,7 @@ func TestBuildCommitTimeline_IdenticalLeftRightPreservesComparableRevision(t *te
 		},
 	}
 
-	cleaned, errs := BuildCommitTimeline(commits, progressChan, errorChan, "", true, false, nil)
+	cleaned, errs := BuildChangelog(commits, progressChan, errorChan, HistoryOptions{Remote: true, KeepComparable: true}, nil)
 	require.Empty(t, errs)
 	require.Len(t, cleaned, 2)
 	assert.NotNil(t, cleaned[0].Document)

@@ -12,6 +12,7 @@ import (
 
 	"github.com/pb33f/libopenapi"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
+	"github.com/pb33f/openapi-changes/git"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -66,7 +67,7 @@ paths:
 	require.NoError(t, os.WriteFile(leftPath, []byte(left), 0644))
 	require.NoError(t, os.WriteFile(rightPath, []byte(right), 0644))
 
-	report, err := runLeftRightReport(leftPath, rightPath, newSummaryOpts{}, nil)
+	report, err := runLeftRightReport(leftPath, rightPath, summaryOpts{}, nil)
 
 	require.Error(t, err)
 	assert.Nil(t, report)
@@ -79,15 +80,14 @@ func TestRunGithubHistoryReport_PropagatesChangeratorErrors(t *testing.T) {
 		processGithubRepo = originalProcess
 	})
 
-	processGithubRepo = func(username, repo, filePath, baseCommit string,
+	processGithubRepo = func(username, repo, filePath string,
 		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
-		forceCutoff bool, limit int, limitTime int, base string, remote, extRefs bool,
-		breakingConfig *whatChangedModel.BreakingRulesConfig,
+		opts git.HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
 	) ([]*model.Commit, []error) {
 		return []*model.Commit{mustMakeSwagger2Commit(t)}, nil
 	}
 
-	report, err := runGithubHistoryReport("https://github.com/oai/openapi-specification/blob/main/examples/v2.0/json/petstore-expanded.json", newSummaryOpts{}, nil)
+	report, err := runGithubHistoryReport("https://github.com/oai/openapi-specification/blob/main/examples/v2.0/json/petstore-expanded.json", summaryOpts{}, nil)
 
 	require.Error(t, err)
 	assert.Nil(t, report)
@@ -104,7 +104,7 @@ func TestRunLeftRightReport_Success(t *testing.T) {
 	report, err := runLeftRightReport(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		newSummaryOpts{noColor: true},
+		summaryOpts{noColor: true},
 		nil,
 	)
 
@@ -122,7 +122,7 @@ func TestRunLeftRightReport_OmitsCommitDetailsInJSON(t *testing.T) {
 	report, err := runLeftRightReport(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		newSummaryOpts{noColor: true},
+		summaryOpts{noColor: true},
 		nil,
 	)
 
@@ -139,7 +139,7 @@ func TestRunLeftRightReport_NormalizesParameterPaths(t *testing.T) {
 	report, err := runLeftRightReport(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		newSummaryOpts{noColor: true},
+		summaryOpts{noColor: true},
 		nil,
 	)
 

@@ -16,8 +16,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func printNewConsoleUsage(noColor bool) {
-	printNewCommandUsage("console",
+func printConsoleUsage(noColor bool) {
+	printCommandUsage("console",
 		"The console command renders an interactive terminal user interface.\nExplore OpenAPI contract changes right in your terminal with a modern TUI.",
 		noColor)
 }
@@ -65,16 +65,18 @@ func GetConsoleCommand() *cobra.Command {
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {
-				PrintNewBanner(opts.noColor)
+				PrintBanner(opts.noColor)
 			}
 
 			if len(args) == 0 {
-				printNewConsoleUsage(opts.noColor)
+				printConsoleUsage(opts.noColor)
 				return nil
 			}
 
-			if len(args) == 1 && !validateGitHubURL(args[0]) {
-				return nil
+			if len(args) == 1 {
+				if err := validateGitHubURL(args[0]); err != nil {
+					return err
+				}
 			}
 
 			if len(args) > 2 {
@@ -83,7 +85,7 @@ func GetConsoleCommand() *cobra.Command {
 
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
 			if err != nil {
-				PrintNewConfigError(err)
+				PrintConfigError(err)
 				return err
 			}
 

@@ -15,7 +15,7 @@ import (
 )
 
 func TestMarkdownReport_UnchangedLeftRight(t *testing.T) {
-	opts := newSummaryOpts{noColor: true}
+	opts := summaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3.json",
 		"../sample-specs/petstorev3.json",
@@ -57,7 +57,7 @@ paths: {}`
 }
 
 func TestMarkdownReport_HeadingStripping(t *testing.T) {
-	opts := newSummaryOpts{noColor: true}
+	opts := summaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
@@ -74,7 +74,7 @@ func TestMarkdownReport_HeadingStripping(t *testing.T) {
 }
 
 func TestMarkdownReport_SingleCommitLeftRight(t *testing.T) {
-	opts := newSummaryOpts{noColor: true}
+	opts := summaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
@@ -93,7 +93,7 @@ func TestMarkdownReport_SingleCommitLeftRight(t *testing.T) {
 }
 
 func TestMarkdownReport_UsesDeduplicatedCounts(t *testing.T) {
-	opts := newSummaryOpts{noColor: true}
+	opts := summaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
@@ -113,7 +113,7 @@ func TestMarkdownReport_UsesDeduplicatedCounts(t *testing.T) {
 }
 
 func TestMarkdownReport_UsesDeduplicatedObjectStats(t *testing.T) {
-	opts := newSummaryOpts{noColor: true}
+	opts := summaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
@@ -136,7 +136,7 @@ func TestMarkdownReport_UsesDeduplicatedObjectStats(t *testing.T) {
 }
 
 func TestMarkdownReport_LeftRightOmitsSyntheticCommitMetadata(t *testing.T) {
-	opts := newSummaryOpts{noColor: true}
+	opts := summaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
@@ -158,7 +158,7 @@ func TestMarkdownReport_LeftRightOmitsSyntheticCommitMetadata(t *testing.T) {
 
 func TestMarkdownReport_RenderErrorWithSomeSuccesses(t *testing.T) {
 	// Create a valid OAS3 commit
-	opts := newSummaryOpts{noColor: true}
+	opts := summaryOpts{noColor: true}
 	validCommits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
@@ -197,7 +197,7 @@ paths: {}`
 }
 
 func TestMarkdownReport_IncludeDiffFlag(t *testing.T) {
-	opts := newSummaryOpts{noColor: true}
+	opts := summaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
@@ -270,6 +270,6 @@ func TestMarkdownReportCommand_BadFirstArg(t *testing.T) {
 func TestMarkdownReportCommand_SingleArgNonGithub(t *testing.T) {
 	cmd := testRootCmd(GetMarkdownReportCommand(), "--no-logo", "--no-color", "not-a-url")
 	err := cmd.Execute()
-	// Single non-GitHub arg prints usage hint, no error
-	assert.NoError(t, err)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "github.com URL")
 }

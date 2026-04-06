@@ -13,13 +13,21 @@ import (
 
 	"github.com/pb33f/doctor/changerator/renderer"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
+	"github.com/pb33f/openapi-changes/internal/changecounts"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/spf13/cobra"
 )
 
+var (
+	reChangesDetected = regexp.MustCompile(`(?m)^\*\*\d+\*\* changes detected, \*\*\d+\*\* are \*\*\(💔 breaking\)\*\*\.$`)
+	reAdditions       = regexp.MustCompile(`(?m)^- Additions: \*\*\d+\*\*$`)
+	reModifications   = regexp.MustCompile(`(?m)^- Modifications: \*\*\d+\*\*$`)
+	reRemovals        = regexp.MustCompile(`(?m)^- Removals: \*\*\d+\*\*$`)
+)
+
 func printMarkdownReportUsage(noColor bool) {
-	printNewCommandUsage("markdown-report",
+	printCommandUsage("markdown-report",
 		"Generates a detailed markdown report of API changes using the doctor changerator engine.",
 		noColor)
 }
@@ -72,37 +80,16 @@ func rewriteMarkdownSummary(markdown string, deduplicatedChanges []*whatChangedM
 		return markdown
 	}
 
-	total := len(deduplicatedChanges)
-	breaking := 0
-	additions := 0
-	modifications := 0
-	removals := 0
+	counts := changecounts.FromChanges(deduplicatedChanges)
 
-	for _, change := range deduplicatedChanges {
-		if change == nil {
-			continue
-		}
-		if change.Breaking {
-			breaking++
-		}
-		switch change.ChangeType {
-		case whatChangedModel.PropertyAdded, whatChangedModel.ObjectAdded:
-			additions++
-		case whatChangedModel.Modified:
-			modifications++
-		case whatChangedModel.PropertyRemoved, whatChangedModel.ObjectRemoved:
-			removals++
-		}
-	}
-
-	markdown = regexp.MustCompile(`(?m)^\*\*\d+\*\* changes detected, \*\*\d+\*\* are \*\*\(💔 breaking\)\*\*\.$`).
-		ReplaceAllString(markdown, fmt.Sprintf("**%d** changes detected, **%d** are **(💔 breaking)**.", total, breaking))
-	markdown = regexp.MustCompile(`(?m)^- Additions: \*\*\d+\*\*$`).
-		ReplaceAllString(markdown, fmt.Sprintf("- Additions: **%d**", additions))
-	markdown = regexp.MustCompile(`(?m)^- Modifications: \*\*\d+\*\*$`).
-		ReplaceAllString(markdown, fmt.Sprintf("- Modifications: **%d**", modifications))
-	markdown = regexp.MustCompile(`(?m)^- Removals: \*\*\d+\*\*$`).
-		ReplaceAllString(markdown, fmt.Sprintf("- Removals: **%d**", removals))
+	markdown = reChangesDetected.
+		ReplaceAllString(markdown, fmt.Sprintf("**%d** changes detected, **%d** are **(💔 breaking)**.", counts.Total, counts.Breaking))
+	markdown = reAdditions.
+		ReplaceAllString(markdown, fmt.Sprintf("- Additions: **%d**", counts.Additions))
+	markdown = reModifications.
+		ReplaceAllString(markdown, fmt.Sprintf("- Modifications: **%d**", counts.Modifications))
+	markdown = reRemovals.
+		ReplaceAllString(markdown, fmt.Sprintf("- Removals: **%d**", counts.Removals))
 
 	if table := buildDeduplicatedObjectStatsTable(deduplicatedChanges); table != "" {
 		start := strings.Index(markdown, "| Object")
@@ -225,8 +212,7 @@ func isSyntheticLeftRightCommit(commit *model.Commit) bool {
 	if commit == nil {
 		return false
 	}
-	return strings.HasPrefix(commit.Message, "Original: ") ||
-		strings.HasPrefix(commit.Message, "Uploaded modification")
+	return commit.Synthetic
 }
 
 // generateMarkdownReport assembles markdown from all commits.
@@ -305,14 +291,6 @@ func generateMarkdownReport(commits []*model.Commit, breakingConfig *whatChanged
 	return []byte(sb.String()), nil
 }
 
-func writeMarkdownReportFile(reportFile string, report []byte, styles commandStyles) error {
-	err := os.WriteFile(reportFile, report, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write report: %w", err)
-	}
-	fmt.Println(styles.success.Render(fmt.Sprintf("report written to '%s' (%dkb)", reportFile, len(report)/1024)))
-	return nil
-}
 
 func GetMarkdownReportCommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -330,7 +308,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {
-				PrintNewBanner(opts.noColor)
+				PrintBanner(opts.noColor)
 			}
 
 			if len(args) == 0 {
@@ -338,8 +316,10 @@ func GetMarkdownReportCommand() *cobra.Command {
 				return nil
 			}
 
-			if len(args) == 1 && !validateGitHubURL(args[0]) {
-				return nil
+			if len(args) == 1 {
+				if err := validateGitHubURL(args[0]); err != nil {
+					return err
+				}
 			}
 
 			if len(args) > 2 {
@@ -366,7 +346,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 				printNoChangesText()
 				return nil
 			}
-			return writeMarkdownReportFile(reportFile, report, styles)
+			return writeReportFile(reportFile, report, styles)
 		},
 	}
 	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")

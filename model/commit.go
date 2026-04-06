@@ -26,4 +26,5 @@ type Commit struct {
 	OldDocument       libopenapi.Document    `gorm:"-" json:"-"`
 	RepoDirectory     string                 `gorm:"-" json:"-"`
 	FilePath          string                 `gorm:"-" json:"-"`
+	Synthetic         bool                   `gorm:"-" json:"-"`
 }

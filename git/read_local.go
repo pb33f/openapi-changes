@@ -58,17 +58,17 @@ func GetTopLevel(dir string) (string, error) {
 	return outStr, nil
 }
 
-func ExtractHistoryFromFile(repoDirectory, filePath, baseCommit string,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, globalRevisions bool, limit int, limitTime int,
+func ExtractHistoryFromFile(repoDirectory, filePath string,
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, opts HistoryOptions,
 ) ([]*model.Commit, []error) {
 	args := []string{NOPAGER, LOG, LOGFORMAT, FOLLOW}
 
-	if baseCommit != "" {
-		args = append(args, fmt.Sprintf("%s..HEAD", baseCommit))
-	} else if limit > 0 && globalRevisions {
-		args = append(args, fmt.Sprintf("HEAD~%d..HEAD", limit))
-	} else if limit > 0 {
-		args = append(args, NUMBER, strconv.Itoa(limit))
+	if opts.BaseCommit != "" {
+		args = append(args, fmt.Sprintf("%s..HEAD", opts.BaseCommit))
+	} else if opts.Limit > 0 && opts.GlobalRevisions {
+		args = append(args, fmt.Sprintf("HEAD~%d..HEAD", opts.Limit))
+	} else if opts.Limit > 0 {
+		args = append(args, NUMBER, strconv.Itoa(opts.Limit))
 	}
 
 	args = append(args, DIV, filePath)
@@ -94,15 +94,15 @@ func ExtractHistoryFromFile(repoDirectory, filePath, baseCommit string,
 
 	var commitTimeCutoff *time.Time
 
-	if limitTime != -1 {
-		temp := time.Now().Add(time.Duration(-limitTime) * time.Hour * 24)
+	if opts.LimitTime != -1 {
+		temp := time.Now().Add(time.Duration(-opts.LimitTime) * time.Hour * 24)
 		commitTimeCutoff = &temp
 	}
 
 	outStr, _ := stdout.String(), stderr.String()
 	lines := strings.Split(outStr, "\n")
 	for k := range lines {
-		if k == limit && commitTimeCutoff == nil {
+		if k == opts.Limit && commitTimeCutoff == nil {
 			break
 		}
 		c := strings.Split(lines[k], "||")
@@ -119,14 +119,14 @@ func ExtractHistoryFromFile(repoDirectory, filePath, baseCommit string,
 					FilePath:      filePath,
 				})
 			model.SendProgressUpdate(c[1],
-				fmt.Sprintf("extacted commit '%s'", c[1]), false, progressChan)
+				fmt.Sprintf("extracted commit '%s'", c[1]), false, progressChan)
 
-			if baseCommit != "" && (c[1] == baseCommit || strings.HasPrefix(c[1], baseCommit)) {
+			if opts.BaseCommit != "" && (c[1] == opts.BaseCommit || strings.HasPrefix(c[1], opts.BaseCommit)) {
 				break
 			}
 		}
 
-		if commitTimeCutoff != nil {
+		if commitTimeCutoff != nil && len(commitHistory) > 0 {
 			if commitTimeCutoff.After(commitHistory[len(commitHistory)-1].CommitDate) {
 				// Remove the last element because it doesn't count for history
 				commitHistory = commitHistory[0 : len(commitHistory)-1]
@@ -139,26 +139,12 @@ func ExtractHistoryFromFile(repoDirectory, filePath, baseCommit string,
 	return commitHistory, nil
 }
 
-func PopulateHistoryWithChanges(commitHistory []*model.Commit, limit int, limitTime int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
-	breakingConfig *whatChangedModel.BreakingRulesConfig,
-) ([]*model.Commit, []error) {
-	return populateHistory(commitHistory, limit, limitTime, progressChan, errorChan, base, remote, extRefs, breakingConfig, false)
-}
-
-// PopulateHistoryWithDocuments preserves every comparable revision instead of
-// dropping commits whose legacy change report is empty. This is used by the
-// new doctor/changerator-based commands, which do their own change detection.
-func PopulateHistoryWithDocuments(commitHistory []*model.Commit, limit int, limitTime int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
-	breakingConfig *whatChangedModel.BreakingRulesConfig,
-) ([]*model.Commit, []error) {
-	return populateHistory(commitHistory, limit, limitTime, progressChan, errorChan, base, remote, extRefs, breakingConfig, true)
-}
-
-func populateHistory(commitHistory []*model.Commit, limit int, limitTime int,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
-	breakingConfig *whatChangedModel.BreakingRulesConfig, keepComparable bool,
+// PopulateHistory reads file data from git for each commit, then builds the
+// changelog. Set opts.KeepComparable to preserve revisions even when the legacy
+// libopenapi diff is empty (used by the doctor/changerator-based commands).
+func PopulateHistory(commitHistory []*model.Commit,
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
+	opts HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
 ) ([]*model.Commit, []error) {
 	for c := range commitHistory {
 		var err error
@@ -172,11 +158,11 @@ func populateHistory(commitHistory []*model.Commit, limit int, limitTime int,
 
 	}
 
-	if limitTime != -1 && limit > 0 && limit+1 < len(commitHistory) {
-		commitHistory = commitHistory[0 : limit+1]
+	if opts.LimitTime != -1 && opts.Limit > 0 && opts.Limit+1 < len(commitHistory) {
+		commitHistory = commitHistory[0 : opts.Limit+1]
 	}
 
-	cleaned, errs := buildCommitChangelog(commitHistory, progressChan, errorChan, base, remote, extRefs, breakingConfig, keepComparable)
+	cleaned, errs := buildCommitChangelog(commitHistory, progressChan, errorChan, opts, breakingConfig)
 	if len(errs) > 0 {
 		model.SendProgressError("git",
 			fmt.Sprintf("%d error(s) found building commit change log", len(errs)), errorChan)
@@ -188,24 +174,19 @@ func populateHistory(commitHistory []*model.Commit, limit int, limitTime int,
 	return cleaned, nil
 }
 
-func BuildCommitTimeline(commitHistory []*model.Commit,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
-	breakingConfig *whatChangedModel.BreakingRulesConfig,
+// BuildChangelog compares consecutive commits and populates each with parsed
+// documents and change data. Set opts.KeepComparable to preserve revisions
+// even when the legacy libopenapi diff is empty.
+func BuildChangelog(commitHistory []*model.Commit,
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
+	opts HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
 ) ([]*model.Commit, []error) {
-	return buildCommitChangelog(commitHistory, progressChan, errorChan, base, remote, extRefs, breakingConfig, true)
-}
-
-// TODO: we have reached peak argument count, we have to fix this.
-func BuildCommitChangelog(commitHistory []*model.Commit,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
-	breakingConfig *whatChangedModel.BreakingRulesConfig,
-) ([]*model.Commit, []error) {
-	return buildCommitChangelog(commitHistory, progressChan, errorChan, base, remote, extRefs, breakingConfig, false)
+	return buildCommitChangelog(commitHistory, progressChan, errorChan, opts, breakingConfig)
 }
 
 func buildCommitChangelog(commitHistory []*model.Commit,
-	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
-	breakingConfig *whatChangedModel.BreakingRulesConfig, keepComparable bool,
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
+	opts HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
 ) ([]*model.Commit, []error) {
 	var changeErrors []error
 	var cleaned []*model.Commit
@@ -225,27 +206,27 @@ func buildCommitChangelog(commitHistory []*model.Commit,
 	docConfig.IgnoreArrayCircularReferences = true
 	docConfig.IgnorePolymorphicCircularReferences = true
 
-	if base != "" {
+	if opts.Base != "" {
 		// check if this is a URL or not
-		u, e := url.Parse(base)
+		u, e := url.Parse(opts.Base)
 		if e == nil && u.Scheme != "" && u.Host != "" {
 			docConfig.BaseURL = u
 			docConfig.BasePath = ""
 			docConfig.AllowRemoteReferences = true
 		} else {
 			docConfig.AllowFileReferences = true
-			docConfig.BasePath = base
+			docConfig.BasePath = opts.Base
 		}
 	}
 
 	// if this is set to true, we'll allow remote references
 	// there will be a new rolodex created with both filesystems.
-	if remote {
+	if opts.Remote {
 		docConfig.AllowRemoteReferences = true
 		docConfig.AllowFileReferences = true
 	}
 
-	docConfig.ExcludeExtensionRefs = !extRefs
+	docConfig.ExcludeExtensionRefs = !opts.ExtRefs
 
 	// TODO: make this configurable for power users.
 	docConfig.ExcludeExtensionRefs = true
@@ -339,7 +320,7 @@ func buildCommitChangelog(commitHistory []*model.Commit,
 		// Preserve the oldest entry as a sentinel when there is no prior version.
 		// The legacy commands keep only revisions with libopenapi changes, while
 		// the new doctor-based commands keep every revision with comparable docs.
-		if c == len(commitHistory)-1 || commitHistory[c].Changes != nil || (keepComparable && oldDoc != nil && newDoc != nil) {
+		if c == len(commitHistory)-1 || commitHistory[c].Changes != nil || (opts.KeepComparable && oldDoc != nil && newDoc != nil) {
 			cleaned = append(cleaned, commitHistory[c])
 		}
 	}

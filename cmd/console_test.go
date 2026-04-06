@@ -9,6 +9,7 @@ import (
 
 	"github.com/pb33f/libopenapi"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
+	"github.com/pb33f/openapi-changes/git"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,8 @@ func TestConsoleCommand_TooManyArgs(t *testing.T) {
 func TestConsoleCommand_SingleArgNonGithub(t *testing.T) {
 	cmd := testRootCmd(GetConsoleCommand(), "--no-logo", "--no-color", "not-a-url")
 	err := cmd.Execute()
-	assert.NoError(t, err)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "github.com URL")
 }
 
 func TestConsoleCommand_BadFirstArg(t *testing.T) {
@@ -91,19 +93,19 @@ func TestWrapConsoleStartError(t *testing.T) {
 
 func TestConsoleCommand_NoPriorVersionText(t *testing.T) {
 	originalExtract := extractHistoryFromFile
-	originalPopulate := populateHistoryWithDocuments
+	originalPopulate := populateHistory
 	t.Cleanup(func() {
 		extractHistoryFromFile = originalExtract
-		populateHistoryWithDocuments = originalPopulate
+		populateHistory = originalPopulate
 	})
 
-	extractHistoryFromFile = func(repoDirectory, filePath, baseCommit string,
-		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, globalRevisions bool, limit int, limitTime int,
+	extractHistoryFromFile = func(repoDirectory, filePath string,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, opts git.HistoryOptions,
 	) ([]*model.Commit, []error) {
 		return []*model.Commit{{Hash: "abc123"}}, nil
 	}
-	populateHistoryWithDocuments = func(commitHistory []*model.Commit, limit int, limitTime int,
-		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+	populateHistory = func(commitHistory []*model.Commit,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, opts git.HistoryOptions,
 		breakingConfig *whatChangedModel.BreakingRulesConfig,
 	) ([]*model.Commit, []error) {
 		return []*model.Commit{}, nil

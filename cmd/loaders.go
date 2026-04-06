@@ -21,10 +21,10 @@ import (
 	"github.com/pb33f/openapi-changes/model"
 )
 
-var processGithubRepo = git.ProcessGithubRepoWithDocuments
+var processGithubRepo = git.ProcessGithubRepo
 var extractHistoryFromFile = git.ExtractHistoryFromFile
-var populateHistoryWithDocuments = git.PopulateHistoryWithDocuments
-var buildCommitTimeline = git.BuildCommitTimeline
+var populateHistory = git.PopulateHistory
+var buildChangelog = git.BuildChangelog
 var httpGet = http.Get
 
 // progressDrainer drains git progress channels that use synchronous sends.
@@ -107,7 +107,20 @@ func (d *progressDrainer) printWarnings() {
 	}
 }
 
-func loadGitHubCommits(rawURL string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
+// collectErrors drains channels, prints warnings, and joins all errors
+// (including fatal drainer errors) into a single error. Returns nil if clean.
+func (d *progressDrainer) collectErrors(errs []error) error {
+	fatalErr := d.fatalError()
+	d.printWarnings()
+	var all []error
+	all = append(all, errs...)
+	if fatalErr != nil {
+		all = append(all, fatalErr)
+	}
+	return errors.Join(all...)
+}
+
+func loadGitHubCommits(rawURL string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
 	specURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid URL: %w", err)
@@ -118,21 +131,18 @@ func loadGitHubCommits(rawURL string, opts newSummaryOpts, breakingConfig *whatC
 	}
 
 	d := makeProgressDrainer()
-	commits, errs := processGithubRepo(user, repo, filePath, opts.baseCommit,
-		d.ProgressChan, d.ErrorChan, false, opts.limit, opts.limitTime,
-		opts.base, opts.remote, opts.extRefs, breakingConfig)
-	fatalErr := d.fatalError()
-	d.printWarnings()
-
-	if len(errs) > 0 {
-		joined := errors.Join(errs...)
-		if fatalErr != nil {
-			return nil, errors.Join(joined, fatalErr)
-		}
-		return nil, joined
-	}
-	if fatalErr != nil {
-		return nil, fatalErr
+	commits, errs := processGithubRepo(user, repo, filePath,
+		d.ProgressChan, d.ErrorChan, git.HistoryOptions{
+			BaseCommit:     opts.baseCommit,
+			Limit:          opts.limit,
+			LimitTime:      opts.limitTime,
+			Base:           opts.base,
+			Remote:         opts.remote,
+			ExtRefs:        opts.extRefs,
+			KeepComparable: true,
+		}, breakingConfig)
+	if err := d.collectErrors(errs); err != nil {
+		return nil, err
 	}
 
 	if opts.latest && len(commits) > 1 {
@@ -141,7 +151,7 @@ func loadGitHubCommits(rawURL string, opts newSummaryOpts, breakingConfig *whatC
 	return commits, nil
 }
 
-func loadGitHistoryCommits(gitPath, filePath string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
+func loadGitHistoryCommits(gitPath, filePath string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
 	if gitPath == "" || filePath == "" {
 		return nil, errors.New("please supply a path to a git repo and a path to a file")
 	}
@@ -156,31 +166,28 @@ func loadGitHistoryCommits(gitPath, filePath string, opts newSummaryOpts, breaki
 	}
 
 	d := makeProgressDrainer()
-	commits, errs := extractHistoryFromFile(gitPath, filePath, opts.baseCommit,
-		d.ProgressChan, d.ErrorChan, opts.globalRevisions, opts.limit, opts.limitTime)
+	extractOpts := git.HistoryOptions{
+		BaseCommit:      opts.baseCommit,
+		GlobalRevisions: opts.globalRevisions,
+		Limit:           opts.limit,
+		LimitTime:       opts.limitTime,
+	}
+	commits, errs := extractHistoryFromFile(gitPath, filePath,
+		d.ProgressChan, d.ErrorChan, extractOpts)
 	if errs != nil {
-		fatalErr := d.fatalError()
-		d.printWarnings()
-		joined := errors.Join(errs...)
-		if fatalErr != nil {
-			return nil, errors.Join(joined, fatalErr)
-		}
-		return nil, joined
+		return nil, d.collectErrors(errs)
 	}
 
-	commits, errs = populateHistoryWithDocuments(commits, 0, opts.limitTime,
-		d.ProgressChan, d.ErrorChan, opts.base, opts.remote, opts.extRefs, breakingConfig)
-	fatalErr := d.fatalError()
-	d.printWarnings()
-	if len(errs) > 0 {
-		joined := errors.Join(errs...)
-		if fatalErr != nil {
-			return nil, errors.Join(joined, fatalErr)
-		}
-		return nil, joined
-	}
-	if fatalErr != nil {
-		return nil, fatalErr
+	commits, errs = populateHistory(commits,
+		d.ProgressChan, d.ErrorChan, git.HistoryOptions{
+			LimitTime:      opts.limitTime,
+			Base:           opts.base,
+			Remote:         opts.remote,
+			ExtRefs:        opts.extRefs,
+			KeepComparable: true,
+		}, breakingConfig)
+	if err := d.collectErrors(errs); err != nil {
+		return nil, err
 	}
 
 	if len(commits) == 0 {
@@ -192,7 +199,7 @@ func loadGitHistoryCommits(gitPath, filePath string, opts newSummaryOpts, breaki
 	return commits, nil
 }
 
-func loadLeftRightCommits(left, right string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
+func loadLeftRightCommits(left, right string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
 	d := makeProgressDrainer()
 	defer func() {
 		d.close()
@@ -227,27 +234,26 @@ func loadLeftRightCommits(left, right string, opts newSummaryOpts, breakingConfi
 			Message:    fmt.Sprintf("Original: %s, Modified: %s", left, right),
 			CommitDate: time.Now(),
 			Data:       rightBytes,
+			Synthetic:  true,
 		},
 		{
 			Hash:       uuid.New().String()[:6],
 			Message:    fmt.Sprintf("Original file: %s", left),
 			CommitDate: time.Now(),
 			Data:       leftBytes,
+			Synthetic:  true,
 		},
 	}
 
-	commits, errs := buildCommitTimeline(commits, d.ProgressChan, d.ErrorChan,
-		opts.base, opts.remote, opts.extRefs, breakingConfig)
-	fatalErr := d.fatalError()
-	if len(errs) > 0 {
-		joined := errors.Join(errs...)
-		if fatalErr != nil {
-			return nil, errors.Join(joined, fatalErr)
-		}
-		return nil, joined
-	}
-	if fatalErr != nil {
-		return nil, fatalErr
+	commits, errs := buildChangelog(commits, d.ProgressChan, d.ErrorChan,
+		git.HistoryOptions{
+			Base:           opts.base,
+			Remote:         opts.remote,
+			ExtRefs:        opts.extRefs,
+			KeepComparable: true,
+		}, breakingConfig)
+	if err := d.collectErrors(errs); err != nil {
+		return nil, err
 	}
 	return commits, nil
 }

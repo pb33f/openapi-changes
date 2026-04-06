@@ -44,7 +44,7 @@ func TestGenerateHTMLReport_UnchangedLeftRight(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3.json",
 		"../sample-specs/petstorev3.json",
-		newSummaryOpts{noColor: true},
+		summaryOpts{noColor: true},
 		nil,
 	)
 	require.NoError(t, err)
@@ -61,7 +61,7 @@ func TestGenerateHTMLReport_LeftRightIncludesSanitizedPaths(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		newSummaryOpts{noColor: true},
+		summaryOpts{noColor: true},
 		nil,
 	)
 	require.NoError(t, err)
@@ -90,7 +90,7 @@ func TestBuildHTMLReportItems_PartialFailureReturnsError(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		newSummaryOpts{noColor: true},
+		summaryOpts{noColor: true},
 		nil,
 	)
 	require.NoError(t, err)
@@ -108,7 +108,7 @@ func TestGenerateHTMLReport_PartialFailureReturnsError(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		newSummaryOpts{noColor: true},
+		summaryOpts{noColor: true},
 		nil,
 	)
 	require.NoError(t, err)
@@ -142,7 +142,8 @@ func TestHTMLReportCommand_LeftRightFiles(t *testing.T) {
 func TestHTMLReportCommand_SingleArgNonGithub(t *testing.T) {
 	cmd := testRootCmd(GetHTMLReportCommand(), "--no-logo", "--no-color", "not-a-url")
 	err := cmd.Execute()
-	assert.NoError(t, err)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "github.com URL")
 }
 
 func TestHTMLReportCommand_TooManyArgs(t *testing.T) {
@@ -156,7 +157,7 @@ func TestBuildHTMLReportItems_PreservesSchemaNodesInDocumentTree(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		newSummaryOpts{noColor: true},
+		summaryOpts{noColor: true},
 		nil,
 	)
 	require.NoError(t, err)

@@ -65,8 +65,8 @@ func TestProcessGithubRepo_EmptyParams(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, errs := ProcessGithubRepo(tt.user, tt.repo, tt.filePath, "",
-				progressChan, errorChan, false, 0, -1, "", false, false, nil)
+			result, errs := ProcessGithubRepo(tt.user, tt.repo, tt.filePath,
+				progressChan, errorChan, HistoryOptions{LimitTime: -1}, nil)
 			assert.Nil(t, result)
 			require.Len(t, errs, 1)
 			assert.Contains(t, errs[0].Error(), "please supply valid github")
@@ -99,7 +99,7 @@ func TestProcessGithubRepo_UsesOptionalTokenSessionFromDoctor(t *testing.T) {
 	t.Setenv(GithubToken, "")
 	progressChan, errorChan := progressChans()
 
-	result, errs := ProcessGithubRepo("owner", "repo", "spec.yaml", "", progressChan, errorChan, false, 0, -1, "", false, false, nil)
+	result, errs := ProcessGithubRepo("owner", "repo", "spec.yaml", progressChan, errorChan, HistoryOptions{LimitTime: -1}, nil)
 
 	require.Nil(t, errs)
 	require.NotEmpty(t, result)
@@ -124,7 +124,7 @@ func TestProcessGithubRepo_PropagatesDoctorHistoryErrors(t *testing.T) {
 	}
 
 	progressChan, errorChan := progressChans()
-	result, errs := ProcessGithubRepo("owner", "repo", "spec.yaml", "", progressChan, errorChan, false, 0, -1, "", false, false, nil)
+	result, errs := ProcessGithubRepo("owner", "repo", "spec.yaml", progressChan, errorChan, HistoryOptions{LimitTime: -1}, nil)
 
 	assert.Nil(t, result)
 	require.Len(t, errs, 1)
@@ -144,7 +144,7 @@ func TestConvertGitHubRevisionsIntoModel_BuildsCommitHistory(t *testing.T) {
 		makeDoctorRevision("bbb222", "old", time.Now().Add(-time.Hour), older),
 	}
 
-	result, errs := convertGitHubRevisionsIntoModel(revisions, progressChan, errorChan, "", false, false, nil, false)
+	result, errs := convertGitHubRevisionsIntoModel(revisions, progressChan, errorChan, HistoryOptions{}, nil)
 
 	require.Nil(t, errs)
 	require.NotEmpty(t, result)
@@ -160,7 +160,7 @@ func TestConvertGitHubRevisionsIntoModel_ReturnsBuildErrors(t *testing.T) {
 		makeDoctorRevision("bbb222", "old", time.Now().Add(-time.Hour), []byte("openapi: 3.0.0\ninfo:\n  title: ok\n  version: 1.0.0\npaths: {}\n")),
 	}
 
-	result, errs := convertGitHubRevisionsIntoModel(revisions, progressChan, errorChan, "", false, false, &whatChangedModel.BreakingRulesConfig{}, false)
+	result, errs := convertGitHubRevisionsIntoModel(revisions, progressChan, errorChan, HistoryOptions{}, &whatChangedModel.BreakingRulesConfig{})
 
 	assert.NotNil(t, result)
 	require.NotEmpty(t, errs)

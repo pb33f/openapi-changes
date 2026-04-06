@@ -264,13 +264,12 @@ func isDirectFileComparison(commits []*model.Commit) bool {
 	if len(commits) != 2 {
 		return false
 	}
-	return strings.HasPrefix(commits[0].Message, "Original: ") &&
-		strings.HasPrefix(commits[1].Message, "Original file: ")
+	return commits[0].Synthetic && commits[1].Synthetic
 }
 
-// renderNewSummary builds the output string using the doctor changerator and tree renderer.
+// renderSummary builds the output string using the doctor changerator and tree renderer.
 // Returns: rendered output, hasBreaking, hasChanges, error.
-func renderNewSummary(
+func renderSummary(
 	commits []*model.Commit,
 	breakingConfig *whatChangedModel.BreakingRulesConfig,
 	markdown bool,
@@ -476,16 +475,18 @@ func GetSummaryCommand() *cobra.Command {
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {
-				PrintNewBanner(opts.noColor)
+				PrintBanner(opts.noColor)
 			}
 
 			if len(args) == 0 {
-				printNewSummaryUsage(opts.noColor)
+				printSummaryUsage(opts.noColor)
 				return nil
 			}
 
-			if len(args) == 1 && !validateGitHubURL(args[0]) {
-				return nil
+			if len(args) == 1 {
+				if err := validateGitHubURL(args[0]); err != nil {
+					return err
+				}
 			}
 
 			if len(args) > 2 {
@@ -499,7 +500,7 @@ func GetSummaryCommand() *cobra.Command {
 
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
 			if err != nil {
-				PrintNewConfigError(err)
+				PrintConfigError(err)
 				return err
 			}
 
@@ -515,7 +516,7 @@ func GetSummaryCommand() *cobra.Command {
 				}
 			}
 
-			output, hasBreaking, hasChanges, renderErr := renderNewSummary(
+			output, hasBreaking, hasChanges, renderErr := renderSummary(
 				commits, breakingConfig, opts.markdown, opts.noColor, opts.withLines, styles,
 			)
 			if output != "" {
@@ -540,8 +541,8 @@ func GetSummaryCommand() *cobra.Command {
 	return cmd
 }
 
-func printNewSummaryUsage(noColor bool) {
-	printNewCommandUsage("summary",
+func printSummaryUsage(noColor bool) {
+	printCommandUsage("summary",
 		"The summary command prints out a simplified, reduced summary of a change report as a change tree and summary table",
 		noColor)
 }

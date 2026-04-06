@@ -21,8 +21,8 @@ const (
 	noPriorVersionMessage = "The file has no prior version to compare against — nothing to report"
 )
 
-// newSummaryOpts holds the flags shared by the current doctor-based command family.
-type newSummaryOpts struct {
+// summaryOpts holds the flags shared by the current doctor-based command family.
+type summaryOpts struct {
 	noColor         bool
 	markdown        bool
 	withLines       bool
@@ -56,7 +56,7 @@ func commandStylesFor(noColor bool) commandStyles {
 }
 
 // readCommonFlags reads the flags shared by the current doctor-based commands.
-func readCommonFlags(cmd *cobra.Command) (opts newSummaryOpts, configFlag string) {
+func readCommonFlags(cmd *cobra.Command) (opts summaryOpts, configFlag string) {
 	opts.noColor, _ = cmd.Flags().GetBool("no-color")
 	opts.withLines, _ = cmd.Flags().GetBool("with-lines")
 	opts.latest, _ = cmd.Flags().GetBool("top")
@@ -72,15 +72,13 @@ func readCommonFlags(cmd *cobra.Command) (opts newSummaryOpts, configFlag string
 }
 
 // validateGitHubURL checks that a single argument is a github.com URL.
-// Prints usage guidance and returns false if validation fails.
-func validateGitHubURL(arg string) bool {
+// Returns an error if validation fails (causing a non-zero exit code in CI).
+func validateGitHubURL(arg string) error {
 	specURL, err := url.Parse(arg)
 	if err != nil || specURL.Host != "github.com" {
-		fmt.Println("A single argument requires a github.com URL.")
-		fmt.Println("For local comparison, provide two arguments: a git repository path and a file path within it.")
-		return false
+		return fmt.Errorf("a single argument requires a github.com URL; for local comparison, provide two arguments")
 	}
-	return true
+	return nil
 }
 
 func printNoChangesText() {
@@ -97,7 +95,7 @@ func printNoPriorVersionText() {
 
 // loadCommitsFromArgs dispatches to the appropriate commit loader based on argument types.
 // Expects len(args) to be 1 or 2 (caller must validate arg count).
-func loadCommitsFromArgs(args []string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
+func loadCommitsFromArgs(args []string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
 	if len(args) == 1 {
 		return loadGitHubCommits(args[0], opts, breakingConfig)
 	}
@@ -115,8 +113,8 @@ func loadCommitsFromArgs(args []string, opts newSummaryOpts, breakingConfig *wha
 	return loadLeftRightCommits(args[0], args[1], opts, breakingConfig)
 }
 
-// printNewCommandUsage prints lipgloss-styled usage for any doctor-based command.
-func printNewCommandUsage(commandName, description string, noColor bool) {
+// printCommandUsage prints lipgloss-styled usage for any doctor-based command.
+func printCommandUsage(commandName, description string, noColor bool) {
 	title := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)).Bold(true)
 	desc := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGrey))
 	cmdStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)).Bold(true)

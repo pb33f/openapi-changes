@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strconv"
 	"text/template"
@@ -21,7 +20,7 @@ import (
 )
 
 func printHTMLReportUsage(noColor bool) {
-	printNewCommandUsage("html-report",
+	printCommandUsage("html-report",
 		"Generates an interactive HTML report of API changes.\nThe report is fully self-contained and works offline.",
 		noColor)
 }
@@ -126,14 +125,6 @@ func generateHTMLReport(commits []*model.Commit, breakingConfig *whatChangedMode
 	return buf.Bytes(), nil
 }
 
-func writeHTMLReportFile(reportFile string, report []byte, styles commandStyles) error {
-	err := os.WriteFile(reportFile, report, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write report: %w", err)
-	}
-	fmt.Println(styles.success.Render(fmt.Sprintf("report written to '%s' (%dkb)", reportFile, len(report)/1024)))
-	return nil
-}
 
 func GetHTMLReportCommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -151,7 +142,7 @@ func GetHTMLReportCommand() *cobra.Command {
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {
-				PrintNewBanner(opts.noColor)
+				PrintBanner(opts.noColor)
 			}
 
 			if len(args) == 0 {
@@ -159,8 +150,10 @@ func GetHTMLReportCommand() *cobra.Command {
 				return nil
 			}
 
-			if len(args) == 1 && !validateGitHubURL(args[0]) {
-				return nil
+			if len(args) == 1 {
+				if err := validateGitHubURL(args[0]); err != nil {
+					return err
+				}
 			}
 
 			if len(args) > 2 {
@@ -187,7 +180,7 @@ func GetHTMLReportCommand() *cobra.Command {
 				printNoChangesText()
 				return nil
 			}
-			return writeHTMLReportFile(reportFile, report, styles)
+			return writeReportFile(reportFile, report, styles)
 		},
 	}
 	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")

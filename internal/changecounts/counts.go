@@ -18,12 +18,12 @@ type Counts struct {
 
 func FromChanges(changes []*whatChangedModel.Change) Counts {
 	var counts Counts
-	counts.Total = len(changes)
 
 	for _, ch := range changes {
 		if ch == nil {
 			continue
 		}
+		counts.Total++
 
 		if ch.Breaking {
 			counts.Breaking++

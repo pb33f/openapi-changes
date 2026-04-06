@@ -6,6 +6,7 @@ package v2
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"charm.land/lipgloss/v2"
 	v3 "github.com/pb33f/doctor/model/high/v3"
@@ -412,10 +413,11 @@ func truncateToWidth(s string, width int) string {
 		}
 		n++
 		if n >= width {
+			end := i + utf8.RuneLen(r)
 			if hasEscape {
-				return s[:i+1] + "\033[0m"
+				return s[:end] + "\033[0m"
 			}
-			return s[:i+1]
+			return s[:end]
 		}
 	}
 	return s

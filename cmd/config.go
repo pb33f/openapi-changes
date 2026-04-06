@@ -12,7 +12,6 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/pb33f/doctor/terminal"
 	"github.com/pb33f/libopenapi/what-changed/model"
-	"github.com/pterm/pterm"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -178,47 +177,8 @@ func (e *ConfigValidationError) Error() string {
 	return fmt.Sprintf("config validation failed for '%s': %d error(s) found", e.FilePath, len(e.Result.Errors))
 }
 
-// PrintConfigError prints a config error with nice formatting using pterm.
-// Displays in red with spacing above and below.
+// PrintConfigError prints a config error with nice formatting using lipgloss (no pterm).
 func PrintConfigError(err error) {
-	fmt.Println() // space above
-
-	if validationErr, ok := err.(*ConfigValidationError); ok {
-		pterm.Error.Printf("Breaking rules config has %d error(s)\n", len(validationErr.Result.Errors))
-		fmt.Println()
-		pterm.FgRed.Printf("  File: %s\n", validationErr.FilePath)
-		fmt.Println()
-
-		for _, e := range validationErr.Result.Errors {
-			if e.Line > 0 {
-				pterm.FgRed.Printf("  ✗ Line %d: %s\n", e.Line, e.Message)
-			} else {
-				pterm.FgRed.Printf("  ✗ %s\n", e.Message)
-			}
-			pterm.FgLightYellow.Printf("    → Move '%s' to the top level of your config\n", e.FoundKey)
-			fmt.Println()
-		}
-
-		pterm.FgLightCyan.Println("  Components like 'discriminator', 'xml', 'contact', 'license', etc.")
-		pterm.FgLightCyan.Println("  must be defined at the top level, not nested under other components.")
-		pterm.FgLightCyan.Println("  See: https://pb33f.io/libopenapi/what-changed/")
-	} else if parseErr, ok := err.(*ConfigParseError); ok {
-		pterm.Error.Println("Failed to parse breaking rules config file")
-		fmt.Println()
-		pterm.FgRed.Printf("  File: %s\n", parseErr.FilePath)
-		pterm.FgRed.Printf("  Error: %s\n", parseErr.Err.Error())
-		fmt.Println()
-		pterm.FgLightYellow.Println("  Ensure the YAML structure matches libopenapi's BreakingRulesConfig format.")
-		pterm.FgLightYellow.Println("  See: https://pb33f.io/libopenapi/what-changed/")
-	} else {
-		pterm.Error.Printf("Config error: %s\n", err.Error())
-	}
-
-	fmt.Println() // space below
-}
-
-// PrintNewConfigError prints a config error with nice formatting using lipgloss (no pterm).
-func PrintNewConfigError(err error) {
 	red := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true)
 	yellow := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossYellow))
 	info := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue))

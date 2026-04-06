@@ -15,6 +15,7 @@ import (
 
 	"github.com/pb33f/libopenapi"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
+	"github.com/pb33f/openapi-changes/git"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -65,25 +66,25 @@ func mustMakeDoctorOnlyCommitFromSpecs(t *testing.T, hash, left, right string) *
 
 func TestLoadGitHistoryCommits_ReturnsPopulateErrors(t *testing.T) {
 	originalExtract := extractHistoryFromFile
-	originalPopulate := populateHistoryWithDocuments
+	originalPopulate := populateHistory
 	t.Cleanup(func() {
 		extractHistoryFromFile = originalExtract
-		populateHistoryWithDocuments = originalPopulate
+		populateHistory = originalPopulate
 	})
 
-	extractHistoryFromFile = func(repoDirectory, filePath, baseCommit string,
-		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, globalRevisions bool, limit int, limitTime int,
+	extractHistoryFromFile = func(repoDirectory, filePath string,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, opts git.HistoryOptions,
 	) ([]*model.Commit, []error) {
 		return []*model.Commit{{Hash: "abc123"}}, nil
 	}
-	populateHistoryWithDocuments = func(commitHistory []*model.Commit, limit int, limitTime int,
-		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+	populateHistory = func(commitHistory []*model.Commit,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, opts git.HistoryOptions,
 		breakingConfig *whatChangedModel.BreakingRulesConfig,
 	) ([]*model.Commit, []error) {
 		return commitHistory, []error{errors.New("malformed spec"), errors.New("broken reference")}
 	}
 
-	commits, err := loadGitHistoryCommits("..", "sample-specs/petstorev3.json", newSummaryOpts{}, nil)
+	commits, err := loadGitHistoryCommits("..", "sample-specs/petstorev3.json", summaryOpts{}, nil)
 
 	require.Error(t, err)
 	assert.Nil(t, commits)
@@ -93,26 +94,26 @@ func TestLoadGitHistoryCommits_ReturnsPopulateErrors(t *testing.T) {
 
 func TestLoadGitHistoryCommits_ReturnsFatalProgressErrors(t *testing.T) {
 	originalExtract := extractHistoryFromFile
-	originalPopulate := populateHistoryWithDocuments
+	originalPopulate := populateHistory
 	t.Cleanup(func() {
 		extractHistoryFromFile = originalExtract
-		populateHistoryWithDocuments = originalPopulate
+		populateHistory = originalPopulate
 	})
 
-	extractHistoryFromFile = func(repoDirectory, filePath, baseCommit string,
-		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, globalRevisions bool, limit int, limitTime int,
+	extractHistoryFromFile = func(repoDirectory, filePath string,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, opts git.HistoryOptions,
 	) ([]*model.Commit, []error) {
 		return []*model.Commit{{Hash: "abc123"}}, nil
 	}
-	populateHistoryWithDocuments = func(commitHistory []*model.Commit, limit int, limitTime int,
-		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+	populateHistory = func(commitHistory []*model.Commit,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, opts git.HistoryOptions,
 		breakingConfig *whatChangedModel.BreakingRulesConfig,
 	) ([]*model.Commit, []error) {
 		errorChan <- model.ProgressError{Message: "unable to parse original document", Fatal: true}
 		return commitHistory, nil
 	}
 
-	commits, err := loadGitHistoryCommits("..", "sample-specs/petstorev3.json", newSummaryOpts{}, nil)
+	commits, err := loadGitHistoryCommits("..", "sample-specs/petstorev3.json", summaryOpts{}, nil)
 
 	require.Error(t, err)
 	assert.Nil(t, commits)
@@ -125,25 +126,24 @@ func TestLoadGitHubCommits_ReturnsProcessErrors(t *testing.T) {
 		processGithubRepo = originalProcess
 	})
 
-	processGithubRepo = func(username, repo, filePath, baseCommit string,
+	processGithubRepo = func(username, repo, filePath string,
 		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
-		forceCutoff bool, limit int, limitTime int, base string, remote, extRefs bool,
-		breakingConfig *whatChangedModel.BreakingRulesConfig,
+		opts git.HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
 	) ([]*model.Commit, []error) {
 		return nil, []error{errors.New("unable to build model")}
 	}
 
-	commits, err := loadGitHubCommits("https://github.com/oai/openapi-specification/blob/main/examples/v3.0/petstore.yaml", newSummaryOpts{}, nil)
+	commits, err := loadGitHubCommits("https://github.com/oai/openapi-specification/blob/main/examples/v3.0/petstore.yaml", summaryOpts{}, nil)
 
 	require.Error(t, err)
 	assert.Nil(t, commits)
 	assert.Contains(t, err.Error(), "unable to build model")
 }
 
-func TestRenderNewSummary_ReturnsErrorWhenAllCommitsFailToRender(t *testing.T) {
+func TestRenderSummary_ReturnsErrorWhenAllCommitsFailToRender(t *testing.T) {
 	commit := mustMakeSwagger2Commit(t)
 
-	output, hasBreaking, hasChanges, err := renderNewSummary(
+	output, hasBreaking, hasChanges, err := renderSummary(
 		[]*model.Commit{commit},
 		nil,
 		false,
@@ -159,7 +159,7 @@ func TestRenderNewSummary_ReturnsErrorWhenAllCommitsFailToRender(t *testing.T) {
 	assert.False(t, hasChanges)
 }
 
-func TestRenderNewSummary_ReturnsErrorWhenSomeCommitsFailToRender(t *testing.T) {
+func TestRenderSummary_ReturnsErrorWhenSomeCommitsFailToRender(t *testing.T) {
 	validCommit := mustMakeDoctorOnlyCommitFromSpecs(t, "good123", `openapi: 3.0.3
 info:
   title: Test
@@ -173,7 +173,7 @@ paths: {}
 `)
 	badCommit := mustMakeSwagger2Commit(t)
 
-	output, hasBreaking, hasChanges, err := renderNewSummary(
+	output, hasBreaking, hasChanges, err := renderSummary(
 		[]*model.Commit{validCommit, badCommit},
 		nil,
 		false,
@@ -191,7 +191,7 @@ paths: {}
 }
 
 func TestLoadLeftRightCommits_IdenticalSpecsPreserveComparableRevision(t *testing.T) {
-	opts := newSummaryOpts{noColor: true}
+	opts := summaryOpts{noColor: true}
 
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3.json",
@@ -206,16 +206,16 @@ func TestLoadLeftRightCommits_IdenticalSpecsPreserveComparableRevision(t *testin
 	assert.Nil(t, commits[0].Changes)
 }
 
-func TestRenderNewSummary_DirectComparisonNoChangesUsesGenericMessage(t *testing.T) {
+func TestRenderSummary_DirectComparisonNoChangesUsesGenericMessage(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3.json",
 		"../sample-specs/petstorev3.json",
-		newSummaryOpts{noColor: true},
+		summaryOpts{noColor: true},
 		nil,
 	)
 	require.NoError(t, err)
 
-	output, hasBreaking, hasChanges, err := renderNewSummary(
+	output, hasBreaking, hasChanges, err := renderSummary(
 		commits,
 		nil,
 		false,
@@ -230,7 +230,7 @@ func TestRenderNewSummary_DirectComparisonNoChangesUsesGenericMessage(t *testing
 	assert.False(t, hasChanges)
 }
 
-func TestRenderNewSummary_UsesDoctorEngineWhenLegacyChangesMissing(t *testing.T) {
+func TestRenderSummary_UsesDoctorEngineWhenLegacyChangesMissing(t *testing.T) {
 	leftBytes, err := os.ReadFile("../sample-specs/petstorev3-original.json")
 	require.NoError(t, err)
 	rightBytes, err := os.ReadFile("../sample-specs/petstorev3.json")
@@ -253,7 +253,7 @@ func TestRenderNewSummary_UsesDoctorEngineWhenLegacyChangesMissing(t *testing.T)
 		Changes:     nil,
 	}
 
-	output, hasBreaking, hasChanges, err := renderNewSummary(
+	output, hasBreaking, hasChanges, err := renderSummary(
 		[]*model.Commit{commit},
 		nil,
 		false,
@@ -285,7 +285,7 @@ func TestRenderNewSummary_UsesDoctorEngineWhenLegacyChangesMissing(t *testing.T)
 	assert.Equal(t, hasBreaking, strings.Contains(output, "Breaking"))
 }
 
-func TestRenderNewSummary_RendersTreeForFirstRenderableCommit(t *testing.T) {
+func TestRenderSummary_RendersTreeForFirstRenderableCommit(t *testing.T) {
 	validCommit := mustMakeDoctorOnlyCommitFromSpecs(t, "good123", `openapi: 3.0.3
 info:
   title: Test
@@ -298,7 +298,7 @@ info:
 paths: {}
 `)
 
-	output, hasBreaking, hasChanges, err := renderNewSummary(
+	output, hasBreaking, hasChanges, err := renderSummary(
 		[]*model.Commit{{Hash: "empty123"}, validCommit},
 		nil,
 		false,
@@ -317,10 +317,10 @@ paths: {}
 
 func TestLoadLeftRightCommits_DownloadedFilesAreCleanedUp(t *testing.T) {
 	originalHTTPGet := httpGet
-	originalBuildCommitTimeline := buildCommitTimeline
+	originalBuildChangelog := buildChangelog
 	t.Cleanup(func() {
 		httpGet = originalHTTPGet
-		buildCommitTimeline = originalBuildCommitTimeline
+		buildChangelog = originalBuildChangelog
 	})
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -335,15 +335,15 @@ paths: {}
 
 	var originalPath string
 	var modifiedPath string
-	buildCommitTimeline = func(commits []*model.Commit, progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
-		base string, remote, extRefs bool, breakingConfig *whatChangedModel.BreakingRulesConfig,
+	buildChangelog = func(commits []*model.Commit, progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
+		opts git.HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
 	) ([]*model.Commit, []error) {
 		originalPath = strings.TrimPrefix(commits[1].Message, "Original file: ")
 		modifiedPath = strings.TrimPrefix(commits[0].Message, "Original: "+originalPath+", Modified: ")
 		return commits, nil
 	}
 
-	commits, err := loadLeftRightCommits(server.URL+"/left.yaml", server.URL+"/right.yaml", newSummaryOpts{}, nil)
+	commits, err := loadLeftRightCommits(server.URL+"/left.yaml", server.URL+"/right.yaml", summaryOpts{}, nil)
 
 	require.NoError(t, err)
 	require.Len(t, commits, 2)
@@ -357,14 +357,14 @@ func TestLoadLeftRightCommits_ReturnsHTTPStatusErrors(t *testing.T) {
 	}))
 	defer server.Close()
 
-	commits, err := loadLeftRightCommits(server.URL+"/left.yaml", "../sample-specs/petstorev3.json", newSummaryOpts{}, nil)
+	commits, err := loadLeftRightCommits(server.URL+"/left.yaml", "../sample-specs/petstorev3.json", summaryOpts{}, nil)
 
 	require.Error(t, err)
 	assert.Nil(t, commits)
 	assert.Contains(t, err.Error(), "unexpected status 404 Not Found")
 }
 
-func TestRenderNewSummary_RendersSecurityRequirementDetail(t *testing.T) {
+func TestRenderSummary_RendersSecurityRequirementDetail(t *testing.T) {
 	leftBytes, err := os.ReadFile("../sample-specs/petstorev3-original.json")
 	require.NoError(t, err)
 	rightBytes, err := os.ReadFile("../sample-specs/petstorev3.json")
@@ -387,7 +387,7 @@ func TestRenderNewSummary_RendersSecurityRequirementDetail(t *testing.T) {
 		Changes:     nil,
 	}
 
-	output, _, _, err := renderNewSummary(
+	output, _, _, err := renderSummary(
 		[]*model.Commit{commit},
 		nil,
 		false,
@@ -401,7 +401,7 @@ func TestRenderNewSummary_RendersSecurityRequirementDetail(t *testing.T) {
 	assert.Contains(t, output, "petstore_auth/eat:tacos")
 }
 
-func TestRenderNewSummary_RendersOAuthFlowScopeDetail(t *testing.T) {
+func TestRenderSummary_RendersOAuthFlowScopeDetail(t *testing.T) {
 	leftBytes, err := os.ReadFile("../sample-specs/petstorev3-original.json")
 	require.NoError(t, err)
 	rightBytes, err := os.ReadFile("../sample-specs/petstorev3.json")
@@ -424,7 +424,7 @@ func TestRenderNewSummary_RendersOAuthFlowScopeDetail(t *testing.T) {
 		Changes:     nil,
 	}
 
-	output, _, _, err := renderNewSummary(
+	output, _, _, err := renderSummary(
 		[]*model.Commit{commit},
 		nil,
 		false,
@@ -438,7 +438,7 @@ func TestRenderNewSummary_RendersOAuthFlowScopeDetail(t *testing.T) {
 	assert.Contains(t, output, "scopes/jazz:jazzy (enjoy more jazz.)")
 }
 
-func TestRenderNewSummary_RendersTopLevelTagTreeDetail(t *testing.T) {
+func TestRenderSummary_RendersTopLevelTagTreeDetail(t *testing.T) {
 	leftBytes, err := os.ReadFile("../sample-specs/petstorev3-original.json")
 	require.NoError(t, err)
 	rightBytes, err := os.ReadFile("../sample-specs/petstorev3.json")
@@ -461,7 +461,7 @@ func TestRenderNewSummary_RendersTopLevelTagTreeDetail(t *testing.T) {
 		Changes:     nil,
 	}
 
-	output, _, _, err := renderNewSummary(
+	output, _, _, err := renderSummary(
 		[]*model.Commit{commit},
 		nil,
 		false,
@@ -477,7 +477,7 @@ func TestRenderNewSummary_RendersTopLevelTagTreeDetail(t *testing.T) {
 	assert.NotContains(t, output, "└─┬jazz")
 }
 
-func TestRenderNewSummary_UsesDeduplicatedHeadlineCounts(t *testing.T) {
+func TestRenderSummary_UsesDeduplicatedHeadlineCounts(t *testing.T) {
 	leftBytes, err := os.ReadFile("../sample-specs/petstorev3-original.json")
 	require.NoError(t, err)
 	rightBytes, err := os.ReadFile("../sample-specs/petstorev3.json")
@@ -500,7 +500,7 @@ func TestRenderNewSummary_UsesDeduplicatedHeadlineCounts(t *testing.T) {
 		Changes:     nil,
 	}
 
-	output, _, _, err := renderNewSummary(
+	output, _, _, err := renderSummary(
 		[]*model.Commit{commit},
 		nil,
 		false,
@@ -521,7 +521,7 @@ func TestRenderNewSummary_UsesDeduplicatedHeadlineCounts(t *testing.T) {
 	assert.Contains(t, output, "  Breaking Removals: 10")
 }
 
-func TestRenderNewSummary_WithLinesIncludesSourceLocations(t *testing.T) {
+func TestRenderSummary_WithLinesIncludesSourceLocations(t *testing.T) {
 	leftBytes, err := os.ReadFile("../sample-specs/petstorev3-original.json")
 	require.NoError(t, err)
 	rightBytes, err := os.ReadFile("../sample-specs/petstorev3.json")
@@ -543,7 +543,7 @@ func TestRenderNewSummary_WithLinesIncludesSourceLocations(t *testing.T) {
 		OldDocument: leftDoc,
 	}
 
-	output, _, _, err := renderNewSummary(
+	output, _, _, err := renderSummary(
 		[]*model.Commit{commit},
 		nil,
 		false,
@@ -557,7 +557,7 @@ func TestRenderNewSummary_WithLinesIncludesSourceLocations(t *testing.T) {
 	assert.Contains(t, output, "(8:16)")
 }
 
-func TestRenderNewSummary_MatchesSecurityRequirementChangesToCorrectScheme(t *testing.T) {
+func TestRenderSummary_MatchesSecurityRequirementChangesToCorrectScheme(t *testing.T) {
 	left := `openapi: 3.0.3
 info:
   title: Security Test
@@ -618,7 +618,7 @@ components:
 
 	commit := mustMakeDoctorOnlyCommitFromSpecs(t, "security-match", left, right)
 
-	output, _, _, err := renderNewSummary(
+	output, _, _, err := renderSummary(
 		[]*model.Commit{commit},
 		nil,
 		false,
@@ -633,7 +633,7 @@ components:
 	assert.NotContains(t, output, "api_key (1 changes)")
 }
 
-func TestRenderNewSummary_RendersDocumentSecurityRequirementDetail(t *testing.T) {
+func TestRenderSummary_RendersDocumentSecurityRequirementDetail(t *testing.T) {
 	left := `openapi: 3.0.3
 info:
   title: Document Security Test
@@ -684,7 +684,7 @@ components:
 
 	commit := mustMakeDoctorOnlyCommitFromSpecs(t, "document-security", left, right)
 
-	output, _, _, err := renderNewSummary(
+	output, _, _, err := renderSummary(
 		[]*model.Commit{commit},
 		nil,
 		false,
@@ -699,7 +699,7 @@ components:
 	assert.NotContains(t, output, "api_key (1 changes)")
 }
 
-func TestRenderNewSummary_RendersClientCredentialsFlowDetail(t *testing.T) {
+func TestRenderSummary_RendersClientCredentialsFlowDetail(t *testing.T) {
 	left := `openapi: 3.0.3
 info:
   title: OAuth Flow Test
@@ -734,7 +734,7 @@ components:
 
 	commit := mustMakeDoctorOnlyCommitFromSpecs(t, "client-credentials", left, right)
 
-	output, _, _, err := renderNewSummary(
+	output, _, _, err := renderSummary(
 		[]*model.Commit{commit},
 		nil,
 		false,
@@ -751,19 +751,19 @@ components:
 
 func TestNewSummaryCommand_NoComparableHistoryPrintsPriorVersionMessage(t *testing.T) {
 	originalExtract := extractHistoryFromFile
-	originalPopulate := populateHistoryWithDocuments
+	originalPopulate := populateHistory
 	t.Cleanup(func() {
 		extractHistoryFromFile = originalExtract
-		populateHistoryWithDocuments = originalPopulate
+		populateHistory = originalPopulate
 	})
 
-	extractHistoryFromFile = func(repoDirectory, filePath, baseCommit string,
-		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, globalRevisions bool, limit int, limitTime int,
+	extractHistoryFromFile = func(repoDirectory, filePath string,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, opts git.HistoryOptions,
 	) ([]*model.Commit, []error) {
 		return []*model.Commit{{Hash: "abc123"}}, nil
 	}
-	populateHistoryWithDocuments = func(commitHistory []*model.Commit, limit int, limitTime int,
-		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+	populateHistory = func(commitHistory []*model.Commit,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, opts git.HistoryOptions,
 		breakingConfig *whatChangedModel.BreakingRulesConfig,
 	) ([]*model.Commit, []error) {
 		return []*model.Commit{}, nil

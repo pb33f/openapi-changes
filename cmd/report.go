@@ -53,7 +53,7 @@ func changerateAndFlatten(commits []*model.Commit, breakingConfig *whatChangedMo
 	return reports, nil
 }
 
-func runLeftRightReport(left, right string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatReport, error) {
+func runLeftRightReport(left, right string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatReport, error) {
 	commits, err := loadLeftRightCommits(left, right, opts, breakingConfig)
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func runLeftRightReport(left, right string, opts newSummaryOpts, breakingConfig 
 	return flat, nil
 }
 
-func runGitHistoryReport(gitPath, filePath string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatHistoricalReport, error) {
+func runGitHistoryReport(gitPath, filePath string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatHistoricalReport, error) {
 	commits, err := loadGitHistoryCommits(gitPath, filePath, opts, breakingConfig)
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func runGitHistoryReport(gitPath, filePath string, opts newSummaryOpts, breaking
 	}, nil
 }
 
-func runGithubHistoryReport(rawURL string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatHistoricalReport, error) {
+func runGithubHistoryReport(rawURL string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatHistoricalReport, error) {
 	specURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid URL: %w", err)
@@ -146,9 +146,9 @@ func GetReportCommand() *cobra.Command {
 			if len(args) == 0 {
 				noBanner, _ := cmd.Flags().GetBool("no-logo")
 				if !noBanner {
-					PrintNewBanner(opts.noColor)
+					PrintBanner(opts.noColor)
 				}
-				printNewCommandUsage("report",
+				printCommandUsage("report",
 					"The report command generates a machine-readable JSON report of all API changes\nusing the doctor changerator engine.",
 					opts.noColor)
 				return nil
@@ -160,13 +160,13 @@ func GetReportCommand() *cobra.Command {
 
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
 			if err != nil {
-				PrintNewConfigError(err)
+				PrintConfigError(err)
 				return err
 			}
 
 			if len(args) == 1 {
-				if !validateGitHubURL(args[0]) {
-					return nil
+				if err := validateGitHubURL(args[0]); err != nil {
+					return err
 				}
 
 				flat, reportErr := runGithubHistoryReport(args[0], opts, breakingConfig)

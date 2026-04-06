@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 )
 
@@ -25,22 +24,15 @@ it can compare between two files, or a single file, over time.
 
 All commands use the current doctor-based engine.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-
-			PrintBanner()
+			PrintBanner(false)
 
 			fmt.Println("Current commands")
 			fmt.Println()
-
-			_ = pterm.DefaultBulletList.WithItems([]pterm.BulletListItem{
-				{Level: 0, Text: "console", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "summary", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "markdown-report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "html-report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-			}).Render()
-
-			pterm.Printf("For more help, use the %s flag with any command.", pterm.LightMagenta("--help"))
+			for _, name := range []string{"console", "summary", "report", "markdown-report", "html-report"} {
+				fmt.Printf("  > %s\n", name)
+			}
 			fmt.Println()
+			fmt.Println("For more help, use the --help flag with any command.")
 			fmt.Println()
 			return nil
 		},
