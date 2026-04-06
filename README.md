@@ -46,6 +46,7 @@ See all the documentation at https://pb33f.io/openapi-changes/
 - CLI Commands
     - [`console` command](https://pb33f.io/openapi-changes/console/)
     - [`html-report` command](https://pb33f.io/openapi-changes/html-report/)
+    - [`markdown-report` command](https://pb33f.io/openapi-changes/markdown-report/)
     - [`report` command](https://pb33f.io/openapi-changes/report/)
     - [`summary` command](https://pb33f.io/openapi-changes/summary/)
 - [About openapi-changes](https://pb33f.io/openapi-changes/about/)

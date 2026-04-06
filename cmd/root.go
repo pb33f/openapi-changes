@@ -1,4 +1,4 @@
-// Copyright 2025 Princess B33f Heavy Industries / Dave Shanley
+// Copyright 2026 Princess Beef Heavy Industries, LLC / Dave Shanley
 // SPDX-License-Identifier: MIT
 
 package cmd
@@ -23,8 +23,7 @@ var (
 		Long: `openapi-changes can detect every change found in an OpenAPI specification.
 it can compare between two files, or a single file, over time.
 
-Commands without the old- prefix use the current doctor-based engine.
-Commands prefixed with old- are legacy compatibility commands.`,
+All commands use the current doctor-based engine.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			PrintBanner()
@@ -38,11 +37,6 @@ Commands prefixed with old- are legacy compatibility commands.`,
 				{Level: 0, Text: "report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
 				{Level: 0, Text: "markdown-report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
 				{Level: 0, Text: "html-report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "old-console (legacy)", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "old-summary (legacy)", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "old-report (legacy)", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "old-markdown-report (legacy)", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "old-html-report (legacy)", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
 			}).Render()
 
 			pterm.Printf("For more help, use the %s flag with any command.", pterm.LightMagenta("--help"))
@@ -70,11 +64,6 @@ func init() {
 	rootCmd.AddCommand(GetNewMarkdownReportCommand())
 	rootCmd.AddCommand(GetNewReportCommand())
 	rootCmd.AddCommand(GetNewSummaryCommand())
-	rootCmd.AddCommand(GetConsoleCommand())
-	rootCmd.AddCommand(GetSummaryCommand())
-	rootCmd.AddCommand(GetReportCommand())
-	rootCmd.AddCommand(GetMarkdownReportCommand())
-	rootCmd.AddCommand(GetHTMLReportCommand())
 	rootCmd.PersistentFlags().BoolP("top", "t", false, "Only show latest changes (last git revision against HEAD)")
 	rootCmd.PersistentFlags().IntP("limit", "l", 5, "Limit history to number of revisions (default is 5)")
 	rootCmd.PersistentFlags().BoolP("global-revisions", "R", false, "Consider all revisions in limit, not just the ones for the file")

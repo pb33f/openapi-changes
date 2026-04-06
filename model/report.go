@@ -1,4 +1,4 @@
-// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
+// Copyright 2026 Princess Beef Heavy Industries, LLC / Dave Shanley
 // SPDX-License-Identifier: MIT
 
 package model
@@ -87,13 +87,4 @@ type FlatHistoricalReport struct {
 	Filename      string        `json:"filename"`
 	DateGenerated string        `json:"dateGenerated"`
 	Reports       []*FlatReport `json:"reports" `
-}
-
-type HistoricalReport struct {
-	ID            uint      `gorm:"primaryKey" json:"-"`
-	GitRepoPath   string    `gorm:"index" json:"gitRepoPath"`
-	GitFilePath   string    `json:"gitFilePath"`
-	Filename      string    `json:"filename"`
-	DateGenerated string    `json:"dateGenerated"`
-	Reports       []*Report `gorm:"foreignKey:ID" json:"reports" `
 }

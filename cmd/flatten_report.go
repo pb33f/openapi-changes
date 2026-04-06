@@ -1,5 +1,5 @@
-// Copyright 2023-2024 Princess Beef Heavy Industries, LLC / Dave Shanley
-// https://pb33f.io
+// Copyright 2026 Princess Beef Heavy Industries, LLC / Dave Shanley
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -50,20 +50,6 @@ func flattenReport(report *model.Report, normalizer *changePathNormalizer) *mode
 	*flatReport.Commit = *report.Commit
 	flatReport.Commit.Changes = nil
 
-	return flatReport
-}
-
-func FlattenHistoricalReport(report *model.HistoricalReport) *model.FlatHistoricalReport {
-
-	flatReport := &model.FlatHistoricalReport{}
-	flatReport.GitRepoPath = report.GitRepoPath
-	flatReport.GitFilePath = report.GitFilePath
-	flatReport.DateGenerated = report.DateGenerated
-	flatReport.Filename = report.Filename
-	flatReport.Reports = make([]*model.FlatReport, 0)
-	for _, r := range report.Reports {
-		flatReport.Reports = append(flatReport.Reports, FlattenReport(r))
-	}
 	return flatReport
 }
 

@@ -146,26 +146,16 @@ func TestRunNewLeftRightReport_NormalizesParameterPaths(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, report)
 
-	var usernameTypeChange *model.HashedChange
-	var passwordRequiredChange *model.HashedChange
+	encoded, err := json.Marshal(report)
+	require.NoError(t, err)
+	content := string(encoded)
 
-	for _, change := range report.Changes {
-		if change == nil || change.Change == nil {
-			continue
-		}
-		switch {
-		case change.Property == "type" && change.Path == "$.paths['/user/login'].get.parameters['username'].schema":
-			usernameTypeChange = change
-		case change.Property == "required" && change.Path == "$.paths['/user/login'].get.parameters['password']":
-			passwordRequiredChange = change
-		}
-	}
+	assert.Contains(t, content, `"path":"$.paths['/user/login'].get.parameters['username'].schema"`)
+	assert.Contains(t, content, `"rawPath":"$.paths['/user/login'].get.parameters[0].schema"`)
+	assert.Contains(t, content, `"type":"schema"`)
 
-	require.NotNil(t, usernameTypeChange)
-	assert.Equal(t, "$.paths['/user/login'].get.parameters[0].schema", usernameTypeChange.RawPath)
-	assert.Equal(t, "schema", usernameTypeChange.Type)
-
-	require.NotNil(t, passwordRequiredChange)
-	assert.Equal(t, "$.paths['/user/login'].get.parameters[1]", passwordRequiredChange.RawPath)
-	assert.Equal(t, "parameter", passwordRequiredChange.Type)
+	assert.Contains(t, content, `"path":"$.paths['/user/login'].get.parameters['password']"`)
+	assert.Contains(t, content, `"rawPath":"$.paths['/user/login'].get.parameters[1]"`)
+	assert.Contains(t, content, `"property":"required"`)
+	assert.Contains(t, content, `"type":"parameter"`)
 }
