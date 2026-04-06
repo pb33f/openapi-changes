@@ -114,3 +114,38 @@ func TestRunNewLeftRightReport_Success(t *testing.T) {
 	assert.Equal(t, 30, report.Summary["paths"].Total)
 	assert.Equal(t, 16, report.Summary["paths"].Breaking)
 }
+
+func TestRunNewLeftRightReport_NormalizesParameterPaths(t *testing.T) {
+	report, err := runNewLeftRightReport(
+		"../sample-specs/petstorev3-original.json",
+		"../sample-specs/petstorev3.json",
+		newSummaryOpts{noColor: true},
+		nil,
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+
+	var usernameTypeChange *model.HashedChange
+	var passwordRequiredChange *model.HashedChange
+
+	for _, change := range report.Changes {
+		if change == nil || change.Change == nil {
+			continue
+		}
+		switch {
+		case change.Property == "type" && change.Path == "$.paths['/user/login'].get.parameters['username'].schema":
+			usernameTypeChange = change
+		case change.Property == "required" && change.Path == "$.paths['/user/login'].get.parameters['password']":
+			passwordRequiredChange = change
+		}
+	}
+
+	require.NotNil(t, usernameTypeChange)
+	assert.Equal(t, "$.paths['/user/login'].get.parameters[0].schema", usernameTypeChange.RawPath)
+	assert.Equal(t, "schema", usernameTypeChange.Type)
+
+	require.NotNil(t, passwordRequiredChange)
+	assert.Equal(t, "$.paths['/user/login'].get.parameters[1]", passwordRequiredChange.RawPath)
+	assert.Equal(t, "parameter", passwordRequiredChange.Type)
+}

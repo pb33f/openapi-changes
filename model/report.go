@@ -16,6 +16,7 @@ import (
 type HashedChange struct {
 	*model.Change
 	ChangeHash string `json:"changeHash,omitempty"`
+	RawPath    string `json:"rawPath,omitempty"`
 }
 
 func (hc *HashedChange) MarshalJSON() ([]byte, error) {
@@ -33,6 +34,9 @@ func (hc *HashedChange) MarshalJSON() ([]byte, error) {
 	}
 
 	data["changeHash"] = hc.ChangeHash
+	if hc.RawPath != "" {
+		data["rawPath"] = hc.RawPath
+	}
 
 	return json.Marshal(data)
 }

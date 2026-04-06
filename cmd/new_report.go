@@ -19,32 +19,33 @@ import (
 )
 
 // changerateCommit runs the doctor changerator on a single commit to populate
-// commit.Changes. Returns true if changes were found.
-func changerateCommit(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (bool, error) {
+// commit.Changes and returns the comparison bundle for downstream rendering.
+func changerateCommit(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*changeratorResult, error) {
 	result, err := runChangerator(commit, breakingConfig)
 	if err != nil {
-		return false, fmt.Errorf("commit %s: %w", commit.Hash, err)
+		return nil, fmt.Errorf("commit %s: %w", commit.Hash, err)
 	}
 	if result == nil {
-		return false, nil
+		return nil, nil
 	}
-	defer result.Release()
 	commit.Changes = result.DocChanges
-	return true, nil
+	return result, nil
 }
 
 func changerateAndFlatten(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.FlatReport, error) {
 	reports := make([]*model.FlatReport, 0, len(commits))
 	var errs []error
 	for _, commit := range commits {
-		hasChanges, err := changerateCommit(commit, breakingConfig)
+		result, err := changerateCommit(commit, breakingConfig)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
-		if hasChanges {
-			reports = append(reports, FlattenReport(createReport(commit)))
+		if result == nil {
+			continue
 		}
+		reports = append(reports, FlattenReportWithRoots(createReport(commit), result.LeftDrDoc.V3Document.Node, result.RightDrDoc.V3Document.Node))
+		result.Release()
 	}
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
@@ -60,14 +61,15 @@ func runNewLeftRightReport(left, right string, opts newSummaryOpts, breakingConf
 	if len(commits) == 0 {
 		return nil, nil
 	}
-	hasChanges, err := changerateCommit(commits[0], breakingConfig)
+	result, err := changerateCommit(commits[0], breakingConfig)
 	if err != nil {
 		return nil, err
 	}
-	if !hasChanges {
+	if result == nil {
 		return nil, nil
 	}
-	return FlattenReport(createReport(commits[0])), nil
+	defer result.Release()
+	return FlattenReportWithRoots(createReport(commits[0]), result.LeftDrDoc.V3Document.Node, result.RightDrDoc.V3Document.Node), nil
 }
 
 func runNewGitHistoryReport(gitPath, filePath string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatHistoricalReport, error) {
