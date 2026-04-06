@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/pb33f/libopenapi"
+	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -86,4 +87,32 @@ func TestWrapConsoleStartError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "requires an interactive terminal")
 	assert.Contains(t, err.Error(), "device not configured")
+}
+
+func TestNewConsoleCommand_NoPriorVersionText(t *testing.T) {
+	originalExtract := extractHistoryFromFile
+	originalPopulate := populateHistoryWithDocuments
+	t.Cleanup(func() {
+		extractHistoryFromFile = originalExtract
+		populateHistoryWithDocuments = originalPopulate
+	})
+
+	extractHistoryFromFile = func(repoDirectory, filePath, baseCommit string,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, globalRevisions bool, limit int, limitTime int,
+	) ([]*model.Commit, []error) {
+		return []*model.Commit{{Hash: "abc123"}}, nil
+	}
+	populateHistoryWithDocuments = func(commitHistory []*model.Commit, limit int, limitTime int,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, base string, remote, extRefs bool,
+		breakingConfig *whatChangedModel.BreakingRulesConfig,
+	) ([]*model.Commit, []error) {
+		return []*model.Commit{}, nil
+	}
+
+	cmd := newTestRootCmd(GetNewConsoleCommand(), "--no-logo", "--no-color", "..", "sample-specs/petstorev3.json")
+	output := captureStdout(t, func() {
+		require.NoError(t, cmd.Execute())
+	})
+
+	assert.Contains(t, output, "The file has no prior version to compare against")
 }

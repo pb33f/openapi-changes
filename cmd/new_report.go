@@ -136,10 +136,10 @@ func printReportJSON(v any) error {
 func GetNewReportCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		SilenceUsage: true,
-		Use:          "new-report",
-		Short:        "Generate a machine readable report (new engine)",
-		Long:         "Generate a JSON report for what has changed using the doctor changerator engine.",
-		Example:      "openapi-changes new-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Use:          "report",
+		Short:        "Generate a machine readable report",
+		Long:         "Generate a JSON report for what has changed between commits/specs",
+		Example:      "openapi-changes report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, configFlag := readCommonFlags(cmd)
 
@@ -148,8 +148,8 @@ func GetNewReportCommand() *cobra.Command {
 				if !noBanner {
 					PrintNewBanner(opts.noColor)
 				}
-				printNewCommandUsage("new-report",
-					"The new-report command generates a machine-readable JSON report of all API changes\nusing the doctor changerator engine.",
+				printNewCommandUsage("report",
+					"The report command generates a machine-readable JSON report of all API changes\nusing the doctor changerator engine.",
 					opts.noColor)
 				return nil
 			}

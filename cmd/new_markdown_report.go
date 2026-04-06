@@ -11,29 +11,15 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/lipgloss/v2"
 	"github.com/pb33f/doctor/changerator/renderer"
-	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/spf13/cobra"
 )
 
-type markdownReportStyles struct {
-	success lipgloss.Style
-	warn    lipgloss.Style
-}
-
-func newMarkdownReportStyles() markdownReportStyles {
-	return markdownReportStyles{
-		success: lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGreen)).Bold(true),
-		warn:    lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),
-	}
-}
-
 func printMarkdownReportUsage(noColor bool) {
-	printNewCommandUsage("new-markdown-report",
+	printNewCommandUsage("markdown-report",
 		"Generates a detailed markdown report of API changes using the doctor changerator engine.",
 		noColor)
 }
@@ -245,8 +231,8 @@ func isSyntheticLeftRightCommit(commit *model.Commit) bool {
 
 // generateNewMarkdownReport assembles markdown from all commits.
 // Returns (nil, nil) if no commits produce changes and no errors occurred.
-// Returns (nil, err) if all commits failed to render.
-// Returns (bytes, nil) when at least one commit produced markdown.
+// Returns (nil, err) if any commit fails to render.
+// Returns (bytes, nil) when all rendered commits succeed.
 func generateNewMarkdownReport(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, includeDiff bool) ([]byte, error) {
 	var sb strings.Builder
 	successCount := 0
@@ -310,13 +296,16 @@ func generateNewMarkdownReport(commits []*model.Commit, breakingConfig *whatChan
 	if successCount == 0 && errorCount > 0 {
 		return nil, fmt.Errorf("all %d commits failed to render", errorCount)
 	}
+	if errorCount > 0 {
+		return nil, fmt.Errorf("%d commits failed to render", errorCount)
+	}
 	if successCount == 0 && errorCount == 0 {
 		return nil, nil
 	}
 	return []byte(sb.String()), nil
 }
 
-func writeMarkdownReportFile(reportFile string, report []byte, styles markdownReportStyles) error {
+func writeMarkdownReportFile(reportFile string, report []byte, styles commandStyles) error {
 	err := os.WriteFile(reportFile, report, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write report: %w", err)
@@ -328,19 +317,16 @@ func writeMarkdownReportFile(reportFile string, report []byte, styles markdownRe
 func GetNewMarkdownReportCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		SilenceUsage: true,
-		Use:          "new-markdown-report",
-		Short:        "Generate a markdown report (new engine)",
-		Long:         "Generate a detailed markdown report of API changes using the doctor changerator engine.",
-		Example:      "openapi-changes new-markdown-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Use:          "markdown-report",
+		Short:        "Generate a markdown report",
+		Long:         "Generate a detailed markdown report of API changes rendered as markdown",
+		Example:      "openapi-changes markdown-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, configFlag := readCommonFlags(cmd)
 			reportFile, _ := cmd.Flags().GetString("report-file")
 			includeDiff, _ := cmd.Flags().GetBool("include-diff")
 
-			styles := markdownReportStyles{}
-			if !opts.noColor {
-				styles = newMarkdownReportStyles()
-			}
+			styles := newCommandStyles(opts.noColor)
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {

@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/pb33f/doctor/changerator"
@@ -16,8 +17,8 @@ import (
 )
 
 func printNewConsoleUsage(noColor bool) {
-	printNewCommandUsage("new-console",
-		"The new-console command renders an interactive terminal user interface.\nExplore OpenAPI contract changes right in your terminal with a modern TUI.",
+	printNewCommandUsage("console",
+		"The console command renders an interactive terminal user interface.\nExplore OpenAPI contract changes right in your terminal with a modern TUI.",
 		noColor)
 }
 
@@ -55,10 +56,10 @@ func wrapConsoleStartError(err error) error {
 func GetNewConsoleCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		SilenceUsage: true,
-		Use:          "new-console",
-		Short:        "Interactive terminal UI for exploring changes (new engine)",
+		Use:          "console",
+		Short:        "Interactive terminal UI for exploring changes",
 		Long:         "Navigate through changes visually in an interactive terminal UI built with Bubbletea, using the doctor changerator engine.",
-		Example:      "openapi-changes new-console /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Example:      "openapi-changes console /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, configFlag := readCommonFlags(cmd)
 
@@ -92,6 +93,11 @@ func GetNewConsoleCommand() *cobra.Command {
 			}
 
 			if len(commits) == 0 {
+				firstArgInfo, statErr := os.Stat(args[0])
+				if len(args) == 2 && statErr == nil && firstArgInfo.IsDir() {
+					printNoPriorVersionText()
+					return nil
+				}
 				printNoChangesText()
 				return nil
 			}

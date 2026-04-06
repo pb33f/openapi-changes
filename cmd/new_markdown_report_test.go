@@ -191,11 +191,9 @@ paths: {}`
 	mixed := append(validCommits, badCommit)
 
 	report, err := generateNewMarkdownReport(mixed, nil, false)
-	assert.NoError(t, err)
-	assert.NotNil(t, report)
-
-	content := string(report)
-	assert.Contains(t, content, "# OpenAPI Changes Report")
+	assert.Error(t, err)
+	assert.Nil(t, report)
+	assert.Contains(t, err.Error(), "1 commits failed to render")
 }
 
 func TestNewMarkdownReport_IncludeDiffFlag(t *testing.T) {

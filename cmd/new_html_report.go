@@ -14,29 +14,15 @@ import (
 	"text/template"
 	"time"
 
-	"charm.land/lipgloss/v2"
-	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 	newHtmlReport "github.com/pb33f/openapi-changes/new-html-report"
 	"github.com/spf13/cobra"
 )
 
-type htmlReportStyles struct {
-	success lipgloss.Style
-	warn    lipgloss.Style
-}
-
-func newHTMLReportStyles() htmlReportStyles {
-	return htmlReportStyles{
-		success: lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGreen)).Bold(true),
-		warn:    lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),
-	}
-}
-
 func printHTMLReportUsage(noColor bool) {
-	printNewCommandUsage("new-html-report",
-		"Generates an interactive HTML report of API changes using the doctor changerator engine.\nThe report is fully self-contained and works offline.",
+	printNewCommandUsage("html-report",
+		"Generates an interactive HTML report of API changes.\nThe report is fully self-contained and works offline.",
 		noColor)
 }
 
@@ -140,7 +126,7 @@ func generateNewHTMLReport(commits []*model.Commit, breakingConfig *whatChangedM
 	return buf.Bytes(), nil
 }
 
-func writeHTMLReportFile(reportFile string, report []byte, styles htmlReportStyles) error {
+func writeHTMLReportFile(reportFile string, report []byte, styles commandStyles) error {
 	err := os.WriteFile(reportFile, report, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write report: %w", err)
@@ -152,19 +138,16 @@ func writeHTMLReportFile(reportFile string, report []byte, styles htmlReportStyl
 func GetNewHTMLReportCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		SilenceUsage: true,
-		Use:          "new-html-report",
-		Short:        "Generate an interactive HTML report (new engine)",
-		Long:         "Generate a rich, interactive HTML report with the doctor changerator engine.\nThe report is fully self-contained and works offline.",
-		Example:      "openapi-changes new-html-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Use:          "html-report",
+		Short:        "Generate an interactive HTML report",
+		Long:         "Generate a rich, interactive HTML report. The report is fully self-contained and works offline.",
+		Example:      "openapi-changes html-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, configFlag := readCommonFlags(cmd)
 			reportFile, _ := cmd.Flags().GetString("report-file")
 			noExplorer, _ := cmd.Flags().GetBool("no-explorer")
 
-			styles := htmlReportStyles{}
-			if !opts.noColor {
-				styles = newHTMLReportStyles()
-			}
+			styles := newCommandStyles(opts.noColor)
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {
@@ -209,6 +192,6 @@ func GetNewHTMLReportCommand() *cobra.Command {
 	}
 	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
 	cmd.Flags().String("report-file", "report.html", "The name of the HTML report file (defaults to 'report.html')")
-	cmd.Flags().Bool("no-explorer", false, "Exclude the explorer graph tab (saves ~1.7MB)")
+	cmd.Flags().Bool("no-explorer", false, "Exclude the explorer graph tab (smaller bundle size")
 	return cmd
 }

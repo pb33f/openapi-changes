@@ -26,10 +26,10 @@ func GetReportCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		SilenceUsage: true,
-		Use:          "report",
+		Use:          "old-report",
 		Short:        "Generate a machine readable report for what has changed",
 		Long:         "Generate a report for what has changed between two OpenAPI specs, or a single spec, over time.",
-		Example:      "openapi-changes report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Example:      "openapi-changes old-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			updateChan := make(chan *model.ProgressUpdate)
@@ -65,7 +65,7 @@ func GetReportCommand() *cobra.Command {
 				if !noBanner {
 					PrintBanner()
 				}
-				PrintHowToUse("report")
+				PrintHowToUse("old-report")
 				return nil
 			}
 
@@ -129,7 +129,7 @@ func GetReportCommand() *cobra.Command {
 					} else {
 						pterm.Error.Println("A single argument requires a github.com URL. For local comparison, provide two arguments: a git repository path and a file path within it.")
 						pterm.Println()
-						PrintHowToUse("report")
+						PrintHowToUse("old-report")
 						return nil
 					}
 
@@ -238,7 +238,7 @@ func GetReportCommand() *cobra.Command {
 			}
 			pterm.Error.Println("Too many arguments provided, expecting two (2)")
 			pterm.Println()
-			PrintHowToUse("report")
+			PrintHowToUse("old-report")
 			return nil
 		},
 	}

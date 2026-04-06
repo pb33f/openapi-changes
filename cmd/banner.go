@@ -78,17 +78,27 @@ func PrintHowToUse(command string) {
 	switch command {
 	case "console":
 		fmt.Println("The console command renders an interactive terminal user interface, explore " +
-			"OpenAPI contract changes right in your terminal, no desktop app, no browser required.")
+			"OpenAPI contract changes right in your terminal with the current doctor-based engine.")
+	case "old-console":
+		fmt.Println("The old-console command renders the legacy interactive terminal user interface.")
 	case "summary":
-		fmt.Println("The summary command prints out a simplified, reduced summary of a change report. " +
-			"a tree containing the changes and a simple table is rendered. Perfect for CI/CD!")
+		fmt.Println("The summary command prints out a semantic, deduplicated summary of a change report. " +
+			"A tree containing the changes and a simple table is rendered. Perfect for CI/CD!")
+	case "old-summary":
+		fmt.Println("The old-summary command prints the legacy summary output and legacy change tree.")
 	case "report":
-		fmt.Println("The report command prints out a ready to render/consume JSON report of all the data " +
-			"used to render the html-report and console views. If you need a machine-readable data report, this " +
-			"is for you. ")
+		fmt.Println("The report command prints out a machine-readable JSON report of all API changes " +
+			"using the current doctor-based engine.")
+	case "old-report":
+		fmt.Println("The old-report command prints the legacy machine-readable JSON report.")
+	case "markdown-report":
+		fmt.Println("The markdown-report command generates a detailed markdown report using the current doctor-based engine.")
+	case "old-markdown-report":
+		fmt.Println("The old-markdown-report command generates the legacy markdown report.")
 	case "html-report":
-		fmt.Println("The html-report command generates a beautiful, highly interactive and sharable browser " +
-			" based report. It's perhaps the sexiest diff report you have ever seen or used, no seriously!")
+		fmt.Println("The html-report command generates a rich, interactive and self-contained browser report using the current doctor-based engine.")
+	case "old-html-report":
+		fmt.Println("The old-html-report command generates the legacy HTML report.")
 	}
 	fmt.Println()
 	title.Println(">> diff local git history")

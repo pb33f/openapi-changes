@@ -21,7 +21,7 @@ const (
 	noPriorVersionMessage = "The file has no prior version to compare against — nothing to report"
 )
 
-// newSummaryOpts holds the flags shared by the new command family.
+// newSummaryOpts holds the flags shared by the current doctor-based command family.
 type newSummaryOpts struct {
 	noColor         bool
 	markdown        bool
@@ -37,7 +37,25 @@ type newSummaryOpts struct {
 	globalRevisions bool
 }
 
-// readCommonFlags reads the flags shared by all new-* commands.
+// commandStyles holds the shared success/warning styles for the canonical command family.
+type commandStyles struct {
+	success lipgloss.Style
+	warn    lipgloss.Style
+}
+
+func newCommandStyles(noColor bool) commandStyles {
+	styles := commandStyles{
+		success: lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGreen)).Bold(true),
+		warn:    lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),
+	}
+	if noColor {
+		styles.success = lipgloss.NewStyle()
+		styles.warn = lipgloss.NewStyle()
+	}
+	return styles
+}
+
+// readCommonFlags reads the flags shared by the current doctor-based commands.
 func readCommonFlags(cmd *cobra.Command) (opts newSummaryOpts, configFlag string) {
 	opts.noColor, _ = cmd.Flags().GetBool("no-color")
 	opts.withLines, _ = cmd.Flags().GetBool("with-lines")
@@ -97,7 +115,7 @@ func loadCommitsFromArgs(args []string, opts newSummaryOpts, breakingConfig *wha
 	return loadLeftRightCommits(args[0], args[1], opts, breakingConfig)
 }
 
-// printNewCommandUsage prints lipgloss-styled usage for any new-* command.
+// printNewCommandUsage prints lipgloss-styled usage for any doctor-based command.
 func printNewCommandUsage(commandName, description string, noColor bool) {
 	title := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)).Bold(true)
 	desc := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGrey))

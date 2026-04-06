@@ -26,11 +26,11 @@ func GetConsoleCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		SilenceUsage: true,
-		Use:          "console",
+		Use:          "old-console",
 		Short:        "Interact with OpenAPI changes in an interactive terminal UI",
 		Long: "Navigate though a single change or many changes visually. Explore" +
 			" Each change, and see a side by side rendering of each change.",
-		Example: "openapi-changes console /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Example: "openapi-changes old-console /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			updateChan := make(chan *model.ProgressUpdate)
@@ -61,7 +61,7 @@ func GetConsoleCommand() *cobra.Command {
 
 			// if there are no args, print out how to use the console.
 			if len(args) == 0 {
-				PrintHowToUse("console")
+				PrintHowToUse("old-console")
 				return nil
 			}
 
@@ -181,7 +181,7 @@ func GetConsoleCommand() *cobra.Command {
 					} else {
 						pterm.Error.Println("A single argument requires a github.com URL. For local comparison, provide two arguments: a git repository path and a file path within it.")
 						pterm.Println()
-						PrintHowToUse("console")
+						PrintHowToUse("old-console")
 						return nil
 					}
 
@@ -286,7 +286,7 @@ func GetConsoleCommand() *cobra.Command {
 			}
 			pterm.Error.Println("Too many arguments provided, expecting two (2)")
 			pterm.Println()
-			PrintHowToUse("console")
+			PrintHowToUse("old-console")
 			return nil
 		},
 	}

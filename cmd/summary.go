@@ -31,10 +31,10 @@ func GetSummaryCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		SilenceUsage: true,
-		Use:          "summary",
+		Use:          "old-summary",
 		Short:        "See a summary of changes",
 		Long:         "print a summary of what changed, view a simple tree of changes and summary",
-		Example:      "openapi-changes summary /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Example:      "openapi-changes old-summary /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			updateChan := make(chan *model.ProgressUpdate)
@@ -73,7 +73,7 @@ func GetSummaryCommand() *cobra.Command {
 
 			// if there are no args, print out how to use the console.
 			if len(args) == 0 {
-				PrintHowToUse("summary")
+				PrintHowToUse("old-summary")
 				return nil
 			}
 
@@ -208,7 +208,7 @@ func GetSummaryCommand() *cobra.Command {
 				} else {
 					// if an invalid number of arguments are provided, print usage
 					pterm.Error.Println("Invalid URL")
-					PrintHowToUse("summary")
+					PrintHowToUse("old-summary")
 					return nil
 				}
 			}
@@ -288,7 +288,7 @@ func GetSummaryCommand() *cobra.Command {
 			}
 			pterm.Error.Println("Too many arguments provided, expecting two (2)")
 			pterm.Println()
-			PrintHowToUse("summary")
+			PrintHowToUse("old-summary")
 			return nil
 		},
 	}

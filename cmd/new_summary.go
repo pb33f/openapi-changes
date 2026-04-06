@@ -1,4 +1,4 @@
-// Copyright 2025 Princess Beef Heavy Industries, LLC / Dave Shanley
+// Copyright 2026 Princess Beef Heavy Industries, LLC / Dave Shanley
 // SPDX-License-Identifier: MIT
 
 package cmd
@@ -461,14 +461,14 @@ func renderNewSummary(
 	return sb.String(), hasBreaking, hasChanges, nil
 }
 
-// GetNewSummaryCommand returns the cobra command for the new-summary command.
+// GetNewSummaryCommand returns the cobra command for the current summary command.
 func GetNewSummaryCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		SilenceUsage: true,
-		Use:          "new-summary",
-		Short:        "See a summary of changes (new engine)",
+		Use:          "summary",
+		Short:        "See a summary of changes",
 		Long:         "print a summary of what changed using the doctor changerator engine with tree visualization",
-		Example:      "openapi-changes new-summary /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Example:      "openapi-changes summary /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, configFlag := readCommonFlags(cmd)
 			opts.markdown, _ = cmd.Flags().GetBool("markdown")
@@ -541,7 +541,7 @@ func GetNewSummaryCommand() *cobra.Command {
 }
 
 func printNewSummaryUsage(noColor bool) {
-	printNewCommandUsage("new-summary",
-		"The new-summary command prints out a simplified, reduced summary of a change report\nusing the doctor changerator engine with tree visualization.",
+	printNewCommandUsage("summary",
+		"The summary command prints out a simplified, reduced summary of a change report as a change tree and summary table",
 		noColor)
 }

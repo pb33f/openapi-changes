@@ -19,27 +19,30 @@ var (
 	rootCmd = &cobra.Command{
 		SilenceUsage: true,
 		Use:          "openapi-changes",
-		Short:        "openapi-changes will tell you what has changed between one or more OpenAPI / Swagger specifications.",
+		Short:        "Detect and explore changes between OpenAPI / Swagger specifications.",
 		Long: `openapi-changes can detect every change found in an OpenAPI specification.
-it can compare between two files, or a single file, over time.`,
+it can compare between two files, or a single file, over time.
+
+Commands without the old- prefix use the current doctor-based engine.
+Commands prefixed with old- are legacy compatibility commands.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			PrintBanner()
 
-			fmt.Println("You have a few options when it comes to commands...")
+			fmt.Println("Current commands")
 			fmt.Println()
 
 			_ = pterm.DefaultBulletList.WithItems([]pterm.BulletListItem{
 				{Level: 0, Text: "console", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
 				{Level: 0, Text: "summary", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
 				{Level: 0, Text: "report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "html-report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
 				{Level: 0, Text: "markdown-report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "new-summary", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "new-report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "new-markdown-report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "new-html-report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
-				{Level: 0, Text: "new-console", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
+				{Level: 0, Text: "html-report", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
+				{Level: 0, Text: "old-console (legacy)", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
+				{Level: 0, Text: "old-summary (legacy)", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
+				{Level: 0, Text: "old-report (legacy)", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
+				{Level: 0, Text: "old-markdown-report (legacy)", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
+				{Level: 0, Text: "old-html-report (legacy)", TextStyle: pterm.NewStyle(pterm.FgLightCyan), Bullet: ">", BulletStyle: pterm.NewStyle(pterm.FgLightMagenta)},
 			}).Render()
 
 			pterm.Printf("For more help, use the %s flag with any command.", pterm.LightMagenta("--help"))
@@ -62,16 +65,16 @@ func Execute(version, commit, date string) {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+	rootCmd.AddCommand(GetNewConsoleCommand())
+	rootCmd.AddCommand(GetNewHTMLReportCommand())
+	rootCmd.AddCommand(GetNewMarkdownReportCommand())
+	rootCmd.AddCommand(GetNewReportCommand())
+	rootCmd.AddCommand(GetNewSummaryCommand())
 	rootCmd.AddCommand(GetConsoleCommand())
 	rootCmd.AddCommand(GetSummaryCommand())
 	rootCmd.AddCommand(GetReportCommand())
-	rootCmd.AddCommand(GetHTMLReportCommand())
 	rootCmd.AddCommand(GetMarkdownReportCommand())
-	rootCmd.AddCommand(GetNewSummaryCommand())
-	rootCmd.AddCommand(GetNewReportCommand())
-	rootCmd.AddCommand(GetNewMarkdownReportCommand())
-	rootCmd.AddCommand(GetNewConsoleCommand())
-	rootCmd.AddCommand(GetNewHTMLReportCommand())
+	rootCmd.AddCommand(GetHTMLReportCommand())
 	rootCmd.PersistentFlags().BoolP("top", "t", false, "Only show latest changes (last git revision against HEAD)")
 	rootCmd.PersistentFlags().IntP("limit", "l", 5, "Limit history to number of revisions (default is 5)")
 	rootCmd.PersistentFlags().BoolP("global-revisions", "R", false, "Consider all revisions in limit, not just the ones for the file")

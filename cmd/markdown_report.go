@@ -26,12 +26,12 @@ func GetMarkdownReportCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		SilenceUsage: false,
-		Use:          "markdown-report",
+		Use:          "old-markdown-report",
 		Short: "Generate a ready to go, super sexy, and highly interactive Markdown report that " +
 			"you can explore and review in your browser",
 		Long: "Generate a ready to go, super sexy, and highly interactive Markdown report that " +
 			"you can explore and review in your browser",
-		Example: "openapi-changes markdown-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Example: "openapi-changes old-markdown-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			updateChan := make(chan *model.ProgressUpdate)
@@ -70,7 +70,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 
 			// if there are no args, print out how to use the console.
 			if len(args) == 0 {
-				PrintHowToUse("markdown-report")
+				PrintHowToUse("old-markdown-report")
 				return nil
 			}
 
@@ -193,7 +193,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 					} else {
 						pterm.Error.Println("A single argument requires a github.com URL. For local comparison, provide two arguments: a git repository path and a file path within it.")
 						pterm.Println()
-						PrintHowToUse("markdown-report")
+						PrintHowToUse("old-markdown-report")
 						return nil
 					}
 
@@ -281,7 +281,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 			}
 			pterm.Error.Println("Too many arguments provided, expecting two (2)")
 			pterm.Println()
-			PrintHowToUse("markdown-report")
+			PrintHowToUse("old-markdown-report")
 			return nil
 		},
 	}

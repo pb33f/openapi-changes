@@ -27,11 +27,11 @@ func GetHTMLReportCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		SilenceUsage: false,
-		Use:          "html-report",
+		Use:          "old-html-report",
 		Short:        "Generate the sexiest, most interactive diffing experience you have ever seen.",
 		Long: "Generate a ready to go, super sexy, and highly interactive HTML report that " +
 			"you can explore and review in your browser",
-		Example: "openapi-changes html-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Example: "openapi-changes old-html-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			updateChan := make(chan *model.ProgressUpdate)
@@ -70,7 +70,7 @@ func GetHTMLReportCommand() *cobra.Command {
 
 			// if there are no args, print out how to use the console.
 			if len(args) == 0 {
-				PrintHowToUse("html-report")
+				PrintHowToUse("old-html-report")
 				return nil
 			}
 
@@ -193,7 +193,7 @@ func GetHTMLReportCommand() *cobra.Command {
 					} else {
 						pterm.Error.Println("A single argument requires a github.com URL. For local comparison, provide two arguments: a git repository path and a file path within it.")
 						pterm.Println()
-						PrintHowToUse("html-report")
+						PrintHowToUse("old-html-report")
 						return nil
 					}
 
@@ -281,7 +281,7 @@ func GetHTMLReportCommand() *cobra.Command {
 			}
 			pterm.Error.Println("Too many arguments provided, expecting two (2)")
 			pterm.Println()
-			PrintHowToUse("html-report")
+			PrintHowToUse("old-html-report")
 			return nil
 		},
 	}
