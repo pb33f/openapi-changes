@@ -222,14 +222,16 @@ func BuildReportItem(
 ) (*ReportItem, error) {
 
 	// Pipeline mirrors bunkhouse timeline_service.go:compareAndBuildReports().
-	// Find root, build change tree, calculate stats, render, sanitize, marshal.
+	// Find root, build the raw changed tree, calculate stats, render, sanitize, marshal.
+	//
+	// Important: preserve the raw BuildNodeChangeTree result for graph serialization.
+	// PrepareChangeViewGraph prunes and rewrites the tree for summary-style rendering,
+	// which can strip valid branches (for example changed component schemas) from the
+	// HTML document tree payload. The HTML report needs the full changed tree.
 	var rootNode interface{}
 	for _, node := range result.ChangedNodes {
 		if node.Id == "root" {
 			result.BuildNodeChangeTree(node)
-			// Prepare change-view data: deduplicate, compute subtree counts,
-			// build child summaries, recalculate dimensions.
-			result.PrepareChangeViewGraph(node)
 			rootNode = node
 			break
 		}

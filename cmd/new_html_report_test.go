@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -149,4 +150,52 @@ func TestNewHTMLReportCommand_TooManyArgs(t *testing.T) {
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.True(t, strings.Contains(err.Error(), "too many arguments"))
+}
+
+func TestBuildHTMLReportItems_PreservesSchemaNodesInDocumentTree(t *testing.T) {
+	commits, err := loadLeftRightCommits(
+		"../sample-specs/petstorev3-original.json",
+		"../sample-specs/petstorev3.json",
+		newSummaryOpts{noColor: true},
+		nil,
+	)
+	require.NoError(t, err)
+	require.NotEmpty(t, commits)
+
+	items, err := buildHTMLReportItems(commits, nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, items)
+
+	target := &newHtmlNodeGraph{}
+	require.NotNil(t, items[0].Graph)
+	require.NoError(t, json.Unmarshal(items[0].Graph.Nodes, &target.Nodes))
+	require.NoError(t, json.Unmarshal(items[0].Graph.NodeChangeTree, &target.Root))
+
+	nodeIDs := make(map[string]struct{})
+	for _, node := range target.Nodes {
+		id, _ := node["id"].(string)
+		if id != "" {
+			nodeIDs[id] = struct{}{}
+		}
+	}
+
+	assert.Contains(t, nodeIDs, "$.components")
+	assert.Contains(t, nodeIDs, "$.components.schemas['Pet']")
+	assert.Contains(t, nodeIDs, "$.components.schemas['User']")
+
+	rootChildren, ok := target.Root["nodes"].([]any)
+	require.True(t, ok)
+
+	rootChildIDs := make([]string, 0, len(rootChildren))
+	for _, child := range rootChildren {
+		if id, ok := child.(string); ok {
+			rootChildIDs = append(rootChildIDs, id)
+		}
+	}
+	assert.Contains(t, rootChildIDs, "$.components")
+}
+
+type newHtmlNodeGraph struct {
+	Nodes []map[string]any
+	Root  map[string]any
 }
