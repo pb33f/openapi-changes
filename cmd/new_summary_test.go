@@ -769,7 +769,7 @@ func TestNewSummaryCommand_NoComparableHistoryPrintsPriorVersionMessage(t *testi
 		return []*model.Commit{}, nil
 	}
 
-	cmd := newTestRootCmd(GetNewSummaryCommand(), "--no-logo", "--no-color", "..", "sample-specs/petstorev3.json")
+	cmd := testRootCmd(GetSummaryCommand(), "--no-logo", "--no-color", "..", "sample-specs/petstorev3.json")
 	output := captureStdout(t, func() {
 		require.NoError(t, cmd.Execute())
 	})

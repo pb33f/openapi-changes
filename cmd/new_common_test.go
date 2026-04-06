@@ -5,8 +5,8 @@ package cmd
 
 import "github.com/spf13/cobra"
 
-// newTestRootCmd creates a root command with standard persistent flags and a subcommand for testing.
-func newTestRootCmd(sub *cobra.Command, args ...string) *cobra.Command {
+// testRootCmd creates a root command with standard persistent flags and a subcommand for testing.
+func testRootCmd(sub *cobra.Command, args ...string) *cobra.Command {
 	root := &cobra.Command{Use: "openapi-changes"}
 	root.PersistentFlags().BoolP("no-logo", "b", false, "")
 	root.PersistentFlags().BoolP("top", "t", false, "")

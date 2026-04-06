@@ -42,7 +42,7 @@ paths: {}`
 	}
 }
 
-func TestRunNewLeftRightReport_PropagatesChangeratorErrors(t *testing.T) {
+func TestRunLeftRightReport_PropagatesChangeratorErrors(t *testing.T) {
 	dir := t.TempDir()
 
 	left := `swagger: "2.0"
@@ -66,14 +66,14 @@ paths:
 	require.NoError(t, os.WriteFile(leftPath, []byte(left), 0644))
 	require.NoError(t, os.WriteFile(rightPath, []byte(right), 0644))
 
-	report, err := runNewLeftRightReport(leftPath, rightPath, newSummaryOpts{}, nil)
+	report, err := runLeftRightReport(leftPath, rightPath, newSummaryOpts{}, nil)
 
 	require.Error(t, err)
 	assert.Nil(t, report)
 	assert.Contains(t, err.Error(), "building right model")
 }
 
-func TestRunNewGithubHistoryReport_PropagatesChangeratorErrors(t *testing.T) {
+func TestRunGithubHistoryReport_PropagatesChangeratorErrors(t *testing.T) {
 	originalProcess := processGithubRepo
 	t.Cleanup(func() {
 		processGithubRepo = originalProcess
@@ -87,21 +87,21 @@ func TestRunNewGithubHistoryReport_PropagatesChangeratorErrors(t *testing.T) {
 		return []*model.Commit{mustMakeSwagger2Commit(t)}, nil
 	}
 
-	report, err := runNewGithubHistoryReport("https://github.com/oai/openapi-specification/blob/main/examples/v2.0/json/petstore-expanded.json", newSummaryOpts{}, nil)
+	report, err := runGithubHistoryReport("https://github.com/oai/openapi-specification/blob/main/examples/v2.0/json/petstore-expanded.json", newSummaryOpts{}, nil)
 
 	require.Error(t, err)
 	assert.Nil(t, report)
 	assert.Contains(t, err.Error(), "commit abc123")
 }
 
-func TestNewReportCommand_ZeroArgsWithNoColor(t *testing.T) {
-	cmd := newTestRootCmd(GetNewReportCommand(), "--no-logo", "--no-color")
+func TestReportCommand_ZeroArgsWithNoColor(t *testing.T) {
+	cmd := testRootCmd(GetReportCommand(), "--no-logo", "--no-color")
 	err := cmd.Execute()
 	assert.NoError(t, err)
 }
 
-func TestRunNewLeftRightReport_Success(t *testing.T) {
-	report, err := runNewLeftRightReport(
+func TestRunLeftRightReport_Success(t *testing.T) {
+	report, err := runLeftRightReport(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
 		newSummaryOpts{noColor: true},
@@ -118,8 +118,8 @@ func TestRunNewLeftRightReport_Success(t *testing.T) {
 	assert.Equal(t, 16, report.Summary["paths"].Breaking)
 }
 
-func TestRunNewLeftRightReport_OmitsCommitDetailsInJSON(t *testing.T) {
-	report, err := runNewLeftRightReport(
+func TestRunLeftRightReport_OmitsCommitDetailsInJSON(t *testing.T) {
+	report, err := runLeftRightReport(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
 		newSummaryOpts{noColor: true},
@@ -135,8 +135,8 @@ func TestRunNewLeftRightReport_OmitsCommitDetailsInJSON(t *testing.T) {
 	assert.NotContains(t, string(encoded), "commitDetails")
 }
 
-func TestRunNewLeftRightReport_NormalizesParameterPaths(t *testing.T) {
-	report, err := runNewLeftRightReport(
+func TestRunLeftRightReport_NormalizesParameterPaths(t *testing.T) {
+	report, err := runLeftRightReport(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
 		newSummaryOpts{noColor: true},

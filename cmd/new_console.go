@@ -53,7 +53,7 @@ func wrapConsoleStartError(err error) error {
 	return fmt.Errorf("console is unable to start; it requires an interactive terminal and cannot run headless: %w", err)
 }
 
-func GetNewConsoleCommand() *cobra.Command {
+func GetConsoleCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		SilenceUsage: true,
 		Use:          "console",

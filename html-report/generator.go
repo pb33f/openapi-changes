@@ -1,7 +1,7 @@
 // Copyright 2026 Princess Beef Heavy Industries, LLC / Dave Shanley
 // SPDX-License-Identifier: MIT
 
-package new_html_report
+package html_report
 
 import (
 	"bytes"

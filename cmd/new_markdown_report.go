@@ -229,11 +229,11 @@ func isSyntheticLeftRightCommit(commit *model.Commit) bool {
 		strings.HasPrefix(commit.Message, "Uploaded modification")
 }
 
-// generateNewMarkdownReport assembles markdown from all commits.
+// generateMarkdownReport assembles markdown from all commits.
 // Returns (nil, nil) if no commits produce changes and no errors occurred.
 // Returns (nil, err) if any commit fails to render.
 // Returns (bytes, nil) when all rendered commits succeed.
-func generateNewMarkdownReport(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, includeDiff bool) ([]byte, error) {
+func generateMarkdownReport(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, includeDiff bool) ([]byte, error) {
 	var sb strings.Builder
 	successCount := 0
 	errorCount := 0
@@ -314,7 +314,7 @@ func writeMarkdownReportFile(reportFile string, report []byte, styles commandSty
 	return nil
 }
 
-func GetNewMarkdownReportCommand() *cobra.Command {
+func GetMarkdownReportCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		SilenceUsage: true,
 		Use:          "markdown-report",
@@ -326,7 +326,7 @@ func GetNewMarkdownReportCommand() *cobra.Command {
 			reportFile, _ := cmd.Flags().GetString("report-file")
 			includeDiff, _ := cmd.Flags().GetBool("include-diff")
 
-			styles := newCommandStyles(opts.noColor)
+			styles := commandStylesFor(opts.noColor)
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {
@@ -357,7 +357,7 @@ func GetNewMarkdownReportCommand() *cobra.Command {
 				return err
 			}
 
-			report, err := generateNewMarkdownReport(commits, breakingConfig, includeDiff)
+			report, err := generateMarkdownReport(commits, breakingConfig, includeDiff)
 			if err != nil {
 				return err
 			}

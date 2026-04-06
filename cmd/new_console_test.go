@@ -14,27 +14,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewConsoleCommand_ZeroArgs(t *testing.T) {
-	cmd := newTestRootCmd(GetNewConsoleCommand(), "--no-logo", "--no-color")
+func TestConsoleCommand_ZeroArgs(t *testing.T) {
+	cmd := testRootCmd(GetConsoleCommand(), "--no-logo", "--no-color")
 	err := cmd.Execute()
 	assert.NoError(t, err)
 }
 
-func TestNewConsoleCommand_TooManyArgs(t *testing.T) {
-	cmd := newTestRootCmd(GetNewConsoleCommand(), "--no-logo", "a", "b", "c")
+func TestConsoleCommand_TooManyArgs(t *testing.T) {
+	cmd := testRootCmd(GetConsoleCommand(), "--no-logo", "a", "b", "c")
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "too many arguments")
 }
 
-func TestNewConsoleCommand_SingleArgNonGithub(t *testing.T) {
-	cmd := newTestRootCmd(GetNewConsoleCommand(), "--no-logo", "--no-color", "not-a-url")
+func TestConsoleCommand_SingleArgNonGithub(t *testing.T) {
+	cmd := testRootCmd(GetConsoleCommand(), "--no-logo", "--no-color", "not-a-url")
 	err := cmd.Execute()
 	assert.NoError(t, err)
 }
 
-func TestNewConsoleCommand_BadFirstArg(t *testing.T) {
-	cmd := newTestRootCmd(GetNewConsoleCommand(),
+func TestConsoleCommand_BadFirstArg(t *testing.T) {
+	cmd := testRootCmd(GetConsoleCommand(),
 		"--no-logo", "--no-color",
 		"/nonexistent/path",
 		"../sample-specs/petstorev3.json",
@@ -44,10 +44,10 @@ func TestNewConsoleCommand_BadFirstArg(t *testing.T) {
 	assert.Contains(t, err.Error(), "cannot open file/repository")
 }
 
-func TestNewConsoleCommand_TwoArgsDirectoryFirst(t *testing.T) {
+func TestConsoleCommand_TwoArgsDirectoryFirst(t *testing.T) {
 	// Using ".." as the directory should dispatch to git history.
 	// This may fail because there's no tracked spec file, but it exercises the path.
-	cmd := newTestRootCmd(GetNewConsoleCommand(),
+	cmd := testRootCmd(GetConsoleCommand(),
 		"--no-logo", "--no-color",
 		"..",
 		"sample-specs/petstorev3.json",
@@ -57,10 +57,10 @@ func TestNewConsoleCommand_TwoArgsDirectoryFirst(t *testing.T) {
 	_ = err
 }
 
-func TestNewConsoleCommand_TwoArgsURLFirst(t *testing.T) {
+func TestConsoleCommand_TwoArgsURLFirst(t *testing.T) {
 	// HTTP URL as first arg dispatches to left/right comparison.
 	// We can't actually fetch, so it will error, but exercises the path.
-	cmd := newTestRootCmd(GetNewConsoleCommand(),
+	cmd := testRootCmd(GetConsoleCommand(),
 		"--no-logo", "--no-color",
 		"http://example.com/spec.yaml",
 		"../sample-specs/petstorev3.json",
@@ -89,7 +89,7 @@ func TestWrapConsoleStartError(t *testing.T) {
 	assert.Contains(t, err.Error(), "device not configured")
 }
 
-func TestNewConsoleCommand_NoPriorVersionText(t *testing.T) {
+func TestConsoleCommand_NoPriorVersionText(t *testing.T) {
 	originalExtract := extractHistoryFromFile
 	originalPopulate := populateHistoryWithDocuments
 	t.Cleanup(func() {
@@ -109,7 +109,7 @@ func TestNewConsoleCommand_NoPriorVersionText(t *testing.T) {
 		return []*model.Commit{}, nil
 	}
 
-	cmd := newTestRootCmd(GetNewConsoleCommand(), "--no-logo", "--no-color", "..", "sample-specs/petstorev3.json")
+	cmd := testRootCmd(GetConsoleCommand(), "--no-logo", "--no-color", "..", "sample-specs/petstorev3.json")
 	output := captureStdout(t, func() {
 		require.NoError(t, cmd.Execute())
 	})

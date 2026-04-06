@@ -10,9 +10,9 @@ import (
 )
 
 func TestCommandSurface_UsesCanonicalNames(t *testing.T) {
-	assert.Equal(t, "summary", GetNewSummaryCommand().Use)
-	assert.Equal(t, "report", GetNewReportCommand().Use)
-	assert.Equal(t, "markdown-report", GetNewMarkdownReportCommand().Use)
-	assert.Equal(t, "html-report", GetNewHTMLReportCommand().Use)
-	assert.Equal(t, "console", GetNewConsoleCommand().Use)
+	assert.Equal(t, "summary", GetSummaryCommand().Use)
+	assert.Equal(t, "report", GetReportCommand().Use)
+	assert.Equal(t, "markdown-report", GetMarkdownReportCommand().Use)
+	assert.Equal(t, "html-report", GetHTMLReportCommand().Use)
+	assert.Equal(t, "console", GetConsoleCommand().Use)
 }

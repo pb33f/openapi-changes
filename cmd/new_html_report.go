@@ -16,7 +16,7 @@ import (
 
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
-	newHtmlReport "github.com/pb33f/openapi-changes/new-html-report"
+	htmlReport "github.com/pb33f/openapi-changes/html-report"
 	"github.com/spf13/cobra"
 )
 
@@ -28,8 +28,8 @@ func printHTMLReportUsage(noColor bool) {
 
 // buildHTMLReportItems runs the changerator pipeline on each commit and produces
 // ReportItems for the HTML report. Any commit/render failure aborts report generation.
-func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*newHtmlReport.ReportItem, error) {
-	items := make([]*newHtmlReport.ReportItem, 0, len(commits))
+func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*htmlReport.ReportItem, error) {
+	items := make([]*htmlReport.ReportItem, 0, len(commits))
 	var buildErrors []error
 
 	for i, commit := range commits {
@@ -44,7 +44,7 @@ func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedMo
 		}
 
 		changeId := strconv.Itoa(i)
-		item, err := newHtmlReport.BuildReportItem(
+		item, err := htmlReport.BuildReportItem(
 			commit,
 			result.Changerator,
 			result.DocChanges,
@@ -71,8 +71,8 @@ func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedMo
 	return items, nil
 }
 
-// generateNewHTMLReport assembles the full HTML report from commits.
-func generateNewHTMLReport(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, noExplorer bool, args ...string) ([]byte, error) {
+// generateHTMLReport assembles the full HTML report from commits.
+func generateHTMLReport(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, noExplorer bool, args ...string) ([]byte, error) {
 	items, err := buildHTMLReportItems(commits, breakingConfig)
 	if err != nil {
 		return nil, err
@@ -81,9 +81,9 @@ func generateNewHTMLReport(commits []*model.Commit, breakingConfig *whatChangedM
 		return nil, nil
 	}
 
-	history := newHtmlReport.BuildHistoryData(items)
+	history := htmlReport.BuildHistoryData(items)
 
-	payload := &newHtmlReport.ReportPayload{
+	payload := &htmlReport.ReportPayload{
 		Version:       1,
 		DateGenerated: time.Now().Format(time.RFC3339),
 		AppVersion:    Version,
@@ -105,14 +105,14 @@ func generateNewHTMLReport(commits []*model.Commit, breakingConfig *whatChangedM
 
 	// Use text/template, NOT html/template — html/template would HTML-escape the JSON payload.
 	// This is intentional and matches the old html-report/build_report.go pattern.
-	reportData := newHtmlReport.NewReportData(string(payloadJSON), noExplorer)
+	reportData := htmlReport.NewReportData(string(payloadJSON), noExplorer)
 
 	tmpl := template.New("header")
-	t, err := tmpl.Parse(newHtmlReport.GetHeaderTemplate())
+	t, err := tmpl.Parse(htmlReport.GetHeaderTemplate())
 	if err != nil {
 		return nil, fmt.Errorf("parsing header template: %w", err)
 	}
-	_, err = t.New("report").Parse(newHtmlReport.GetReportTemplate())
+	_, err = t.New("report").Parse(htmlReport.GetReportTemplate())
 	if err != nil {
 		return nil, fmt.Errorf("parsing report template: %w", err)
 	}
@@ -135,7 +135,7 @@ func writeHTMLReportFile(reportFile string, report []byte, styles commandStyles)
 	return nil
 }
 
-func GetNewHTMLReportCommand() *cobra.Command {
+func GetHTMLReportCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		SilenceUsage: true,
 		Use:          "html-report",
@@ -147,7 +147,7 @@ func GetNewHTMLReportCommand() *cobra.Command {
 			reportFile, _ := cmd.Flags().GetString("report-file")
 			noExplorer, _ := cmd.Flags().GetBool("no-explorer")
 
-			styles := newCommandStyles(opts.noColor)
+			styles := commandStylesFor(opts.noColor)
 
 			noBanner, _ := cmd.Flags().GetBool("no-logo")
 			if !noBanner {
@@ -178,7 +178,7 @@ func GetNewHTMLReportCommand() *cobra.Command {
 				return err
 			}
 
-			report, err := generateNewHTMLReport(commits, breakingConfig, noExplorer, args...)
+			report, err := generateHTMLReport(commits, breakingConfig, noExplorer, args...)
 			if err != nil {
 				return err
 			}

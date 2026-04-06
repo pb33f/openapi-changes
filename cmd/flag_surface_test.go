@@ -25,31 +25,31 @@ func TestCanonicalCommandLocalFlags(t *testing.T) {
 		"markdown":      true,
 		"with-lines":    true,
 		"error-on-diff": true,
-	}, flagNames(GetNewSummaryCommand()))
+	}, flagNames(GetSummaryCommand()))
 
 	assert.Equal(t, map[string]bool{
 		"no-color": true,
-	}, flagNames(GetNewReportCommand()))
+	}, flagNames(GetReportCommand()))
 
 	assert.Equal(t, map[string]bool{
 		"no-color":     true,
 		"report-file":  true,
 		"include-diff": true,
-	}, flagNames(GetNewMarkdownReportCommand()))
+	}, flagNames(GetMarkdownReportCommand()))
 
 	assert.Equal(t, map[string]bool{
 		"no-color":    true,
 		"report-file": true,
 		"no-explorer": true,
-	}, flagNames(GetNewHTMLReportCommand()))
+	}, flagNames(GetHTMLReportCommand()))
 
 	assert.Equal(t, map[string]bool{
 		"no-color": true,
-	}, flagNames(GetNewConsoleCommand()))
+	}, flagNames(GetConsoleCommand()))
 }
 
 func TestRootPersistentFlagsRemainAvailable(t *testing.T) {
-	root := newTestRootCmd(GetNewSummaryCommand())
+	root := testRootCmd(GetSummaryCommand())
 	names := make(map[string]bool)
 	root.PersistentFlags().VisitAll(func(flag *pflag.Flag) {
 		names[flag.Name] = true

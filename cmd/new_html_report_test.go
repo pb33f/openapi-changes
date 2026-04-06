@@ -40,7 +40,7 @@ paths: {}`
 	}
 }
 
-func TestGenerateNewHTMLReport_UnchangedLeftRight(t *testing.T) {
+func TestGenerateHTMLReport_UnchangedLeftRight(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3.json",
 		"../sample-specs/petstorev3.json",
@@ -49,7 +49,7 @@ func TestGenerateNewHTMLReport_UnchangedLeftRight(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	report, err := generateNewHTMLReport(commits, nil, false,
+	report, err := generateHTMLReport(commits, nil, false,
 		"../sample-specs/petstorev3.json",
 		"../sample-specs/petstorev3.json",
 	)
@@ -57,7 +57,7 @@ func TestGenerateNewHTMLReport_UnchangedLeftRight(t *testing.T) {
 	assert.Nil(t, report)
 }
 
-func TestGenerateNewHTMLReport_LeftRightIncludesSanitizedPaths(t *testing.T) {
+func TestGenerateHTMLReport_LeftRightIncludesSanitizedPaths(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
@@ -66,7 +66,7 @@ func TestGenerateNewHTMLReport_LeftRightIncludesSanitizedPaths(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	report, err := generateNewHTMLReport(commits, nil, true,
+	report, err := generateHTMLReport(commits, nil, true,
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
 	)
@@ -104,7 +104,7 @@ func TestBuildHTMLReportItems_PartialFailureReturnsError(t *testing.T) {
 	assert.Contains(t, err.Error(), "1 commits failed to build report items")
 }
 
-func TestGenerateNewHTMLReport_PartialFailureReturnsError(t *testing.T) {
+func TestGenerateHTMLReport_PartialFailureReturnsError(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
@@ -116,7 +116,7 @@ func TestGenerateNewHTMLReport_PartialFailureReturnsError(t *testing.T) {
 
 	mixed := append(commits, makeSwagger2Commit(t))
 
-	report, err := generateNewHTMLReport(mixed, nil, false,
+	report, err := generateHTMLReport(mixed, nil, false,
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
 	)
@@ -125,9 +125,9 @@ func TestGenerateNewHTMLReport_PartialFailureReturnsError(t *testing.T) {
 	assert.Contains(t, err.Error(), "1 commits failed to build report items")
 }
 
-func TestNewHTMLReportCommand_LeftRightFiles(t *testing.T) {
+func TestHTMLReportCommand_LeftRightFiles(t *testing.T) {
 	reportFile := filepath.Join(t.TempDir(), "report.html")
-	cmd := newTestRootCmd(GetNewHTMLReportCommand(),
+	cmd := testRootCmd(GetHTMLReportCommand(),
 		"--no-logo", "--no-color",
 		"--report-file", reportFile,
 		"../sample-specs/petstorev3-original.json",
@@ -139,14 +139,14 @@ func TestNewHTMLReportCommand_LeftRightFiles(t *testing.T) {
 	assert.FileExists(t, reportFile)
 }
 
-func TestNewHTMLReportCommand_SingleArgNonGithub(t *testing.T) {
-	cmd := newTestRootCmd(GetNewHTMLReportCommand(), "--no-logo", "--no-color", "not-a-url")
+func TestHTMLReportCommand_SingleArgNonGithub(t *testing.T) {
+	cmd := testRootCmd(GetHTMLReportCommand(), "--no-logo", "--no-color", "not-a-url")
 	err := cmd.Execute()
 	assert.NoError(t, err)
 }
 
-func TestNewHTMLReportCommand_TooManyArgs(t *testing.T) {
-	cmd := newTestRootCmd(GetNewHTMLReportCommand(), "--no-logo", "a", "b", "c")
+func TestHTMLReportCommand_TooManyArgs(t *testing.T) {
+	cmd := testRootCmd(GetHTMLReportCommand(), "--no-logo", "a", "b", "c")
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.True(t, strings.Contains(err.Error(), "too many arguments"))

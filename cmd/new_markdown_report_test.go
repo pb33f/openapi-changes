@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewMarkdownReport_UnchangedLeftRight(t *testing.T) {
+func TestMarkdownReport_UnchangedLeftRight(t *testing.T) {
 	opts := newSummaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3.json",
@@ -23,12 +23,12 @@ func TestNewMarkdownReport_UnchangedLeftRight(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	report, err := generateNewMarkdownReport(commits, nil, false)
+	report, err := generateMarkdownReport(commits, nil, false)
 	assert.NoError(t, err)
 	assert.Nil(t, report)
 }
 
-func TestNewMarkdownReport_AllCommitsFail(t *testing.T) {
+func TestMarkdownReport_AllCommitsFail(t *testing.T) {
 	// A Swagger 2.0 spec is valid YAML but BuildV3Model() will fail
 	swagger2Spec := `swagger: "2.0"
 info:
@@ -50,13 +50,13 @@ paths: {}`
 		OldDocument: doc,
 	}
 
-	report, err := generateNewMarkdownReport([]*model.Commit{commit}, nil, false)
+	report, err := generateMarkdownReport([]*model.Commit{commit}, nil, false)
 	assert.Error(t, err)
 	assert.Nil(t, report)
 	assert.Contains(t, err.Error(), "all 1 commits failed to render")
 }
 
-func TestNewMarkdownReport_HeadingStripping(t *testing.T) {
+func TestMarkdownReport_HeadingStripping(t *testing.T) {
 	opts := newSummaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
@@ -65,7 +65,7 @@ func TestNewMarkdownReport_HeadingStripping(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	report, err := generateNewMarkdownReport(commits, nil, false)
+	report, err := generateMarkdownReport(commits, nil, false)
 	require.NoError(t, err)
 	require.NotNil(t, report)
 
@@ -73,7 +73,7 @@ func TestNewMarkdownReport_HeadingStripping(t *testing.T) {
 	assert.NotContains(t, content, "# What Changed Report\n\n")
 }
 
-func TestNewMarkdownReport_SingleCommitLeftRight(t *testing.T) {
+func TestMarkdownReport_SingleCommitLeftRight(t *testing.T) {
 	opts := newSummaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
@@ -82,7 +82,7 @@ func TestNewMarkdownReport_SingleCommitLeftRight(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	report, err := generateNewMarkdownReport(commits, nil, false)
+	report, err := generateMarkdownReport(commits, nil, false)
 	require.NoError(t, err)
 	require.NotNil(t, report)
 
@@ -92,7 +92,7 @@ func TestNewMarkdownReport_SingleCommitLeftRight(t *testing.T) {
 	assert.Contains(t, content, "**42** changes detected, **18** are **(💔 breaking)**.")
 }
 
-func TestNewMarkdownReport_UsesDeduplicatedCounts(t *testing.T) {
+func TestMarkdownReport_UsesDeduplicatedCounts(t *testing.T) {
 	opts := newSummaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
@@ -101,7 +101,7 @@ func TestNewMarkdownReport_UsesDeduplicatedCounts(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	report, err := generateNewMarkdownReport(commits, nil, false)
+	report, err := generateMarkdownReport(commits, nil, false)
 	require.NoError(t, err)
 	require.NotNil(t, report)
 
@@ -112,7 +112,7 @@ func TestNewMarkdownReport_UsesDeduplicatedCounts(t *testing.T) {
 	assert.Contains(t, content, "- Removals: **10**")
 }
 
-func TestNewMarkdownReport_UsesDeduplicatedObjectStats(t *testing.T) {
+func TestMarkdownReport_UsesDeduplicatedObjectStats(t *testing.T) {
 	opts := newSummaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
@@ -121,7 +121,7 @@ func TestNewMarkdownReport_UsesDeduplicatedObjectStats(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	report, err := generateNewMarkdownReport(commits, nil, false)
+	report, err := generateMarkdownReport(commits, nil, false)
 	require.NoError(t, err)
 	require.NotNil(t, report)
 
@@ -135,7 +135,7 @@ func TestNewMarkdownReport_UsesDeduplicatedObjectStats(t *testing.T) {
 	assert.NotContains(t, content, "| PathItem | 9 | 6 |")
 }
 
-func TestNewMarkdownReport_LeftRightOmitsSyntheticCommitMetadata(t *testing.T) {
+func TestMarkdownReport_LeftRightOmitsSyntheticCommitMetadata(t *testing.T) {
 	opts := newSummaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
@@ -144,7 +144,7 @@ func TestNewMarkdownReport_LeftRightOmitsSyntheticCommitMetadata(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	report, err := generateNewMarkdownReport(commits, nil, false)
+	report, err := generateMarkdownReport(commits, nil, false)
 	require.NoError(t, err)
 	require.NotNil(t, report)
 
@@ -156,7 +156,7 @@ func TestNewMarkdownReport_LeftRightOmitsSyntheticCommitMetadata(t *testing.T) {
 	assert.Contains(t, content, "**42** changes detected, **18** are **(💔 breaking)**.")
 }
 
-func TestNewMarkdownReport_RenderErrorWithSomeSuccesses(t *testing.T) {
+func TestMarkdownReport_RenderErrorWithSomeSuccesses(t *testing.T) {
 	// Create a valid OAS3 commit
 	opts := newSummaryOpts{noColor: true}
 	validCommits, err := loadLeftRightCommits(
@@ -190,13 +190,13 @@ paths: {}`
 	// Mix valid commit(s) with the bad one
 	mixed := append(validCommits, badCommit)
 
-	report, err := generateNewMarkdownReport(mixed, nil, false)
+	report, err := generateMarkdownReport(mixed, nil, false)
 	assert.Error(t, err)
 	assert.Nil(t, report)
 	assert.Contains(t, err.Error(), "1 commits failed to render")
 }
 
-func TestNewMarkdownReport_IncludeDiffFlag(t *testing.T) {
+func TestMarkdownReport_IncludeDiffFlag(t *testing.T) {
 	opts := newSummaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
@@ -206,7 +206,7 @@ func TestNewMarkdownReport_IncludeDiffFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	// Without --include-diff: no diff block
-	reportNoDiff, err := generateNewMarkdownReport(commits, nil, false)
+	reportNoDiff, err := generateMarkdownReport(commits, nil, false)
 	require.NoError(t, err)
 	require.NotNil(t, reportNoDiff)
 	assert.NotContains(t, string(reportNoDiff), "<details>")
@@ -221,7 +221,7 @@ func TestNewMarkdownReport_IncludeDiffFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	// With --include-diff: collapsible diff block present
-	reportWithDiff, err := generateNewMarkdownReport(commits, nil, true)
+	reportWithDiff, err := generateMarkdownReport(commits, nil, true)
 	require.NoError(t, err)
 	require.NotNil(t, reportWithDiff)
 	assert.Contains(t, string(reportWithDiff), "<details>")
@@ -232,21 +232,21 @@ func TestNewMarkdownReport_IncludeDiffFlag(t *testing.T) {
 // Command dispatch tests — persistent flags (--no-logo etc.) live on rootCmd,
 // so we add the subcommand to a fresh root for testing.
 
-func TestNewMarkdownReportCommand_ZeroArgs(t *testing.T) {
-	cmd := newTestRootCmd(GetNewMarkdownReportCommand(), "--no-logo", "--no-color")
+func TestMarkdownReportCommand_ZeroArgs(t *testing.T) {
+	cmd := testRootCmd(GetMarkdownReportCommand(), "--no-logo", "--no-color")
 	err := cmd.Execute()
 	assert.NoError(t, err)
 }
 
-func TestNewMarkdownReportCommand_TooManyArgs(t *testing.T) {
-	cmd := newTestRootCmd(GetNewMarkdownReportCommand(), "--no-logo", "a", "b", "c")
+func TestMarkdownReportCommand_TooManyArgs(t *testing.T) {
+	cmd := testRootCmd(GetMarkdownReportCommand(), "--no-logo", "a", "b", "c")
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "too many arguments")
 }
 
-func TestNewMarkdownReportCommand_LeftRightFiles(t *testing.T) {
-	cmd := newTestRootCmd(GetNewMarkdownReportCommand(),
+func TestMarkdownReportCommand_LeftRightFiles(t *testing.T) {
+	cmd := testRootCmd(GetMarkdownReportCommand(),
 		"--no-logo", "--no-color",
 		"--report-file", "/dev/null",
 		"../sample-specs/petstorev3-original.json",
@@ -256,8 +256,8 @@ func TestNewMarkdownReportCommand_LeftRightFiles(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestNewMarkdownReportCommand_BadFirstArg(t *testing.T) {
-	cmd := newTestRootCmd(GetNewMarkdownReportCommand(),
+func TestMarkdownReportCommand_BadFirstArg(t *testing.T) {
+	cmd := testRootCmd(GetMarkdownReportCommand(),
 		"--no-logo", "--no-color",
 		"/nonexistent/path",
 		"../sample-specs/petstorev3.json",
@@ -267,8 +267,8 @@ func TestNewMarkdownReportCommand_BadFirstArg(t *testing.T) {
 	assert.Contains(t, err.Error(), "cannot open file/repository")
 }
 
-func TestNewMarkdownReportCommand_SingleArgNonGithub(t *testing.T) {
-	cmd := newTestRootCmd(GetNewMarkdownReportCommand(), "--no-logo", "--no-color", "not-a-url")
+func TestMarkdownReportCommand_SingleArgNonGithub(t *testing.T) {
+	cmd := testRootCmd(GetMarkdownReportCommand(), "--no-logo", "--no-color", "not-a-url")
 	err := cmd.Execute()
 	// Single non-GitHub arg prints usage hint, no error
 	assert.NoError(t, err)

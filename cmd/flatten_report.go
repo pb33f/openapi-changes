@@ -18,7 +18,7 @@ func FlattenReport(report *model.Report) *model.FlatReport {
 }
 
 func FlattenReportWithRoots(report *model.Report, roots ...*v3.Node) *model.FlatReport {
-	return flattenReport(report, newChangePathNormalizer(roots...))
+	return flattenReport(report, changePathNormalizerFor(roots...))
 }
 
 func flattenReport(report *model.Report, normalizer *changePathNormalizer) *model.FlatReport {
@@ -58,7 +58,7 @@ type changePathNormalizer struct {
 	replacements map[string]string
 }
 
-func newChangePathNormalizer(roots ...*v3.Node) *changePathNormalizer {
+func changePathNormalizerFor(roots ...*v3.Node) *changePathNormalizer {
 	replacements := make(map[string]string)
 	for _, root := range roots {
 		collectParameterPathRewrites(root, replacements)

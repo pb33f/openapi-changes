@@ -43,7 +43,7 @@ type commandStyles struct {
 	warn    lipgloss.Style
 }
 
-func newCommandStyles(noColor bool) commandStyles {
+func commandStylesFor(noColor bool) commandStyles {
 	styles := commandStyles{
 		success: lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGreen)).Bold(true),
 		warn:    lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),

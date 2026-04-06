@@ -53,7 +53,7 @@ func changerateAndFlatten(commits []*model.Commit, breakingConfig *whatChangedMo
 	return reports, nil
 }
 
-func runNewLeftRightReport(left, right string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatReport, error) {
+func runLeftRightReport(left, right string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatReport, error) {
 	commits, err := loadLeftRightCommits(left, right, opts, breakingConfig)
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func runNewLeftRightReport(left, right string, opts newSummaryOpts, breakingConf
 	return flat, nil
 }
 
-func runNewGitHistoryReport(gitPath, filePath string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatHistoricalReport, error) {
+func runGitHistoryReport(gitPath, filePath string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatHistoricalReport, error) {
 	commits, err := loadGitHistoryCommits(gitPath, filePath, opts, breakingConfig)
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func runNewGitHistoryReport(gitPath, filePath string, opts newSummaryOpts, break
 	}, nil
 }
 
-func runNewGithubHistoryReport(rawURL string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatHistoricalReport, error) {
+func runGithubHistoryReport(rawURL string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatHistoricalReport, error) {
 	specURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid URL: %w", err)
@@ -133,7 +133,7 @@ func printReportJSON(v any) error {
 	return nil
 }
 
-func GetNewReportCommand() *cobra.Command {
+func GetReportCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		SilenceUsage: true,
 		Use:          "report",
@@ -169,7 +169,7 @@ func GetNewReportCommand() *cobra.Command {
 					return nil
 				}
 
-				flat, reportErr := runNewGithubHistoryReport(args[0], opts, breakingConfig)
+				flat, reportErr := runGithubHistoryReport(args[0], opts, breakingConfig)
 				if reportErr != nil {
 					return reportErr
 				}
@@ -180,7 +180,7 @@ func GetNewReportCommand() *cobra.Command {
 			if firstURL == nil || !strings.HasPrefix(firstURL.Scheme, "http") {
 				f, statErr := os.Stat(args[0])
 				if statErr == nil && f.IsDir() {
-					flat, reportErr := runNewGitHistoryReport(args[0], args[1], opts, breakingConfig)
+					flat, reportErr := runGitHistoryReport(args[0], args[1], opts, breakingConfig)
 					if reportErr != nil {
 						return reportErr
 					}
@@ -192,7 +192,7 @@ func GetNewReportCommand() *cobra.Command {
 				}
 			}
 
-			flat, reportErr := runNewLeftRightReport(args[0], args[1], opts, breakingConfig)
+			flat, reportErr := runLeftRightReport(args[0], args[1], opts, breakingConfig)
 			if reportErr != nil {
 				return reportErr
 			}

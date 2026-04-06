@@ -38,7 +38,7 @@ type progressDrainer struct {
 	closeOnce    sync.Once
 }
 
-func newProgressDrainer() *progressDrainer {
+func makeProgressDrainer() *progressDrainer {
 	d := &progressDrainer{
 		ProgressChan: make(chan *model.ProgressUpdate),
 		ErrorChan:    make(chan model.ProgressError),
@@ -117,7 +117,7 @@ func loadGitHubCommits(rawURL string, opts newSummaryOpts, breakingConfig *whatC
 		return nil, fmt.Errorf("error extracting github details: %w", err)
 	}
 
-	d := newProgressDrainer()
+	d := makeProgressDrainer()
 	commits, errs := processGithubRepo(user, repo, filePath, opts.baseCommit,
 		d.ProgressChan, d.ErrorChan, false, opts.limit, opts.limitTime,
 		opts.base, opts.remote, opts.extRefs, breakingConfig)
@@ -155,7 +155,7 @@ func loadGitHistoryCommits(gitPath, filePath string, opts newSummaryOpts, breaki
 		return nil, fmt.Errorf("cannot open file: '%s'", filePath)
 	}
 
-	d := newProgressDrainer()
+	d := makeProgressDrainer()
 	commits, errs := extractHistoryFromFile(gitPath, filePath, opts.baseCommit,
 		d.ProgressChan, d.ErrorChan, opts.globalRevisions, opts.limit, opts.limitTime)
 	if errs != nil {
@@ -193,7 +193,7 @@ func loadGitHistoryCommits(gitPath, filePath string, opts newSummaryOpts, breaki
 }
 
 func loadLeftRightCommits(left, right string, opts newSummaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
-	d := newProgressDrainer()
+	d := makeProgressDrainer()
 	defer func() {
 		d.close()
 		d.printWarnings()

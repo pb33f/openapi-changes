@@ -59,11 +59,11 @@ func Execute(version, commit, date string) {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.AddCommand(GetNewConsoleCommand())
-	rootCmd.AddCommand(GetNewHTMLReportCommand())
-	rootCmd.AddCommand(GetNewMarkdownReportCommand())
-	rootCmd.AddCommand(GetNewReportCommand())
-	rootCmd.AddCommand(GetNewSummaryCommand())
+	rootCmd.AddCommand(GetConsoleCommand())
+	rootCmd.AddCommand(GetHTMLReportCommand())
+	rootCmd.AddCommand(GetMarkdownReportCommand())
+	rootCmd.AddCommand(GetReportCommand())
+	rootCmd.AddCommand(GetSummaryCommand())
 	rootCmd.PersistentFlags().BoolP("top", "t", false, "Only show latest changes (last git revision against HEAD)")
 	rootCmd.PersistentFlags().IntP("limit", "l", 5, "Limit history to number of revisions (default is 5)")
 	rootCmd.PersistentFlags().BoolP("global-revisions", "R", false, "Consider all revisions in limit, not just the ones for the file")

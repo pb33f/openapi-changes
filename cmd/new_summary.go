@@ -31,7 +31,7 @@ type summaryStyles struct {
 	detail       lipgloss.Style
 }
 
-func newSummaryStyles() summaryStyles {
+func summaryStylesFor() summaryStyles {
 	return summaryStyles{
 		title:        lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)).Bold(true),
 		breaking:     lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),
@@ -461,8 +461,8 @@ func renderNewSummary(
 	return sb.String(), hasBreaking, hasChanges, nil
 }
 
-// GetNewSummaryCommand returns the cobra command for the current summary command.
-func GetNewSummaryCommand() *cobra.Command {
+// GetSummaryCommand returns the cobra command for the current summary command.
+func GetSummaryCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		SilenceUsage: true,
 		Use:          "summary",
@@ -494,7 +494,7 @@ func GetNewSummaryCommand() *cobra.Command {
 
 			styles := summaryStyles{}
 			if !opts.noColor {
-				styles = newSummaryStyles()
+				styles = summaryStylesFor()
 			}
 
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
