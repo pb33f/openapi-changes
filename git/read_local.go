@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"os"
 	"os/exec"
 	"path"
 	"strconv"
@@ -20,8 +19,8 @@ import (
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
+	"github.com/pb33f/doctor/terminal"
 	"github.com/pb33f/openapi-changes/model"
-	"github.com/pterm/pterm"
 )
 
 const (
@@ -227,22 +226,10 @@ func buildCommitChangelog(commitHistory []*model.Commit,
 
 	docConfig.ExcludeExtensionRefs = !opts.ExtRefs
 
-	ptermLog := &pterm.Logger{
-		Formatter:  pterm.LogFormatterColorful,
-		Writer:     os.Stdout,
-		Level:      pterm.LogLevelError,
-		ShowTime:   true,
-		TimeFormat: "2006-01-02 15:04:05",
-		MaxWidth:   180,
-		KeyStyles: map[string]pterm.Style{
-			"error":  *pterm.NewStyle(pterm.FgRed, pterm.Bold),
-			"err":    *pterm.NewStyle(pterm.FgRed, pterm.Bold),
-			"caller": *pterm.NewStyle(pterm.FgGray, pterm.Bold),
-		},
-	}
-
-	handler := pterm.NewSlogHandler(ptermLog)
-	logger := slog.New(handler)
+	logger := terminal.NewPrettyLogger(&terminal.PrettyHandlerOptions{
+		Level:      slog.LevelError,
+		TimeFormat: terminal.TimeFormatDateTime,
+	})
 
 	docConfig.Logger = logger
 

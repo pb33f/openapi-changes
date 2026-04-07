@@ -5,22 +5,44 @@ Set Shell "zsh"
 Set FontSize 20
 Set Width 2048
 Set Height 1120
-Set Theme "Builtin Solarized Dark"
+Set Theme "GitHub Dark"
 Set TypingSpeed 0ms
 Set Framerate 30
 
 Require ./bin/openapi-changes
 
 # Launch the real console against the repo history for the petstore fixture.
-Type "./bin/openapi-changes console --no-logo ./ sample-specs/petstorev3.json"
+Type "env -u NO_COLOR TERM=xterm-256color COLORTERM=truecolor ./bin/openapi-changes console --no-logo ./ sample-specs/petstorev3.json"
 Enter
-Sleep 4s
+Sleep 200ms
 
 # Timeline pass one: move around a little so the history is visible.
-Type "j"
-Sleep 700ms
 Type "k"
-Sleep 700ms
+Sleep 300ms
+Type "k"
+Sleep 300ms
+Type "k"
+Sleep 300ms
+Type "k"
+Sleep 300ms
+Type "k"
+Sleep 300ms
+Enter
+Sleep 300ms
+Type "j"
+Type "j"
+Type "j"
+Type "j"
+Type "j"
+Type "j"
+Type "j"
+
+Ctrl+[
+Ctrl+[
+
+Type "k"
+Sleep 300ms
+
 
 # Open the highlighted change set and browse the tree a little.
 Enter
