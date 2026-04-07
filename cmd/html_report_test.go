@@ -8,37 +8,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/pb33f/libopenapi"
+	htmlReport "github.com/pb33f/openapi-changes/html-report"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func makeSwagger2Commit(t *testing.T) *model.Commit {
-	t.Helper()
-
-	swagger2Spec := `swagger: "2.0"
-info:
-  title: test
-  version: "1.0"
-paths: {}`
-
-	doc, err := libopenapi.NewDocument([]byte(swagger2Spec))
-	require.NoError(t, err)
-
-	return &model.Commit{
-		Hash:        "abc123",
-		Message:     "swagger commit",
-		Author:      "test",
-		CommitDate:  time.Now(),
-		Data:        []byte(swagger2Spec),
-		OldData:     []byte(swagger2Spec),
-		Document:    doc,
-		OldDocument: doc,
-	}
-}
 
 func TestGenerateHTMLReport_UnchangedLeftRight(t *testing.T) {
 	commits, err := loadLeftRightCommits(
@@ -86,7 +61,7 @@ func TestBuildHTMLReportItems_AllCommitsFail(t *testing.T) {
 	assert.Contains(t, err.Error(), "all 1 commits failed to build report items")
 }
 
-func TestBuildHTMLReportItems_PartialFailureReturnsError(t *testing.T) {
+func TestBuildHTMLReportItems_PartialFailureReturnsPartialResults(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
@@ -98,13 +73,17 @@ func TestBuildHTMLReportItems_PartialFailureReturnsError(t *testing.T) {
 
 	mixed := append(commits, makeSwagger2Commit(t))
 
-	items, err := buildHTMLReportItems(mixed, nil)
-	require.Error(t, err)
-	assert.Nil(t, items)
-	assert.Contains(t, err.Error(), "1 commits failed to build report items")
+	var items []*htmlReport.ReportItem
+	stderr := captureStderr(t, func() {
+		items, err = buildHTMLReportItems(mixed, nil)
+	})
+	require.NoError(t, err)
+	assert.NotEmpty(t, items, "should return successfully built items despite partial failure")
+	assert.Contains(t, stderr, "warning: commit abc123: building right model")
+	assert.Contains(t, stderr, "warning: 1 commits failed to build report items")
 }
 
-func TestGenerateHTMLReport_PartialFailureReturnsError(t *testing.T) {
+func TestGenerateHTMLReport_PartialFailureReturnsPartialReport(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
@@ -120,9 +99,8 @@ func TestGenerateHTMLReport_PartialFailureReturnsError(t *testing.T) {
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
 	)
-	require.Error(t, err)
-	assert.Nil(t, report)
-	assert.Contains(t, err.Error(), "1 commits failed to build report items")
+	require.NoError(t, err)
+	assert.NotNil(t, report, "should return a report with successfully built items despite partial failure")
 }
 
 func TestHTMLReportCommand_LeftRightFiles(t *testing.T) {
@@ -194,6 +172,59 @@ func TestBuildHTMLReportItems_PreservesSchemaNodesInDocumentTree(t *testing.T) {
 		}
 	}
 	assert.Contains(t, rootChildIDs, "$.components")
+}
+
+func TestBuildHTMLReportItems_SplitsStandardAndChangeExplorerGraphs(t *testing.T) {
+	commits, err := loadLeftRightCommits(
+		"../sample-specs/petstorev3-original.json",
+		"../sample-specs/petstorev3.json",
+		summaryOpts{noColor: true},
+		nil,
+	)
+	require.NoError(t, err)
+	require.NotEmpty(t, commits)
+
+	items, err := buildHTMLReportItems(commits, nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, items)
+
+	item := items[0]
+	require.NotNil(t, item.Graph)
+	require.NotNil(t, item.ExplorerGraph)
+
+	assert.Equal(t, "standard", item.Graph.Mode)
+	assert.Equal(t, "change", item.ExplorerGraph.Mode)
+	assert.NotEmpty(t, item.Graph.NodeChangeTree, "raw document tree must stay on the standard graph")
+	assert.Empty(t, item.ExplorerGraph.NodeChangeTree, "change explorer graph should not transport the raw tree")
+	assert.NotEmpty(t, item.Graph.Changes, "standard graph should preserve deduplicated changes")
+	assert.Empty(t, item.ExplorerGraph.Changes, "change explorer graph should not duplicate the change list")
+
+	var standardNodes []map[string]any
+	var explorerNodes []map[string]any
+	require.NoError(t, json.Unmarshal(item.Graph.Nodes, &standardNodes))
+	require.NoError(t, json.Unmarshal(item.ExplorerGraph.Nodes, &explorerNodes))
+	require.NotEmpty(t, standardNodes)
+	require.NotEmpty(t, explorerNodes)
+
+	var standardNodeWithInstance map[string]any
+	for _, node := range standardNodes {
+		if _, ok := node["instance"]; ok {
+			standardNodeWithInstance = node
+			break
+		}
+	}
+	var explorerNodeWithChildChanges map[string]any
+	for _, node := range explorerNodes {
+		if _, ok := node["childChanges"]; ok {
+			explorerNodeWithChildChanges = node
+			break
+		}
+	}
+
+	require.NotNil(t, standardNodeWithInstance)
+	require.NotNil(t, explorerNodeWithChildChanges)
+	assert.Contains(t, standardNodeWithInstance, "instance", "standard graph nodes render semantic bodies")
+	assert.Contains(t, explorerNodeWithChildChanges, "childChanges", "change explorer nodes render change summaries")
 }
 
 type newHtmlNodeGraph struct {

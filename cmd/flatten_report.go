@@ -4,11 +4,12 @@
 package cmd
 
 import (
-	"sort"
+	"strconv"
 	"strings"
 	"time"
 
-	v3 "github.com/pb33f/doctor/model/high/v3"
+	drV3 "github.com/pb33f/doctor/model/high/v3"
+	oaV3 "github.com/pb33f/libopenapi/datamodel/high/v3"
 	wcModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 )
@@ -17,8 +18,8 @@ func FlattenReport(report *model.Report) *model.FlatReport {
 	return flattenReport(report, nil)
 }
 
-func FlattenReportWithRoots(report *model.Report, roots ...*v3.Node) *model.FlatReport {
-	return flattenReport(report, changePathNormalizerFor(roots...))
+func FlattenReportWithDocuments(report *model.Report, docs ...*drV3.Document) *model.FlatReport {
+	return flattenReport(report, changePathNormalizerForDocuments(docs...))
 }
 
 func flattenReport(report *model.Report, normalizer *changePathNormalizer) *model.FlatReport {
@@ -32,7 +33,7 @@ func flattenReport(report *model.Report, normalizer *changePathNormalizer) *mode
 		rawPath := change.Path
 		flattenedChange := cloneChange(change)
 		if normalizer != nil {
-			flattenedChange.Path = normalizer.Normalize(flattenedChange.Path)
+			flattenedChange.Path, rawPath = normalizer.NormalizeChange(flattenedChange)
 		}
 		hashedChange := model.HashedChange{
 			Change:  flattenedChange,
@@ -54,74 +55,257 @@ func flattenReport(report *model.Report, normalizer *changePathNormalizer) *mode
 }
 
 type changePathNormalizer struct {
-	prefixes     []string
-	replacements map[string]string
+	parameterScopes map[string]*parameterScope
 }
 
-func changePathNormalizerFor(roots ...*v3.Node) *changePathNormalizer {
-	replacements := make(map[string]string)
-	for _, root := range roots {
-		collectParameterPathRewrites(root, replacements)
+func changePathNormalizerForDocuments(docs ...*drV3.Document) *changePathNormalizer {
+	scopes := make(map[string]*parameterScope)
+	for docIndex, doc := range docs {
+		collectDocumentParameterScopes(doc, scopes, docIndex == 0)
 	}
-	if len(replacements) == 0 {
+	if len(scopes) == 0 {
 		return nil
 	}
-
-	prefixes := make([]string, 0, len(replacements))
-	for prefix := range replacements {
-		prefixes = append(prefixes, prefix)
-	}
-	sort.Slice(prefixes, func(i, j int) bool {
-		return len(prefixes[i]) > len(prefixes[j])
-	})
-
 	return &changePathNormalizer{
-		prefixes:     prefixes,
-		replacements: replacements,
+		parameterScopes: scopes,
 	}
 }
 
-func collectParameterPathRewrites(node *v3.Node, replacements map[string]string) {
-	if node == nil {
+type parameterScope struct {
+	byIndex        map[int]string
+	originalRanges []parameterLineRange
+	newRanges      []parameterLineRange
+}
+
+type parameterLineRange struct {
+	name  string
+	start int
+	end   int
+}
+
+func collectDocumentParameterScopes(doc *drV3.Document, scopes map[string]*parameterScope, original bool) {
+	if doc == nil || doc.Paths == nil || doc.Paths.PathItems == nil {
 		return
 	}
-	if node.Type == "parameter" && node.Label != "" {
-		if semantic := semanticParameterPath(node.Id, node.Label); semantic != "" && semantic != node.Id {
-			replacements[node.Id] = semantic
+
+	for pathItem := doc.Paths.PathItems.Oldest(); pathItem != nil; pathItem = pathItem.Next() {
+		basePath := "$.paths['" + escapeJSONPathSingleQuote(pathItem.Key) + "']"
+		collectDoctorParameterScope(basePath+".parameters", pathItem.Value.Parameters, scopes, original)
+
+		if pathItem.Value == nil || pathItem.Value.Value == nil {
+			continue
+		}
+		for op := pathItem.Value.Value.GetOperations().Oldest(); op != nil; op = op.Next() {
+			collectHighParameterScope(
+				appendJSONPathProperty(basePath, op.Key)+".parameters",
+				op.Value.Parameters,
+				scopes,
+				original,
+			)
 		}
 	}
-	for _, child := range node.Children {
-		collectParameterPathRewrites(child, replacements)
-	}
 }
 
-func semanticParameterPath(rawPath, label string) string {
-	if rawPath == "" || label == "" {
-		return rawPath
+func collectDoctorParameterScope(prefix string, params []*drV3.Parameter, scopes map[string]*parameterScope, original bool) {
+	highParams := make([]*oaV3.Parameter, len(params))
+	for idx, param := range params {
+		if param != nil {
+			highParams[idx] = param.Value
+		}
 	}
-	idx := strings.LastIndex(rawPath, "parameters[")
-	if idx < 0 {
-		return rawPath
-	}
-	closeIdx := strings.Index(rawPath[idx:], "]")
-	if closeIdx < 0 {
-		return rawPath
-	}
-	closeIdx += idx
-	escapedLabel := strings.ReplaceAll(label, "'", "\\'")
-	return rawPath[:idx] + "parameters['" + escapedLabel + "']" + rawPath[closeIdx+1:]
+	collectParameterScope(prefix, highParams, scopes, original)
 }
 
-func (n *changePathNormalizer) Normalize(path string) string {
-	if n == nil || path == "" {
+func collectHighParameterScope(prefix string, params []*oaV3.Parameter, scopes map[string]*parameterScope, original bool) {
+	collectParameterScope(prefix, params, scopes, original)
+}
+
+func collectParameterScope(prefix string, params []*oaV3.Parameter, scopes map[string]*parameterScope, original bool) {
+	if prefix == "" || len(params) == 0 {
+		return
+	}
+
+	scope := scopes[prefix]
+	if scope == nil {
+		scope = &parameterScope{byIndex: make(map[int]string)}
+		scopes[prefix] = scope
+	}
+
+	for idx, param := range params {
+		if param == nil || param.Name == "" {
+			continue
+		}
+		if _, exists := scope.byIndex[idx]; !exists {
+			scope.byIndex[idx] = param.Name
+		}
+	}
+
+	ranges := buildParameterLineRanges(params)
+	if len(ranges) == 0 {
+		return
+	}
+	if original {
+		scope.originalRanges = ranges
+		return
+	}
+	scope.newRanges = ranges
+}
+
+func buildParameterLineRanges(params []*oaV3.Parameter) []parameterLineRange {
+	ranges := make([]parameterLineRange, 0, len(params))
+	for idx, param := range params {
+		if param == nil || param.Name == "" {
+			continue
+		}
+		start := parameterRootLine(param)
+		if start == 0 {
+			continue
+		}
+		end := 0
+		for next := idx + 1; next < len(params); next++ {
+			nextStart := parameterRootLine(params[next])
+			if nextStart > 0 {
+				end = nextStart - 1
+				break
+			}
+		}
+		ranges = append(ranges, parameterLineRange{name: param.Name, start: start, end: end})
+	}
+	return ranges
+}
+
+func parameterRootLine(param *oaV3.Parameter) int {
+	if param == nil || param.GoLow() == nil || param.GoLow().GetRootNode() == nil {
+		return 0
+	}
+	return param.GoLow().GetRootNode().Line
+}
+
+func appendJSONPathProperty(path, property string) string {
+	if path == "" || property == "" {
 		return path
 	}
-	for _, prefix := range n.prefixes {
-		if path == prefix || strings.HasPrefix(path, prefix+".") || strings.HasPrefix(path, prefix+"[") {
-			return n.replacements[prefix] + path[len(prefix):]
+	if isSimpleJSONPathProperty(property) {
+		return path + "." + property
+	}
+	return path + "['" + escapeJSONPathSingleQuote(property) + "']"
+}
+
+func isSimpleJSONPathProperty(property string) bool {
+	for i, r := range property {
+		switch {
+		case r >= 'a' && r <= 'z':
+		case r >= 'A' && r <= 'Z':
+		case r == '_':
+		case r >= '0' && r <= '9' && i > 0:
+		default:
+			return false
 		}
 	}
-	return path
+	return property != ""
+}
+
+func escapeJSONPathSingleQuote(value string) string {
+	return strings.ReplaceAll(value, "'", "\\'")
+}
+
+func (n *changePathNormalizer) NormalizeChange(change *wcModel.Change) (string, string) {
+	if n == nil || change == nil || change.Path == "" {
+		return "", ""
+	}
+
+	prefix, idx, suffix, ok := splitParameterPath(change.Path)
+	if !ok {
+		return change.Path, change.Path
+	}
+
+	scope := n.parameterScopes[prefix]
+	if scope == nil {
+		return change.Path, change.Path
+	}
+
+	name := scope.resolveName(change, idx)
+	if name == "" {
+		return change.Path, change.Path
+	}
+
+	return prefix + "['" + escapeJSONPathSingleQuote(name) + "']" + suffix, scope.canonicalRawPath(prefix, name, suffix, idx)
+}
+
+func splitParameterPath(path string) (string, int, string, bool) {
+	if path == "" {
+		return "", 0, "", false
+	}
+	idx := strings.LastIndex(path, "parameters[")
+	if idx < 0 {
+		return "", 0, "", false
+	}
+	indexEnd := strings.Index(path[idx:], "]")
+	if indexEnd < 0 {
+		return "", 0, "", false
+	}
+	indexEnd += idx
+	index, err := strconv.Atoi(path[idx+len("parameters[") : indexEnd])
+	if err != nil {
+		return "", 0, "", false
+	}
+	return path[:idx] + "parameters", index, path[indexEnd+1:], true
+}
+
+func (s *parameterScope) resolveName(change *wcModel.Change, idx int) string {
+	if s == nil {
+		return ""
+	}
+
+	var originalName, newName string
+	if change.Context != nil {
+		originalName = findParameterNameForLine(s.originalRanges, change.Context.OriginalLine)
+		newName = findParameterNameForLine(s.newRanges, change.Context.NewLine)
+	}
+
+	switch {
+	case originalName != "" && newName != "" && originalName == newName:
+		return originalName
+	case newName != "" && (change.ChangeType == wcModel.Modified || change.ChangeType == wcModel.PropertyAdded || change.ChangeType == wcModel.ObjectAdded):
+		return newName
+	case originalName != "" && (change.ChangeType == wcModel.PropertyRemoved || change.ChangeType == wcModel.ObjectRemoved):
+		return originalName
+	case newName != "":
+		return newName
+	case originalName != "":
+		return originalName
+	case s.byIndex[idx] != "":
+		return s.byIndex[idx]
+	default:
+		return ""
+	}
+}
+
+func (s *parameterScope) canonicalRawPath(prefix, name, suffix string, fallbackIdx int) string {
+	if s == nil {
+		return prefix + "[" + strconv.Itoa(fallbackIdx) + "]" + suffix
+	}
+	for idx, candidate := range s.byIndex {
+		if candidate == name {
+			return prefix + "[" + strconv.Itoa(idx) + "]" + suffix
+		}
+	}
+	return prefix + "[" + strconv.Itoa(fallbackIdx) + "]" + suffix
+}
+
+func findParameterNameForLine(ranges []parameterLineRange, line *int) string {
+	if line == nil || *line == 0 {
+		return ""
+	}
+	for _, r := range ranges {
+		if *line < r.start {
+			continue
+		}
+		if r.end == 0 || *line <= r.end {
+			return r.name
+		}
+	}
+	return ""
 }
 
 func cloneChange(change *wcModel.Change) *wcModel.Change {

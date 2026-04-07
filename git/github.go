@@ -39,6 +39,8 @@ func convertGitHubRevisionsIntoModel(revisions []*doctorgithub.FileRevision,
 
 	for _, revision := range revisions {
 		if len(revision.FileBytes) == 0 {
+			model.SendProgressWarning("converting commits",
+				fmt.Sprintf("Skipping commit %s because GitHub returned empty file contents", revision.Commit.SHA), progressChan)
 			continue
 		}
 		commit := &model.Commit{

@@ -21,8 +21,6 @@ func (m ConsoleModel) handleCommitTableKeys(msg tea.KeyPressMsg) (tea.Model, tea
 	switch msg.String() {
 	case "q", "ctrl+c":
 		return m.handleQuit()
-	case "esc":
-		return m.handleQuit()
 	case "enter":
 		m.focus = FocusTree
 		m.commitTable.Blur()
@@ -34,6 +32,9 @@ func (m ConsoleModel) handleCommitTableKeys(msg tea.KeyPressMsg) (tea.Model, tea
 	case "down", "j":
 		m.commitTable.MoveDown(1)
 		m.selectHighlightedCommit()
+		return m, nil
+	case "r":
+		m.openReportModal()
 		return m, nil
 	case "tab":
 		m.focus = FocusTree
@@ -98,7 +99,8 @@ func (m ConsoleModel) handleTreeKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 }
 
 // handleDiffKeys handles key events when the diff view has focus.
-// Up/down navigate between changes (moving the tree cursor), not scrolling the diff.
+// Up/down navigate between changes (moving the tree cursor).
+// PgUp/PgDown/Home/End scroll the diff viewport.
 func (m ConsoleModel) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "ctrl+c":
@@ -116,6 +118,18 @@ func (m ConsoleModel) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "down", "j":
 		m.tree.moveDown(1)
 		m.syncDiffToTreeCursor()
+		return m, nil
+	case "pgup":
+		m.diffViewport.PageUp()
+		return m, nil
+	case "pgdown":
+		m.diffViewport.PageDown()
+		return m, nil
+	case "home":
+		m.diffViewport.GotoTop()
+		return m, nil
+	case "end":
+		m.diffViewport.GotoBottom()
 		return m, nil
 	case "tab":
 		if !m.singleCommit {

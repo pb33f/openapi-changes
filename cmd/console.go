@@ -10,16 +10,17 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/pb33f/doctor/changerator"
 	v3 "github.com/pb33f/doctor/model/high/v3"
+	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 	v2tui "github.com/pb33f/openapi-changes/tui/v2"
 	"github.com/spf13/cobra"
 )
 
-func printConsoleUsage(noColor bool) {
+func printConsoleUsage(palette terminal.Palette) {
 	printCommandUsage("console",
 		"The console command renders an interactive terminal user interface.\nExplore OpenAPI contract changes right in your terminal with a modern TUI.",
-		noColor)
+		palette)
 }
 
 // bridgeRunChangerator adapts cmd.runChangerator to the v2tui.RunChangeratorFn signature
@@ -61,15 +62,15 @@ func GetConsoleCommand() *cobra.Command {
 		Long:         "Navigate through changes visually in an interactive terminal UI built with Bubbletea, using the doctor changerator engine.",
 		Example:      "openapi-changes console /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts, configFlag := readCommonFlags(cmd)
-
-			noBanner, _ := cmd.Flags().GetBool("no-logo")
-			if !noBanner {
-				PrintBanner(opts.noColor)
+			opts, configFlag, err := readCommonFlags(cmd)
+			if err != nil {
+				return err
 			}
 
+			maybePrintBanner(cmd, opts.palette)
+
 			if len(args) == 0 {
-				printConsoleUsage(opts.noColor)
+				printConsoleUsage(opts.palette)
 				return nil
 			}
 
@@ -85,7 +86,7 @@ func GetConsoleCommand() *cobra.Command {
 
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
 			if err != nil {
-				PrintConfigError(err)
+				PrintConfigError(err, opts.palette)
 				return err
 			}
 
@@ -110,7 +111,7 @@ func GetConsoleCommand() *cobra.Command {
 			}
 
 			// Build and run the TUI
-			m := v2tui.NewConsoleModel(commits, breakingConfig, opts.noColor, Version, bridgeRunChangerator)
+			m := v2tui.NewConsoleModel(commits, breakingConfig, opts.theme, Version, bridgeRunChangerator)
 			p := tea.NewProgram(m)
 			if _, err := p.Run(); err != nil {
 				return wrapConsoleStartError(err)
@@ -118,6 +119,6 @@ func GetConsoleCommand() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output")
+	addTerminalThemeFlags(cmd)
 	return cmd
 }

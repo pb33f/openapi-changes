@@ -1,0 +1,41 @@
+name: VHS Check
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "README.md"
+      - "Makefile"
+      - "cmd/**"
+      - "tui/**"
+      - "html-report/**"
+      - "sample-specs/**"
+      - ".github/vhs/**"
+      - ".github/assets/**"
+      - "scripts/render-demos.sh"
+
+jobs:
+  verify-demos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ^1.24
+
+      - name: Install render dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg ttyd
+          go install github.com/charmbracelet/vhs@v0.11.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Render demos
+        run: make demos
+
+      - name: Verify committed GIFs are current
+        run: git diff --exit-code -- .github/assets/summary.gif .github/assets/console.gif

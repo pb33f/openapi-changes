@@ -44,6 +44,29 @@ func captureStdout(t *testing.T, fn func()) string {
 	return string(output)
 }
 
+func captureStderr(t *testing.T, fn func()) string {
+	t.Helper()
+
+	oldStderr := os.Stderr
+	reader, writer, err := os.Pipe()
+	require.NoError(t, err)
+
+	os.Stderr = writer
+	t.Cleanup(func() {
+		os.Stderr = oldStderr
+	})
+
+	fn()
+
+	require.NoError(t, writer.Close())
+	output, err := io.ReadAll(reader)
+	require.NoError(t, err)
+	require.NoError(t, reader.Close())
+	os.Stderr = oldStderr
+
+	return string(output)
+}
+
 func mustMakeDoctorOnlyCommitFromSpecs(t *testing.T, hash, left, right string) *model.Commit {
 	t.Helper()
 
@@ -141,25 +164,32 @@ func TestLoadGitHubCommits_ReturnsProcessErrors(t *testing.T) {
 }
 
 func TestRenderSummary_ReturnsErrorWhenAllCommitsFailToRender(t *testing.T) {
-	commit := mustMakeSwagger2Commit(t)
+	commit := makeSwagger2Commit(t)
 
-	output, hasBreaking, hasChanges, err := renderSummary(
-		[]*model.Commit{commit},
-		nil,
-		false,
-		true,
-		false,
-		summaryStyles{},
-	)
+	var output string
+	var hasBreaking bool
+	var hasChanges bool
+	var err error
+	stderr := captureStderr(t, func() {
+		output, hasBreaking, hasChanges, err = renderSummary(
+			[]*model.Commit{commit},
+			nil,
+			false,
+			true,
+			false,
+			summaryStyles{},
+		)
+	})
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "all 1 commits failed to render")
-	assert.Contains(t, output, "Error: building right model")
+	assert.Contains(t, stderr, "warning: commit abc123: building right model")
+	assert.Empty(t, output)
 	assert.False(t, hasBreaking)
 	assert.False(t, hasChanges)
 }
 
-func TestRenderSummary_ReturnsErrorWhenSomeCommitsFailToRender(t *testing.T) {
+func TestRenderSummary_PartialFailuresWarnAndLimpOn(t *testing.T) {
 	validCommit := mustMakeDoctorOnlyCommitFromSpecs(t, "good123", `openapi: 3.0.3
 info:
   title: Test
@@ -171,21 +201,28 @@ info:
   version: "1.1"
 paths: {}
 `)
-	badCommit := mustMakeSwagger2Commit(t)
+	badCommit := makeSwagger2Commit(t)
 
-	output, hasBreaking, hasChanges, err := renderSummary(
-		[]*model.Commit{validCommit, badCommit},
-		nil,
-		false,
-		true,
-		false,
-		summaryStyles{},
-	)
+	var output string
+	var hasBreaking bool
+	var hasChanges bool
+	var err error
+	stderr := captureStderr(t, func() {
+		output, hasBreaking, hasChanges, err = renderSummary(
+			[]*model.Commit{validCommit, badCommit},
+			nil,
+			false,
+			true,
+			false,
+			summaryStyles{},
+		)
+	})
 
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "1 commits failed to render")
+	require.NoError(t, err)
 	assert.Contains(t, output, "Date:")
-	assert.Contains(t, output, "Error: building right model")
+	assert.NotContains(t, output, "Error:")
+	assert.Contains(t, stderr, "warning: commit abc123: building right model")
+	assert.Contains(t, stderr, "warning: 1 commits failed to render")
 	assert.False(t, hasBreaking)
 	assert.True(t, hasChanges)
 }

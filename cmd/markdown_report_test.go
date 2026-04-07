@@ -156,7 +156,7 @@ func TestMarkdownReport_LeftRightOmitsSyntheticCommitMetadata(t *testing.T) {
 	assert.Contains(t, content, "**42** changes detected, **18** are **(💔 breaking)**.")
 }
 
-func TestMarkdownReport_RenderErrorWithSomeSuccesses(t *testing.T) {
+func TestMarkdownReport_PartialFailureReturnsPartialResults(t *testing.T) {
 	// Create a valid OAS3 commit
 	opts := summaryOpts{noColor: true}
 	validCommits, err := loadLeftRightCommits(
@@ -190,10 +190,15 @@ paths: {}`
 	// Mix valid commit(s) with the bad one
 	mixed := append(validCommits, badCommit)
 
-	report, err := generateMarkdownReport(mixed, nil, false)
-	assert.Error(t, err)
-	assert.Nil(t, report)
-	assert.Contains(t, err.Error(), "1 commits failed to render")
+	var report []byte
+	var reportErr error
+	stderr := captureStderr(t, func() {
+		report, reportErr = generateMarkdownReport(mixed, nil, false)
+	})
+	assert.NoError(t, reportErr)
+	assert.NotNil(t, report, "should return partial report with successfully rendered commits")
+	assert.Contains(t, stderr, "warning: commit bad123: building right model")
+	assert.Contains(t, stderr, "warning: 1 commits failed to render")
 }
 
 func TestMarkdownReport_IncludeDiffFlag(t *testing.T) {

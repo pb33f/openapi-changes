@@ -23,7 +23,6 @@ func FromChanges(changes []*whatChangedModel.Change) Counts {
 		if ch == nil {
 			continue
 		}
-		counts.Total++
 
 		if ch.Breaking {
 			counts.Breaking++
@@ -31,20 +30,25 @@ func FromChanges(changes []*whatChangedModel.Change) Counts {
 
 		switch ch.ChangeType {
 		case whatChangedModel.PropertyAdded, whatChangedModel.ObjectAdded:
+			counts.Total++
 			counts.Additions++
 			if ch.Breaking {
 				counts.BreakingAdditions++
 			}
 		case whatChangedModel.Modified:
+			counts.Total++
 			counts.Modifications++
 			if ch.Breaking {
 				counts.BreakingModifications++
 			}
 		case whatChangedModel.PropertyRemoved, whatChangedModel.ObjectRemoved:
+			counts.Total++
 			counts.Removals++
 			if ch.Breaking {
 				counts.BreakingRemovals++
 			}
+		default:
+			counts.Total++
 		}
 	}
 

@@ -1,0 +1,52 @@
+name: VHS Update
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "README.md"
+      - "Makefile"
+      - "cmd/**"
+      - "tui/**"
+      - "html-report/**"
+      - "sample-specs/**"
+      - ".github/vhs/**"
+      - "scripts/render-demos.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-demos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ^1.24
+
+      - name: Install render dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg ttyd
+          go install github.com/charmbracelet/vhs@v0.11.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Render demos
+        run: make demos
+
+      - name: Commit refreshed GIFs
+        run: |
+          if git diff --quiet -- .github/assets/summary.gif .github/assets/console.gif; then
+            exit 0
+          fi
+          git config user.name "pb33f github bot"
+          git config user.email "github-bot@pb33f.io"
+          git add .github/assets/summary.gif .github/assets/console.gif
+          git commit -m "chore: refresh VHS demo assets"
+          git push

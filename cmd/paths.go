@@ -1,3 +1,6 @@
+// Copyright 2026 Princess Beef Heavy Industries, LLC / Dave Shanley
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
@@ -11,7 +14,7 @@ import (
 )
 
 func absoluteRepoPath(p string) (string, error) {
-	if !path.IsAbs(p) {
+	if !filepath.IsAbs(p) {
 		wd, err := os.Getwd()
 		if err != nil {
 			return "", fmt.Errorf("get working dir: %v", err)

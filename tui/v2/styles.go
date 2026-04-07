@@ -4,9 +4,11 @@
 package v2
 
 import (
+	"image/color"
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/pb33f/doctor/terminal"
 )
 
@@ -33,28 +35,53 @@ type consoleStyles struct {
 	yamlKey        lipgloss.Style
 }
 
-func newConsoleStyles() consoleStyles {
-	return consoleStyles{
-		title:          lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)).Bold(true),
-		activePanel:    lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color(terminal.LipglossPrimaryBlue)),
-		inactivePanel:  lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color(terminal.LipglossSecondaryPink)),
-		cursor:         lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)).Bold(true),
-		selectedRow:    lipgloss.NewStyle().Background(lipgloss.Color("#4a1a4e")).Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)).Bold(true),
-		rangeHighlight: lipgloss.NewStyle().Background(lipgloss.Color("#2a0e2e")).Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)),
-		addedRow:       lipgloss.NewStyle().Background(lipgloss.Color("#1a3a1a")).Foreground(lipgloss.Color(terminal.LipglossGreen)).Bold(true),
-		addedRange:     lipgloss.NewStyle().Background(lipgloss.Color("#0e2a0e")).Foreground(lipgloss.Color(terminal.LipglossGreen)),
-		removedRow:     lipgloss.NewStyle().Background(lipgloss.Color("#3a1a1a")).Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),
-		removedRange:   lipgloss.NewStyle().Background(lipgloss.Color("#2a0e0e")).Foreground(lipgloss.Color(terminal.LipglossRed)),
-		added:          lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGreen)),
-		modified:       lipgloss.NewStyle(), // intentionally unstyled — default foreground for modifications
-		removed:        lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)),
-		breaking:       lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),
-		grey:           lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGrey)),
-		info:           lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)),
-		nav:            lipgloss.NewStyle().Foreground(lipgloss.Color("246")),
-		helpKey:        lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)),
-		yamlKey:        lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)),
+func consoleStyleFg(c color.Color) lipgloss.Style {
+	if c == nil {
+		return lipgloss.NewStyle()
 	}
+	return lipgloss.NewStyle().Foreground(c)
+}
+
+func consoleStyleBgFg(bg, fg color.Color) lipgloss.Style {
+	style := lipgloss.NewStyle()
+	if bg != nil {
+		style = style.Background(bg)
+	}
+	if fg != nil {
+		style = style.Foreground(fg)
+	}
+	return style
+}
+
+func newConsoleStylesForPalette(palette terminal.Palette) consoleStyles {
+	if !palette.SupportsColor {
+		return newNoColorStyles()
+	}
+	return consoleStyles{
+		title:          consoleStyleFg(palette.Primary).Bold(true),
+		activePanel:    lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(palette.Primary),
+		inactivePanel:  lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(palette.Secondary),
+		cursor:         consoleStyleFg(palette.Secondary).Bold(true),
+		selectedRow:    consoleStyleBgFg(palette.SelectedBG, palette.Secondary).Bold(true),
+		rangeHighlight: consoleStyleBgFg(palette.RangeBG, palette.Secondary),
+		addedRow:       consoleStyleBgFg(palette.AddedBG, palette.Addition).Bold(true),
+		addedRange:     consoleStyleBgFg(palette.AddedRangeBG, palette.Addition),
+		removedRow:     consoleStyleBgFg(palette.RemovedBG, palette.Removal).Bold(true),
+		removedRange:   consoleStyleBgFg(palette.RemovedRangeBG, palette.Removal),
+		added:          consoleStyleFg(palette.Addition),
+		modified:       consoleStyleFg(palette.Modification),
+		removed:        consoleStyleFg(palette.Removal),
+		breaking:       consoleStyleFg(palette.Breaking).Bold(true),
+		grey:           consoleStyleFg(palette.Muted),
+		info:           consoleStyleFg(palette.Primary),
+		nav:            consoleStyleFg(palette.Nav),
+		helpKey:        consoleStyleFg(palette.HelpKey),
+		yamlKey:        consoleStyleFg(palette.Primary),
+	}
+}
+
+func newConsoleStyles() consoleStyles {
+	return newConsoleStylesForPalette(terminal.PaletteForProfile(terminal.ThemeDark, colorprofile.TrueColor, true))
 }
 
 func newNoColorStyles() consoleStyles {

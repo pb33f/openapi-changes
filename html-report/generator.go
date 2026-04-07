@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"html"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/alecthomas/chroma/v2"
@@ -19,6 +20,8 @@ import (
 	"github.com/pb33f/doctor/changerator"
 	"github.com/pb33f/doctor/changerator/renderer"
 	drModel "github.com/pb33f/doctor/model"
+	v3 "github.com/pb33f/doctor/model/high/v3"
+	what_changed "github.com/pb33f/libopenapi/what-changed"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/internal/changecounts"
 	"github.com/pb33f/openapi-changes/model"
@@ -85,6 +88,7 @@ type ReportPayload struct {
 type ReportItem struct {
 	ChangeId            string         `json:"changeId"`
 	Graph               *GraphData     `json:"graph"`
+	ExplorerGraph       *GraphData     `json:"explorerGraph,omitempty"`
 	Summary             *SummaryData   `json:"summary"`
 	HtmlReport          string         `json:"htmlReport"`
 	OriginalSpec        string         `json:"originalSpec"`
@@ -154,6 +158,7 @@ func escapeLines(spec string) map[int]string {
 // (marshal nodes -> unmarshal to interface{} -> re-marshal in payload).
 // Instead: marshal once, store raw bytes, embed directly in final JSON.
 type GraphData struct {
+	Mode           string          `json:"mode"`
 	Nodes          json.RawMessage `json:"nodes"`
 	Edges          json.RawMessage `json:"edges"`
 	Changes        json.RawMessage `json:"changes,omitempty"`
@@ -207,6 +212,11 @@ type LineDataSet struct {
 	Data  []float64 `json:"data"`
 }
 
+const (
+	graphModeStandard = "standard"
+	graphModeChange   = "change"
+)
+
 // BuildReportItem mirrors the bunkhouse production path in
 // timeline_service.go:compareAndBuildReports(). It runs the full changerator
 // pipeline on a single commit and packages the result for the HTML report.
@@ -228,7 +238,7 @@ func BuildReportItem(
 	// PrepareChangeViewGraph prunes and rewrites the tree for summary-style rendering,
 	// which can strip valid branches (for example changed component schemas) from the
 	// HTML document tree payload. The HTML report needs the full changed tree.
-	var rootNode interface{}
+	var rootNode *v3.Node
 	for _, node := range result.ChangedNodes {
 		if node.Id == "root" {
 			result.BuildNodeChangeTree(node)
@@ -259,35 +269,21 @@ func BuildReportItem(
 	drModel.SanitizeGraph(result.ChangedNodes, nil)
 	graphMap := rightDrDoc.BuildGraphMap()
 
-	nodesJSON, err := json.Marshal(result.ChangedNodes)
+	standardGraph, err := buildGraphData(
+		graphModeStandard,
+		result.ChangedNodes,
+		result.ChangedEdges,
+		deduplicatedChanges,
+		rootNode,
+		graphMap,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("marshaling nodes: %w", err)
-	}
-	edgesJSON, err := json.Marshal(result.ChangedEdges)
-	if err != nil {
-		return nil, fmt.Errorf("marshaling edges: %w", err)
+		return nil, err
 	}
 
-	changesJSON, err := json.Marshal(deduplicatedChanges)
+	explorerGraph, err := buildChangeExplorerGraph(result, rootNode, graphMap)
 	if err != nil {
-		return nil, fmt.Errorf("marshaling changes: %w", err)
-	}
-
-	var nodeChangeTreeJSON json.RawMessage
-	if rootNode != nil {
-		nctJSON, err := json.Marshal(rootNode)
-		if err != nil {
-			return nil, fmt.Errorf("marshaling nodeChangeTree: %w", err)
-		}
-		nodeChangeTreeJSON = json.RawMessage(nctJSON)
-	}
-
-	graphData := &GraphData{
-		Nodes:          json.RawMessage(nodesJSON),
-		Edges:          json.RawMessage(edgesJSON),
-		Changes:        json.RawMessage(changesJSON),
-		NodeChangeTree: nodeChangeTreeJSON,
-		GraphMap:       graphMap,
+		return nil, err
 	}
 
 	summary := &SummaryData{
@@ -305,7 +301,8 @@ func BuildReportItem(
 
 	item := &ReportItem{
 		ChangeId:            changeId,
-		Graph:               graphData,
+		Graph:               standardGraph,
+		ExplorerGraph:       explorerGraph,
 		Summary:             summary,
 		HtmlReport:          htmlReport,
 		OriginalSpec:        string(commit.OldData),
@@ -316,6 +313,140 @@ func BuildReportItem(
 	}
 
 	return item, nil
+}
+
+func buildGraphData(
+	mode string,
+	nodes []*v3.Node,
+	edges []*v3.Edge,
+	changes []*whatChangedModel.Change,
+	rootNode *v3.Node,
+	graphMap map[int]string,
+) (*GraphData, error) {
+	nodesJSON, err := json.Marshal(nodes)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling nodes: %w", err)
+	}
+	edgesJSON, err := json.Marshal(edges)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling edges: %w", err)
+	}
+
+	var changesJSON json.RawMessage
+	if changes != nil {
+		cj, err := json.Marshal(changes)
+		if err != nil {
+			return nil, fmt.Errorf("marshaling changes: %w", err)
+		}
+		changesJSON = json.RawMessage(cj)
+	}
+
+	var nodeChangeTreeJSON json.RawMessage
+	if rootNode != nil {
+		nctJSON, err := json.Marshal(rootNode)
+		if err != nil {
+			return nil, fmt.Errorf("marshaling nodeChangeTree: %w", err)
+		}
+		nodeChangeTreeJSON = json.RawMessage(nctJSON)
+	}
+
+	return &GraphData{
+		Mode:           mode,
+		Nodes:          json.RawMessage(nodesJSON),
+		Edges:          json.RawMessage(edgesJSON),
+		Changes:        changesJSON,
+		NodeChangeTree: nodeChangeTreeJSON,
+		GraphMap:       graphMap,
+	}, nil
+}
+
+func buildChangeExplorerGraph(
+	result *changerator.Changerator,
+	rootNode *v3.Node,
+	graphMap map[int]string,
+) (*GraphData, error) {
+	if rootNode == nil {
+		return nil, nil
+	}
+
+	rootCopy := cloneNodeTree(rootNode)
+	changeResult := changerator.NewChangerator(result.Config)
+	changeResult.PrepareChangeViewGraph(rootCopy)
+	filteredEdges := filterEdgesForNodes(result.ChangedEdges, changeResult.ChangedNodes)
+	drModel.SanitizeGraph(changeResult.ChangedNodes, nil)
+
+	return buildGraphData(
+		graphModeChange,
+		changeResult.ChangedNodes,
+		filteredEdges,
+		nil,
+		nil,
+		graphMap,
+	)
+}
+
+func filterEdgesForNodes(edges []*v3.Edge, nodes []*v3.Node) []*v3.Edge {
+	seen := make(map[string]bool, len(nodes))
+	for _, node := range nodes {
+		seen[node.Id] = true
+	}
+
+	filtered := make([]*v3.Edge, 0, len(edges))
+	for _, edge := range edges {
+		if edge == nil || len(edge.Sources) == 0 || len(edge.Targets) == 0 {
+			continue
+		}
+		sourceSeen := false
+		for _, source := range edge.Sources {
+			if seen[source] {
+				sourceSeen = true
+				break
+			}
+		}
+		if !sourceSeen {
+			continue
+		}
+		targetSeen := false
+		for _, target := range edge.Targets {
+			if seen[target] {
+				targetSeen = true
+				break
+			}
+		}
+		if sourceSeen && targetSeen {
+			filtered = append(filtered, edge)
+		}
+	}
+	return filtered
+}
+
+func cloneNodeTree(node *v3.Node) *v3.Node {
+	if node == nil {
+		return nil
+	}
+
+	clone := *node
+	clone.Mutex = sync.RWMutex{}
+	clone.SubtreeChanges = nil
+	clone.ChildChangeSummaries = nil
+	if node.Changes != nil {
+		clone.Changes = append([]what_changed.Changed(nil), node.Changes...)
+	}
+	if node.RenderedChanges != nil {
+		clone.RenderedChanges = append([]*whatChangedModel.Change(nil), node.RenderedChanges...)
+	}
+	if node.CleanedChanged != nil {
+		clone.CleanedChanged = append([]*whatChangedModel.Change(nil), node.CleanedChanged...)
+	}
+	if len(node.Children) > 0 {
+		clone.Children = make([]*v3.Node, len(node.Children))
+		for i, child := range node.Children {
+			clone.Children[i] = cloneNodeTree(child)
+		}
+	} else {
+		clone.Children = nil
+	}
+	return &clone
 }
 
 func buildCommitInfo(commit *model.Commit) *CommitInfo {

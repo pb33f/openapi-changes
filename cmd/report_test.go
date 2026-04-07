@@ -8,40 +8,13 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
-	"github.com/pb33f/libopenapi"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/git"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func mustMakeSwagger2Commit(t *testing.T) *model.Commit {
-	t.Helper()
-
-	spec := `swagger: "2.0"
-info:
-  title: test
-  version: "1.0"
-paths: {}`
-
-	doc, err := libopenapi.NewDocument([]byte(spec))
-	require.NoError(t, err)
-
-	return &model.Commit{
-		Hash:        "abc123",
-		Message:     "swagger commit",
-		Author:      "test",
-		CommitDate:  time.Now(),
-		Data:        []byte(spec),
-		OldData:     []byte(spec),
-		Document:    doc,
-		OldDocument: doc,
-		Changes:     &whatChangedModel.DocumentChanges{},
-	}
-}
 
 func TestRunLeftRightReport_PropagatesChangeratorErrors(t *testing.T) {
 	dir := t.TempDir()
@@ -84,7 +57,7 @@ func TestRunGithubHistoryReport_PropagatesChangeratorErrors(t *testing.T) {
 		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
 		opts git.HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
 	) ([]*model.Commit, []error) {
-		return []*model.Commit{mustMakeSwagger2Commit(t)}, nil
+		return []*model.Commit{makeSwagger2Commit(t)}, nil
 	}
 
 	report, err := runGithubHistoryReport("https://github.com/oai/openapi-specification/blob/main/examples/v2.0/json/petstore-expanded.json", summaryOpts{}, nil)
@@ -96,8 +69,11 @@ func TestRunGithubHistoryReport_PropagatesChangeratorErrors(t *testing.T) {
 
 func TestReportCommand_ZeroArgsWithNoColor(t *testing.T) {
 	cmd := testRootCmd(GetReportCommand(), "--no-logo", "--no-color")
-	err := cmd.Execute()
-	assert.NoError(t, err)
+	output := captureStdout(t, func() {
+		assert.NoError(t, cmd.Execute())
+	})
+	assert.NotContains(t, output, "https://pb33f.io/openapi-changes/")
+	assert.Contains(t, output, "How to use the")
 }
 
 func TestRunLeftRightReport_Success(t *testing.T) {

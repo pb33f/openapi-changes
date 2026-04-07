@@ -22,29 +22,34 @@ func flagNames(cmd *cobra.Command) map[string]bool {
 func TestCanonicalCommandLocalFlags(t *testing.T) {
 	assert.Equal(t, map[string]bool{
 		"no-color":      true,
+		"tektronix":     true,
 		"markdown":      true,
 		"with-lines":    true,
 		"error-on-diff": true,
 	}, flagNames(GetSummaryCommand()))
 
 	assert.Equal(t, map[string]bool{
-		"no-color": true,
+		"no-color":  true,
+		"tektronix": true,
 	}, flagNames(GetReportCommand()))
 
 	assert.Equal(t, map[string]bool{
 		"no-color":     true,
+		"tektronix":    true,
 		"report-file":  true,
 		"include-diff": true,
 	}, flagNames(GetMarkdownReportCommand()))
 
 	assert.Equal(t, map[string]bool{
 		"no-color":    true,
+		"tektronix":   true,
 		"report-file": true,
 		"no-explorer": true,
 	}, flagNames(GetHTMLReportCommand()))
 
 	assert.Equal(t, map[string]bool{
-		"no-color": true,
+		"no-color":  true,
+		"tektronix": true,
 	}, flagNames(GetConsoleCommand()))
 }
 

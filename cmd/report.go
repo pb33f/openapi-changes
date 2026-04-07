@@ -44,7 +44,7 @@ func changerateAndFlatten(commits []*model.Commit, breakingConfig *whatChangedMo
 		if result == nil {
 			continue
 		}
-		reports = append(reports, FlattenReportWithRoots(createReport(commit), result.LeftDrDoc.V3Document.Node, result.RightDrDoc.V3Document.Node))
+		reports = append(reports, FlattenReportWithDocuments(createReport(commit), result.LeftDrDoc.V3Document, result.RightDrDoc.V3Document))
 		result.Release()
 	}
 	if len(errs) > 0 {
@@ -69,7 +69,7 @@ func runLeftRightReport(left, right string, opts summaryOpts, breakingConfig *wh
 		return nil, nil
 	}
 	defer result.Release()
-	flat := FlattenReportWithRoots(createReport(commits[0]), result.LeftDrDoc.V3Document.Node, result.RightDrDoc.V3Document.Node)
+	flat := FlattenReportWithDocuments(createReport(commits[0]), result.LeftDrDoc.V3Document, result.RightDrDoc.V3Document)
 	flat.Commit = nil
 	return flat, nil
 }
@@ -141,16 +141,16 @@ func GetReportCommand() *cobra.Command {
 		Long:         "Generate a JSON report for what has changed between commits/specs",
 		Example:      "openapi-changes report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts, configFlag := readCommonFlags(cmd)
+			opts, configFlag, err := readCommonFlags(cmd)
+			if err != nil {
+				return err
+			}
 
 			if len(args) == 0 {
-				noBanner, _ := cmd.Flags().GetBool("no-logo")
-				if !noBanner {
-					PrintBanner(opts.noColor)
-				}
+				maybePrintBanner(cmd, opts.palette)
 				printCommandUsage("report",
 					"The report command generates a machine-readable JSON report of all API changes\nusing the doctor changerator engine.",
-					opts.noColor)
+					opts.palette)
 				return nil
 			}
 
@@ -160,7 +160,7 @@ func GetReportCommand() *cobra.Command {
 
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
 			if err != nil {
-				PrintConfigError(err)
+				PrintConfigError(err, opts.palette)
 				return err
 			}
 
@@ -203,6 +203,6 @@ func GetReportCommand() *cobra.Command {
 			return printReportJSON(flat)
 		},
 	}
-	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
+	addTerminalThemeFlags(cmd)
 	return cmd
 }

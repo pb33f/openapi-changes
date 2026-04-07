@@ -6,7 +6,6 @@ package cmd
 import (
 	"fmt"
 
-	"charm.land/lipgloss/v2"
 	"github.com/pb33f/doctor/terminal"
 )
 
@@ -24,15 +23,9 @@ const bannerArt = `
 `
 
 // PrintBanner prints the pb33f banner using lipgloss (no pterm).
-// When noColor is true, all styling is disabled.
-func PrintBanner(noColor bool) {
-	art := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)).Bold(true)
-	info := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)).Bold(true)
-
-	if noColor {
-		art = lipgloss.NewStyle()
-		info = lipgloss.NewStyle()
-	}
+func PrintBanner(palette terminal.Palette) {
+	art := styleWithForeground(palette.Secondary).Bold(true)
+	info := styleWithForeground(palette.Primary).Bold(true)
 
 	fmt.Println(art.Render(bannerArt))
 	fmt.Println(info.Render("https://pb33f.io/openapi-changes/"))

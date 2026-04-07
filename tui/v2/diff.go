@@ -452,7 +452,7 @@ func renderDiffHeader(ch *whatChangedModel.Change, width int, styles consoleStyl
 		// Truncate long values
 		maxVal := width/2 - 20
 		if maxVal < 20 {
-			maxVal = 40
+			maxVal = 20
 		}
 
 		switch ch.ChangeType {

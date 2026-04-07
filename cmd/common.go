@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"image/color"
 	"net/url"
 	"os"
 	"strings"
@@ -24,6 +25,7 @@ const (
 // summaryOpts holds the flags shared by the current doctor-based command family.
 type summaryOpts struct {
 	noColor         bool
+	tektronix       bool
 	markdown        bool
 	withLines       bool
 	errorOnDiff     bool
@@ -35,6 +37,8 @@ type summaryOpts struct {
 	remote          bool
 	extRefs         bool
 	globalRevisions bool
+	theme           terminal.ThemeName
+	palette         terminal.Palette
 }
 
 // commandStyles holds the shared success/warning styles for the canonical command family.
@@ -43,21 +47,44 @@ type commandStyles struct {
 	warn    lipgloss.Style
 }
 
-func commandStylesFor(noColor bool) commandStyles {
-	styles := commandStyles{
-		success: lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGreen)).Bold(true),
-		warn:    lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),
+func styleWithForeground(c color.Color) lipgloss.Style {
+	if c == nil {
+		return lipgloss.NewStyle()
+	}
+	return lipgloss.NewStyle().Foreground(c)
+}
+
+func resolveTheme(noColor, tektronix bool) (terminal.ThemeName, error) {
+	if noColor && tektronix {
+		return "", fmt.Errorf("--no-color and --tektronix cannot be used together")
+	}
+	if tektronix {
+		return terminal.ThemeTektronix, nil
 	}
 	if noColor {
-		styles.success = lipgloss.NewStyle()
-		styles.warn = lipgloss.NewStyle()
+		return terminal.ThemeLight, nil
 	}
-	return styles
+	return terminal.ThemeDark, nil
+}
+
+func commandStylesFor(palette terminal.Palette) commandStyles {
+	return commandStyles{
+		success: styleWithForeground(palette.Addition).Bold(true),
+		warn:    styleWithForeground(palette.Breaking).Bold(true),
+	}
+}
+
+func addTerminalThemeFlags(cmd *cobra.Command) {
+	cmd.Flags().BoolP("no-color", "n", false, "Use the light Roger monochrome terminal theme")
+	cmd.Flags().Bool("tektronix", false, "Use the Tektronix green monochrome terminal theme")
 }
 
 // readCommonFlags reads the flags shared by the current doctor-based commands.
-func readCommonFlags(cmd *cobra.Command) (opts summaryOpts, configFlag string) {
+func readCommonFlags(cmd *cobra.Command) (opts summaryOpts, configFlag string, err error) {
 	opts.noColor, _ = cmd.Flags().GetBool("no-color")
+	if cmd.Flags().Lookup("tektronix") != nil {
+		opts.tektronix, _ = cmd.Flags().GetBool("tektronix")
+	}
 	opts.withLines, _ = cmd.Flags().GetBool("with-lines")
 	opts.latest, _ = cmd.Flags().GetBool("top")
 	opts.limit, _ = cmd.Flags().GetInt("limit")
@@ -68,6 +95,11 @@ func readCommonFlags(cmd *cobra.Command) (opts summaryOpts, configFlag string) {
 	opts.extRefs, _ = cmd.Flags().GetBool("ext-refs")
 	opts.globalRevisions, _ = cmd.Flags().GetBool("global-revisions")
 	configFlag, _ = cmd.Flags().GetString("config")
+	opts.theme, err = resolveTheme(opts.noColor, opts.tektronix)
+	if err != nil {
+		return opts, configFlag, err
+	}
+	opts.palette = terminal.PaletteForTheme(opts.theme)
 	return
 }
 
@@ -93,6 +125,16 @@ func printNoPriorVersionText() {
 	fmt.Println(noPriorVersionMessage)
 }
 
+func maybePrintBanner(cmd *cobra.Command, palette terminal.Palette) {
+	if cmd != nil && cmd.Flags().Lookup("no-logo") != nil {
+		noBanner, _ := cmd.Flags().GetBool("no-logo")
+		if noBanner {
+			return
+		}
+	}
+	PrintBanner(palette)
+}
+
 // loadCommitsFromArgs dispatches to the appropriate commit loader based on argument types.
 // Expects len(args) to be 1 or 2 (caller must validate arg count).
 func loadCommitsFromArgs(args []string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
@@ -114,16 +156,10 @@ func loadCommitsFromArgs(args []string, opts summaryOpts, breakingConfig *whatCh
 }
 
 // printCommandUsage prints lipgloss-styled usage for any doctor-based command.
-func printCommandUsage(commandName, description string, noColor bool) {
-	title := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)).Bold(true)
-	desc := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGrey))
-	cmdStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)).Bold(true)
-
-	if noColor {
-		title = lipgloss.NewStyle()
-		desc = lipgloss.NewStyle()
-		cmdStyle = lipgloss.NewStyle()
-	}
+func printCommandUsage(commandName, description string, palette terminal.Palette) {
+	title := styleWithForeground(palette.Primary).Bold(true)
+	desc := styleWithForeground(palette.Muted)
+	cmdStyle := styleWithForeground(palette.Secondary).Bold(true)
 
 	fmt.Print(title.Render("How to use the "))
 	fmt.Print(cmdStyle.Render(commandName))

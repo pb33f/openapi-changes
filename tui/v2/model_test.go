@@ -262,6 +262,21 @@ func TestUpdate_ArrowKeysLoadCommit(t *testing.T) {
 	assert.Equal(t, commits[1].Hash, updated.activeHash)
 }
 
+func TestUpdate_EscFromCommitTable_DoesNotQuit(t *testing.T) {
+	commits := makeTestCommits()
+	m := NewConsoleModel(commits, nil, true, "test", nil)
+	m.width = 120
+	m.height = 40
+	m.focus = FocusCommitTable
+
+	result, cmd := m.Update(tea.KeyPressMsg(tea.Key{Code: tea.KeyEscape}))
+	assert.Nil(t, cmd)
+
+	updated := result.(ConsoleModel)
+	assert.Equal(t, FocusCommitTable, updated.focus)
+	assert.Equal(t, 0, updated.activeIdx)
+}
+
 func TestView_ReturnsTeaView(t *testing.T) {
 	commits := makeTestCommits()
 	m := NewConsoleModel(commits, nil, true, "test", nil)

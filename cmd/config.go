@@ -4,12 +4,12 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"charm.land/lipgloss/v2"
 	"github.com/pb33f/doctor/terminal"
 	"github.com/pb33f/libopenapi/what-changed/model"
 	"go.yaml.in/yaml/v4"
@@ -178,14 +178,15 @@ func (e *ConfigValidationError) Error() string {
 }
 
 // PrintConfigError prints a config error with nice formatting using lipgloss (no pterm).
-func PrintConfigError(err error) {
-	red := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true)
-	yellow := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossYellow))
-	info := lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue))
+func PrintConfigError(err error, palette terminal.Palette) {
+	red := styleWithForeground(palette.Breaking).Bold(true)
+	yellow := styleWithForeground(palette.Modification)
+	info := styleWithForeground(palette.Primary)
 
 	fmt.Println()
 
-	if validationErr, ok := err.(*ConfigValidationError); ok {
+	var validationErr *ConfigValidationError
+	if errors.As(err, &validationErr) {
 		fmt.Println(red.Render(fmt.Sprintf("ERROR: Breaking rules config has %d error(s)", len(validationErr.Result.Errors))))
 		fmt.Println()
 		fmt.Println(red.Render(fmt.Sprintf("  File: %s", validationErr.FilePath)))
@@ -204,7 +205,12 @@ func PrintConfigError(err error) {
 		fmt.Println(info.Render("  Components like 'discriminator', 'xml', 'contact', 'license', etc."))
 		fmt.Println(info.Render("  must be defined at the top level, not nested under other components."))
 		fmt.Println(info.Render("  See: https://pb33f.io/libopenapi/what-changed/"))
-	} else if parseErr, ok := err.(*ConfigParseError); ok {
+		fmt.Println()
+		return
+	}
+
+	var parseErr *ConfigParseError
+	if errors.As(err, &parseErr) {
 		fmt.Println(red.Render("ERROR: Failed to parse breaking rules config file"))
 		fmt.Println()
 		fmt.Println(red.Render(fmt.Sprintf("  File: %s", parseErr.FilePath)))
@@ -212,9 +218,10 @@ func PrintConfigError(err error) {
 		fmt.Println()
 		fmt.Println(yellow.Render("  Ensure the YAML structure matches libopenapi's BreakingRulesConfig format."))
 		fmt.Println(yellow.Render("  See: https://pb33f.io/libopenapi/what-changed/"))
-	} else {
-		fmt.Println(red.Render(fmt.Sprintf("ERROR: Config error: %s", err.Error())))
+		fmt.Println()
+		return
 	}
 
+	fmt.Println(red.Render(fmt.Sprintf("ERROR: Config error: %s", err.Error())))
 	fmt.Println()
 }

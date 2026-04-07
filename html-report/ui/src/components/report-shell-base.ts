@@ -206,8 +206,6 @@ export abstract class ReportShellBase extends LitElement {
         } else {
             this.selectedNodeChanges = [];
             this.selectedDiffChanges = [];
-            this.selectedNodeLabel = '';
-            this.selectedNodeType = '';
         }
     }
 
@@ -552,6 +550,10 @@ export abstract class ReportShellBase extends LitElement {
      * Render the content tabs (Overview, Change Report, Changed Items, Change List, View Diff).
      * The full shell overrides renderExtraTabNavs/Panels to add the "Explore Changes" graph tab.
      */
+    // Note: htmlReport content is trusted server-generated HTML from the doctor renderer.
+    // The Go backend's json.Marshal escapes <, >, & preventing </script> injection.
+    // TODO: upstream fix needed in doctor's renderCodeSpan/renderFencedCodeBlock to
+    // HTML-escape user content (OpenAPI descriptions/examples) in code spans.
     private renderHtmlReport(item: ReportItem): TemplateResult {
         return item.htmlReport
             ? html`<div class="change-report">${unsafeHTML(item.htmlReport)}</div>`

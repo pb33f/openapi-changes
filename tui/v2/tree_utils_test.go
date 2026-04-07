@@ -29,12 +29,11 @@ func TestVisualLen_MultipleEscapes(t *testing.T) {
 }
 
 func TestVisualLen_MultiByte(t *testing.T) {
-	// Each CJK character is 1 rune
-	assert.Equal(t, 3, visualLen("日本語"))
+	assert.Equal(t, 6, visualLen("日本語"))
 }
 
 func TestVisualLen_MixedASCIIAndMultiByte(t *testing.T) {
-	assert.Equal(t, 7, visualLen("abc日本語d"))
+	assert.Equal(t, 10, visualLen("abc日本語d"))
 }
 
 func TestTruncateToWidth_NoTruncation(t *testing.T) {
@@ -64,15 +63,15 @@ func TestTruncateToWidth_WithANSI(t *testing.T) {
 func TestTruncateToWidth_MultiByteUTF8(t *testing.T) {
 	s := "日本語テスト"
 	result := truncateToWidth(s, 3)
-	assert.Equal(t, "日本語", result)
+	assert.Equal(t, "日本", result)
 	// Verify no truncated/invalid bytes
-	assert.Equal(t, 3, visualLen(result))
+	assert.Equal(t, 4, visualLen(result))
 }
 
 func TestTruncateToWidth_MixedASCIIMultiByte(t *testing.T) {
 	s := "ab日本cd"
 	result := truncateToWidth(s, 4)
-	assert.Equal(t, "ab日本", result)
+	assert.Equal(t, "ab日", result)
 }
 
 func TestTruncateToWidth_MultiByteWithANSI(t *testing.T) {

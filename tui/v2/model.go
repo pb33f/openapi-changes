@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	"charm.land/lipgloss/v2"
-	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/table"
 	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/pb33f/doctor/changerator"
 	"github.com/pb33f/doctor/changerator/renderer"
 	v3 "github.com/pb33f/doctor/model/high/v3"
@@ -30,7 +30,7 @@ const (
 	FocusReportModal
 )
 
-// ConsoleModel is the top-level Bubbletea model for the new-console command.
+// ConsoleModel is the top-level Bubbletea model for the console command.
 type ConsoleModel struct {
 	// Bubbles components
 	commitTable  table.Model
@@ -75,8 +75,7 @@ type ConsoleModel struct {
 	activeHash string
 
 	// Styles
-	styles  consoleStyles
-	version string
+	styles consoleStyles
 }
 
 // RunChangeratorFn is the function signature for running the changerator.
@@ -84,11 +83,17 @@ type ConsoleModel struct {
 type RunChangeratorFn func(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*changerator.Changerator, *v3.Node, func(), error)
 
 // NewConsoleModel creates a new ConsoleModel and runs the changerator on the first commit.
-func NewConsoleModel(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, noColor bool, version string, runFn RunChangeratorFn) ConsoleModel {
-	styles := newConsoleStyles()
-	if noColor {
-		styles = newNoColorStyles()
+func NewConsoleModel(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, themeArg any, _ string, runFn RunChangeratorFn) ConsoleModel {
+	theme := terminal.ThemeDark
+	switch v := themeArg.(type) {
+	case terminal.ThemeName:
+		theme = terminal.NormalizeThemeName(v)
+	case bool:
+		if v {
+			theme = terminal.ThemeLight
+		}
 	}
+	styles := newConsoleStylesForPalette(terminal.PaletteForTheme(theme))
 
 	m := ConsoleModel{
 		commits:     commits,
@@ -96,7 +101,6 @@ func NewConsoleModel(commits []*model.Commit, breakingConfig *whatChangedModel.B
 		breakingCfg: breakingConfig,
 		runFn:       runFn,
 		styles:      styles,
-		version:     version,
 	}
 
 	// Single commit mode
@@ -376,7 +380,6 @@ func (m ConsoleModel) renderNavBar() string {
 	return sb.String()
 }
 
-
 // loadActiveCommit runs the changerator for the active commit and updates the tree.
 func (m *ConsoleModel) loadActiveCommit() {
 	if m.activeIdx < 0 || m.activeIdx >= len(m.commits) {
@@ -418,6 +421,10 @@ func (m *ConsoleModel) loadActiveCommit() {
 	// Build node change tree
 	ctr.BuildNodeChangeTree(root)
 	stats := ctr.Calculatoratron()
+	statsMap := make(map[*v3.Node]nodeStats)
+	if root != nil {
+		computeStats(root, statsMap)
+	}
 
 	// Cache the result
 	entry := &cacheEntry{
@@ -426,10 +433,11 @@ func (m *ConsoleModel) loadActiveCommit() {
 			RightRoot:   root,
 			releaseFn:   releaseFn,
 		},
-		treeRoot: root,
-		stats:    stats,
-		newLines: splitLines(commit.Data),
-		oldLines: splitLines(commit.OldData),
+		treeRoot:       root,
+		stats:          stats,
+		nodeStatsCache: statsMap,
+		newLines:       splitLines(commit.Data),
+		oldLines:       splitLines(commit.OldData),
 	}
 	m.cache.put(commit.Hash, entry)
 	m.applyCache(entry)
@@ -438,9 +446,14 @@ func (m *ConsoleModel) loadActiveCommit() {
 func (m *ConsoleModel) applyCache(entry *cacheEntry) {
 	m.emptyState = ""
 	m.tree = newTreeModel(entry.treeRoot, m.tree.height)
-	m.tree.statsCache = make(map[*v3.Node]nodeStats)
-	if entry.treeRoot != nil {
-		computeStats(entry.treeRoot, m.tree.statsCache)
+	// TODO: wire stats into renderNode for badge display on branch nodes.
+	if entry.nodeStatsCache != nil {
+		m.tree.statsCache = entry.nodeStatsCache
+	} else {
+		m.tree.statsCache = make(map[*v3.Node]nodeStats)
+		if entry.treeRoot != nil {
+			computeStats(entry.treeRoot, m.tree.statsCache)
+		}
 	}
 	m.showDiff = false
 	m.activeChange = nil

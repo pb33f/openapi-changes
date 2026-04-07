@@ -68,8 +68,8 @@ All `cmd/` implementation files use their canonical names (e.g., `cmd/summary.go
 
 ### Failure semantics
 
-- Partial render/build failure must fail the command.
-- Do not silently succeed on mixed-success histories for `summary`, `markdown-report`, or `html-report`.
+- Mixed-success histories should limp on with warnings when at least one comparable commit renders successfully.
+- `summary`, `markdown-report`, and `html-report` should fail only when every candidate commit fails to render/build.
 - “No prior comparable version” and “no changes found” are distinct states.
 
 ### HTML payload integrity

@@ -19,14 +19,15 @@ type commitCache struct {
 }
 
 type cacheEntry struct {
-	result   *changeratorResultV2
-	treeRoot *v3.Node
-	stats    *changerator.ChangeStatistics
-	newLines []string // pre-split commit.Data
-	oldLines []string // pre-split commit.OldData
-	markdown         string // cached raw markdown report (width-independent)
-	renderedMarkdown string // cached glamour-rendered markdown
-	renderedWidth    int    // content width used for renderedMarkdown
+	result           *changeratorResultV2
+	treeRoot         *v3.Node
+	stats            *changerator.ChangeStatistics
+	nodeStatsCache   map[*v3.Node]nodeStats
+	newLines         []string // pre-split commit.Data
+	oldLines         []string // pre-split commit.OldData
+	markdown         string   // cached raw markdown report (width-independent)
+	renderedMarkdown string   // cached glamour-rendered markdown
+	renderedWidth    int      // content width used for renderedMarkdown
 }
 
 // changeratorResultV2 wraps the cmd.changeratorResult to avoid import cycles.

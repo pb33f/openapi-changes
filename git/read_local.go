@@ -54,8 +54,7 @@ func GetTopLevel(dir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	outStr, _ := stdout.String(), stderr.String()
-	return outStr, nil
+	return strings.TrimSpace(stdout.String()), nil
 }
 
 func ExtractHistoryFromFile(repoDirectory, filePath string,
@@ -102,7 +101,7 @@ func ExtractHistoryFromFile(repoDirectory, filePath string,
 	outStr, _ := stdout.String(), stderr.String()
 	lines := strings.Split(outStr, "\n")
 	for k := range lines {
-		if k == opts.Limit && commitTimeCutoff == nil {
+		if opts.Limit > 0 && k == opts.Limit && commitTimeCutoff == nil {
 			break
 		}
 		c := strings.Split(lines[k], "||")
@@ -153,7 +152,7 @@ func PopulateHistory(commitHistory []*model.Commit,
 			return nil, []error{err}
 		}
 		model.SendProgressUpdate("population",
-			fmt.Sprintf("Extracting %d bytes extracted from commit '%s'",
+			fmt.Sprintf("Extracted %d KB from commit '%s'",
 				len(commitHistory[c].Data)/1024, commitHistory[c].Hash), false, progressChan)
 
 	}
@@ -228,9 +227,6 @@ func buildCommitChangelog(commitHistory []*model.Commit,
 
 	docConfig.ExcludeExtensionRefs = !opts.ExtRefs
 
-	// TODO: make this configurable for power users.
-	docConfig.ExcludeExtensionRefs = true
-
 	ptermLog := &pterm.Logger{
 		Formatter:  pterm.LogFormatterColorful,
 		Writer:     os.Stdout,
@@ -295,7 +291,7 @@ func buildCommitChangelog(commitHistory []*model.Commit,
 				commitHistory[c].Changes = changes
 			} else {
 				model.SendProgressError("building models", "No OpenAPI documents can be compared!", errorChan)
-				changeErrors = append(changeErrors, err)
+				changeErrors = append(changeErrors, errors.New("no OpenAPI documents can be compared"))
 			}
 		}
 		if len(oldBits) == 0 && len(newBits) > 0 {

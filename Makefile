@@ -3,3 +3,6 @@ build:
 
 run:
 	@go run openapi-changes.go
+
+demos:
+	@./scripts/render-demos.sh

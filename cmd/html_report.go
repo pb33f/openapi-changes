@@ -8,25 +8,29 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"text/template"
 	"time"
 
+	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
-	"github.com/pb33f/openapi-changes/model"
 	htmlReport "github.com/pb33f/openapi-changes/html-report"
+	"github.com/pb33f/openapi-changes/model"
 	"github.com/spf13/cobra"
 )
 
-func printHTMLReportUsage(noColor bool) {
+func printHTMLReportUsage(palette terminal.Palette) {
 	printCommandUsage("html-report",
 		"Generates an interactive HTML report of API changes.\nThe report is fully self-contained and works offline.",
-		noColor)
+		palette)
 }
 
 // buildHTMLReportItems runs the changerator pipeline on each commit and produces
-// ReportItems for the HTML report. Any commit/render failure aborts report generation.
+// ReportItems for the HTML report. If at least one commit succeeds, failed
+// commits are logged and skipped; an error is returned only when every
+// candidate commit fails.
 func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*htmlReport.ReportItem, error) {
 	items := make([]*htmlReport.ReportItem, 0, len(commits))
 	var buildErrors []error
@@ -65,7 +69,7 @@ func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedMo
 		if len(items) == 0 {
 			return nil, fmt.Errorf("all %d commits failed to build report items: %w", len(buildErrors), errors.Join(buildErrors...))
 		}
-		return nil, fmt.Errorf("%d commits failed to build report items: %w", len(buildErrors), errors.Join(buildErrors...))
+		fmt.Fprintf(os.Stderr, "warning: %d commits failed to build report items\n", len(buildErrors))
 	}
 	return items, nil
 }
@@ -125,7 +129,6 @@ func generateHTMLReport(commits []*model.Commit, breakingConfig *whatChangedMode
 	return buf.Bytes(), nil
 }
 
-
 func GetHTMLReportCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		SilenceUsage: true,
@@ -134,19 +137,19 @@ func GetHTMLReportCommand() *cobra.Command {
 		Long:         "Generate a rich, interactive HTML report. The report is fully self-contained and works offline.",
 		Example:      "openapi-changes html-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts, configFlag := readCommonFlags(cmd)
+			opts, configFlag, err := readCommonFlags(cmd)
+			if err != nil {
+				return err
+			}
 			reportFile, _ := cmd.Flags().GetString("report-file")
 			noExplorer, _ := cmd.Flags().GetBool("no-explorer")
 
-			styles := commandStylesFor(opts.noColor)
+			styles := commandStylesFor(opts.palette)
 
-			noBanner, _ := cmd.Flags().GetBool("no-logo")
-			if !noBanner {
-				PrintBanner(opts.noColor)
-			}
+			maybePrintBanner(cmd, opts.palette)
 
 			if len(args) == 0 {
-				printHTMLReportUsage(opts.noColor)
+				printHTMLReportUsage(opts.palette)
 				return nil
 			}
 
@@ -162,7 +165,7 @@ func GetHTMLReportCommand() *cobra.Command {
 
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
 			if err != nil {
-				fmt.Println(styles.warn.Render(fmt.Sprintf("config error: %s", err)))
+				PrintConfigError(err, opts.palette)
 				return err
 			}
 
@@ -183,8 +186,8 @@ func GetHTMLReportCommand() *cobra.Command {
 			return writeReportFile(reportFile, report, styles)
 		},
 	}
-	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
+	addTerminalThemeFlags(cmd)
 	cmd.Flags().String("report-file", "report.html", "The name of the HTML report file (defaults to 'report.html')")
-	cmd.Flags().Bool("no-explorer", false, "Exclude the explorer graph tab (smaller bundle size")
+	cmd.Flags().Bool("no-explorer", false, "Exclude the explorer graph tab (smaller bundle size)")
 	return cmd
 }

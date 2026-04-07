@@ -165,7 +165,7 @@ func loadGitHistoryCommits(gitPath, filePath string, opts summaryOpts, breakingC
 		return nil, fmt.Errorf("cannot open file: '%s'", filePath)
 	}
 
-	d := makeProgressDrainer()
+	extractDrainer := makeProgressDrainer()
 	extractOpts := git.HistoryOptions{
 		BaseCommit:      opts.baseCommit,
 		GlobalRevisions: opts.globalRevisions,
@@ -173,20 +173,24 @@ func loadGitHistoryCommits(gitPath, filePath string, opts summaryOpts, breakingC
 		LimitTime:       opts.limitTime,
 	}
 	commits, errs := extractHistoryFromFile(gitPath, filePath,
-		d.ProgressChan, d.ErrorChan, extractOpts)
+		extractDrainer.ProgressChan, extractDrainer.ErrorChan, extractOpts)
 	if errs != nil {
-		return nil, d.collectErrors(errs)
+		return nil, extractDrainer.collectErrors(errs)
+	}
+	if err := extractDrainer.collectErrors(nil); err != nil {
+		return nil, err
 	}
 
+	populateDrainer := makeProgressDrainer()
 	commits, errs = populateHistory(commits,
-		d.ProgressChan, d.ErrorChan, git.HistoryOptions{
+		populateDrainer.ProgressChan, populateDrainer.ErrorChan, git.HistoryOptions{
 			LimitTime:      opts.limitTime,
 			Base:           opts.base,
 			Remote:         opts.remote,
 			ExtRefs:        opts.extRefs,
 			KeepComparable: true,
 		}, breakingConfig)
-	if err := d.collectErrors(errs); err != nil {
+	if err := populateDrainer.collectErrors(errs); err != nil {
 		return nil, err
 	}
 
@@ -201,10 +205,7 @@ func loadGitHistoryCommits(gitPath, filePath string, opts summaryOpts, breakingC
 
 func loadLeftRightCommits(left, right string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
 	d := makeProgressDrainer()
-	defer func() {
-		d.close()
-		d.printWarnings()
-	}()
+	defer d.close()
 
 	var err error
 	left, leftCleanup, err := resolveLeftRightInput(left)
@@ -274,7 +275,8 @@ func resolveLeftRightInput(raw string) (string, func(), error) {
 		return "", func() {}, fmt.Errorf("error downloading file '%s': unexpected status %s", raw, resp.Status)
 	}
 
-	bits, err := io.ReadAll(resp.Body)
+	const maxDownloadSize = 100 << 20 // 100 MB
+	bits, err := io.ReadAll(io.LimitReader(resp.Body, maxDownloadSize))
 	if err != nil {
 		return "", func() {}, fmt.Errorf("error reading downloaded file '%s': %w", raw, err)
 	}

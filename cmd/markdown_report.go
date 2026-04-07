@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/pb33f/doctor/changerator/renderer"
+	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/internal/changecounts"
 	"github.com/pb33f/openapi-changes/model"
@@ -26,10 +27,10 @@ var (
 	reRemovals        = regexp.MustCompile(`(?m)^- Removals: \*\*\d+\*\*$`)
 )
 
-func printMarkdownReportUsage(noColor bool) {
+func printMarkdownReportUsage(palette terminal.Palette) {
 	printCommandUsage("markdown-report",
 		"Generates a detailed markdown report of API changes using the doctor changerator engine.",
-		noColor)
+		palette)
 }
 
 // renderCommitMarkdown runs the doctor changerator on a single commit and returns markdown.
@@ -217,8 +218,9 @@ func isSyntheticLeftRightCommit(commit *model.Commit) bool {
 
 // generateMarkdownReport assembles markdown from all commits.
 // Returns (nil, nil) if no commits produce changes and no errors occurred.
-// Returns (nil, err) if any commit fails to render.
-// Returns (bytes, nil) when all rendered commits succeed.
+// Returns (nil, err) if every candidate commit fails to render.
+// Returns (bytes, nil) when at least one commit renders successfully; failed
+// commits are logged to stderr and skipped.
 func generateMarkdownReport(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, includeDiff bool) ([]byte, error) {
 	var sb strings.Builder
 	successCount := 0
@@ -283,14 +285,13 @@ func generateMarkdownReport(commits []*model.Commit, breakingConfig *whatChanged
 		return nil, fmt.Errorf("all %d commits failed to render", errorCount)
 	}
 	if errorCount > 0 {
-		return nil, fmt.Errorf("%d commits failed to render", errorCount)
+		fmt.Fprintf(os.Stderr, "warning: %d commits failed to render\n", errorCount)
 	}
 	if successCount == 0 && errorCount == 0 {
 		return nil, nil
 	}
 	return []byte(sb.String()), nil
 }
-
 
 func GetMarkdownReportCommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -300,19 +301,19 @@ func GetMarkdownReportCommand() *cobra.Command {
 		Long:         "Generate a detailed markdown report of API changes rendered as markdown",
 		Example:      "openapi-changes markdown-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts, configFlag := readCommonFlags(cmd)
+			opts, configFlag, err := readCommonFlags(cmd)
+			if err != nil {
+				return err
+			}
 			reportFile, _ := cmd.Flags().GetString("report-file")
 			includeDiff, _ := cmd.Flags().GetBool("include-diff")
 
-			styles := commandStylesFor(opts.noColor)
+			styles := commandStylesFor(opts.palette)
 
-			noBanner, _ := cmd.Flags().GetBool("no-logo")
-			if !noBanner {
-				PrintBanner(opts.noColor)
-			}
+			maybePrintBanner(cmd, opts.palette)
 
 			if len(args) == 0 {
-				printMarkdownReportUsage(opts.noColor)
+				printMarkdownReportUsage(opts.palette)
 				return nil
 			}
 
@@ -328,7 +329,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
 			if err != nil {
-				fmt.Println(styles.warn.Render(fmt.Sprintf("config error: %s", err)))
+				PrintConfigError(err, opts.palette)
 				return err
 			}
 
@@ -349,7 +350,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 			return writeReportFile(reportFile, report, styles)
 		},
 	}
-	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
+	addTerminalThemeFlags(cmd)
 	cmd.Flags().StringP("report-file", "", "report.md", "The name of the Markdown report file (defaults to 'report.md')")
 	cmd.Flags().Bool("include-diff", false, "Include a collapsible unified diff of the raw spec for each commit")
 	return cmd

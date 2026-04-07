@@ -24,7 +24,11 @@ it can compare between two files, or a single file, over time.
 
 All commands use the current doctor-based engine.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			PrintBanner(false)
+			opts, _, err := readCommonFlags(cmd)
+			if err != nil {
+				return err
+			}
+			maybePrintBanner(cmd, opts.palette)
 
 			fmt.Println("Current commands")
 			fmt.Println()

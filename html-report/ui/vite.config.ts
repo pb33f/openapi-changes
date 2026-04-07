@@ -91,6 +91,7 @@ export default defineConfig({
     dedupe: [
       '@shoelace-style/shoelace',
       'lit',
+      'chart.js',
     ],
     alias: {
       '@report-elkjs': resolve(__dirname, '../../../cowboy-components/node_modules/elkjs/lib/elk.bundled.js'),

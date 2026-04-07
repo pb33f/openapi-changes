@@ -21,13 +21,13 @@ individual use, or in a CI/CD pipeline for automation.
 
 ## How is it the 'sexiest'?
 
-Have you ever seen an OpenAPI diff report look like this?
+Have you ever seen an OpenAPI summary look like this?
 
-![](https://github.com/pb33f/openapi-changes/blob/main/.github/assets/ui.gif)
+![](./.github/assets/summary.gif)
 
 What about a terminal UI that does the same?
 
-![](https://github.com/pb33f/openapi-changes/blob/main/.github/assets/console.gif)
+![](./.github/assets/console.gif)
 
 ---
 

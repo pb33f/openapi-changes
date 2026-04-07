@@ -1,3 +1,6 @@
+// Copyright 2026 Princess Beef Heavy Industries, LLC / Dave Shanley
+// SPDX-License-Identifier: MIT
+
 package changecounts
 
 import (
@@ -55,4 +58,21 @@ func TestFromChanges_AllNils(t *testing.T) {
 	changes := []*whatChangedModel.Change{nil, nil, nil}
 	counts := FromChanges(changes)
 	assert.Equal(t, 0, counts.Total)
+}
+
+func TestFromChanges_UnknownTypeCountsTowardTotalOnly(t *testing.T) {
+	changes := []*whatChangedModel.Change{
+		{ChangeType: 999, Breaking: true},
+	}
+
+	counts := FromChanges(changes)
+
+	assert.Equal(t, 1, counts.Total)
+	assert.Equal(t, 1, counts.Breaking)
+	assert.Equal(t, 0, counts.Additions)
+	assert.Equal(t, 0, counts.Modifications)
+	assert.Equal(t, 0, counts.Removals)
+	assert.Equal(t, 0, counts.BreakingAdditions)
+	assert.Equal(t, 0, counts.BreakingModifications)
+	assert.Equal(t, 0, counts.BreakingRemovals)
 }

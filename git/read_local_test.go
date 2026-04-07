@@ -6,6 +6,9 @@ package git
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -68,6 +71,34 @@ func TestGetTopLevel(t *testing.T) {
 	str, err := GetTopLevel("./")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, str)
+	assert.Equal(t, str, strings.TrimSpace(str))
+}
+
+func TestExtractHistoryFromFile_LimitZeroMeansUnlimited(t *testing.T) {
+	repoDir := t.TempDir()
+	runGit(t, repoDir, "init")
+	runGit(t, repoDir, "config", "user.name", "Test User")
+	runGit(t, repoDir, "config", "user.email", "test@example.com")
+
+	fileName := "spec.yaml"
+	filePath := filepath.Join(repoDir, fileName)
+	for i := 1; i <= 3; i++ {
+		spec := fmt.Sprintf("openapi: 3.0.%d\ninfo:\n  title: test\npaths: {}\n", i)
+		require.NoError(t, os.WriteFile(filePath, []byte(spec), 0644))
+		runGit(t, repoDir, "add", fileName)
+		runGit(t, repoDir, "commit", "-m", fmt.Sprintf("commit %d", i))
+	}
+
+	progressChan := make(chan *model.ProgressUpdate, 32)
+	errorChan := make(chan model.ProgressError, 32)
+
+	allHistory, errs := ExtractHistoryFromFile(repoDir, fileName, progressChan, errorChan, HistoryOptions{Limit: 0, LimitTime: -1})
+	require.Empty(t, errs)
+	require.Len(t, allHistory, 3)
+
+	limitedHistory, errs := ExtractHistoryFromFile(repoDir, fileName, progressChan, errorChan, HistoryOptions{Limit: 1, LimitTime: -1})
+	require.Empty(t, errs)
+	require.Len(t, limitedHistory, 1)
 }
 
 func TestReadFile(t *testing.T) {
@@ -133,6 +164,15 @@ func TestBuildChangelog_IdenticalLeftRightPreservesComparableRevision(t *testing
 	assert.NotNil(t, cleaned[0].Document)
 	assert.NotNil(t, cleaned[0].OldDocument)
 	assert.Nil(t, cleaned[0].Changes)
+}
+
+func runGit(t *testing.T, dir string, args ...string) {
+	t.Helper()
+
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	require.NoError(t, err, "git %v failed: %s", args, string(out))
 }
 
 func mustReadTestFile(t *testing.T, path string) []byte {

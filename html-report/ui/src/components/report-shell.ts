@@ -4,7 +4,7 @@ import type { SlTabShowEvent } from '@shoelace-style/shoelace/dist/events/sl-tab
 import { ReportShellBase } from './report-shell-base.js';
 import type { Change } from '@pb33f/cowboy-components/static-report';
 
-import { ExplorerComponent, ExplorerChangePanel, ExplorerNodeClicked, FocusedDiffPanel } from '@pb33f/cowboy-components/static-report';
+import { ExplorerComponent, ExplorerChangePanel, ExplorerNodeClicked, FocusedDiffPanel, GraphMode } from '@pb33f/cowboy-components/static-report';
 import type { NodeClickedEvent } from '@pb33f/cowboy-components/static-report';
 void ExplorerChangePanel;
 void FocusedDiffPanel;
@@ -167,11 +167,11 @@ export class ReportShell extends ReportShellBase {
         this.explorer.renderEqualizer = false;
         this.explorer.disablePovMode = true;
         this.explorer.hideExamples = true;
-        this.explorer.changeView = true;
+        this.explorer.graphMode = GraphMode.change;
         if (this.explorer.equalizer) {
             this.explorer.equalizer.renderEqualizer = false;
         }
-        this.explorer.updateGraphResponse(item.graph as any);
+        this.explorer.updateGraphResponse((item.explorerGraph || item.graph) as any);
     }
 
     protected override renderExtraTabNavs(): TemplateResult {

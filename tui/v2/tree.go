@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 
 	"charm.land/lipgloss/v2"
+	"github.com/mattn/go-runewidth"
 	v3 "github.com/pb33f/doctor/model/high/v3"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 )
@@ -388,7 +389,7 @@ func visualLen(s string) int {
 			}
 			continue
 		}
-		n++
+		n += runewidth.RuneWidth(r)
 	}
 	return n
 }
@@ -411,7 +412,7 @@ func truncateToWidth(s string, width int) string {
 			}
 			continue
 		}
-		n++
+		n += runewidth.RuneWidth(r)
 		if n >= width {
 			end := i + utf8.RuneLen(r)
 			if hasEscape {

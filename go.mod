@@ -11,6 +11,7 @@ require (
 	github.com/charmbracelet/glamour v0.8.0
 	github.com/gdamore/tcell/v2 v2.13.4
 	github.com/google/uuid v1.6.0
+	github.com/mattn/go-runewidth v0.0.20
 	github.com/muesli/termenv v0.16.0
 	github.com/pb33f/doctor v0.0.49
 	github.com/pb33f/libopenapi v0.34.4
@@ -53,7 +54,6 @@ require (
 	github.com/lithammer/fuzzysearch v1.1.8 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.20 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect

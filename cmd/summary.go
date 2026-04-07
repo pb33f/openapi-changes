@@ -31,31 +31,17 @@ type summaryStyles struct {
 	detail       lipgloss.Style
 }
 
-func summaryStylesFor() summaryStyles {
+func summaryStylesForPalette(palette terminal.Palette) summaryStyles {
 	return summaryStyles{
-		title:        lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossPrimaryBlue)).Bold(true),
-		breaking:     lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)).Bold(true),
-		addition:     lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGreen)),
-		modification: lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossYellow)),
-		removal:      lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossRed)),
-		stat:         lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossGrey)),
-		detail:       lipgloss.NewStyle().Foreground(lipgloss.Color(terminal.LipglossLightGrey)),
+		title:        styleWithForeground(palette.Primary).Bold(true),
+		breaking:     styleWithForeground(palette.Breaking).Bold(true),
+		addition:     styleWithForeground(palette.Addition),
+		modification: styleWithForeground(palette.Modification),
+		removal:      styleWithForeground(palette.Removal),
+		stat:         styleWithForeground(palette.Muted),
+		detail:       styleWithForeground(palette.Detail),
 	}
 }
-
-// lipglossColorScheme adapts Lip Gloss styles to the doctor terminal.ColorScheme interface.
-type lipglossColorScheme struct {
-	styles summaryStyles
-}
-
-func (l lipglossColorScheme) Addition(s string) string     { return l.styles.addition.Render(s) }
-func (l lipglossColorScheme) Modification(s string) string { return l.styles.modification.Render(s) }
-func (l lipglossColorScheme) Removal(s string) string      { return l.styles.removal.Render(s) }
-func (l lipglossColorScheme) Breaking(s string) string     { return l.styles.breaking.Render(s) }
-func (l lipglossColorScheme) TreeBranch(s string) string   { return l.styles.stat.Render(s) }
-func (l lipglossColorScheme) LocationInfo(s string) string { return l.styles.stat.Render(s) }
-func (l lipglossColorScheme) Statistics(s string) string   { return l.styles.stat.Render(s) }
-func (l lipglossColorScheme) Detail(s string) string       { return l.styles.detail.Render(s) }
 
 type elementSummary struct {
 	name     string
@@ -277,6 +263,22 @@ func renderSummary(
 	withLines bool,
 	styles summaryStyles,
 ) (string, bool, bool, error) {
+	theme, err := resolveTheme(noColor, false)
+	if err != nil {
+		return "", false, false, err
+	}
+	return renderSummaryWithTheme(commits, breakingConfig, markdown, theme, terminal.PaletteForTheme(theme), withLines, styles)
+}
+
+func renderSummaryWithTheme(
+	commits []*model.Commit,
+	breakingConfig *whatChangedModel.BreakingRulesConfig,
+	markdown bool,
+	theme terminal.ThemeName,
+	palette terminal.Palette,
+	withLines bool,
+	styles summaryStyles,
+) (string, bool, bool, error) {
 	if len(commits) == 0 {
 		return noChangesFoundMessage + "\n", false, false, nil
 	}
@@ -299,7 +301,7 @@ func renderSummary(
 
 		result, err := runChangerator(commit, breakingConfig)
 		if err != nil {
-			sb.WriteString(fmt.Sprintf("Error: %s\n", err))
+			emitCommitWarning(commit.Hash, err)
 			renderErrors = append(renderErrors, fmt.Errorf("commit %s: %w", commit.Hash, err))
 			continue
 		}
@@ -312,135 +314,132 @@ func renderSummary(
 		}
 		renderedCommits++
 
-		deduplicatedChanges := result.Changerator.DeduplicateChanges()
+		func() {
+			defer result.Release()
 
-		// Build node change tree and render tree for the first renderable commit only.
-		if !treeRendered {
-			var changeRoot *v3.Node
-			for _, node := range result.Changerator.ChangedNodes {
-				if node != nil && node.Id == "root" {
-					changeRoot = node
-					break
+			deduplicatedChanges := result.Changerator.DeduplicateChanges()
+
+			// Build node change tree and render tree for the first renderable commit only.
+			if !treeRendered {
+				var changeRoot *v3.Node
+				for _, node := range result.Changerator.ChangedNodes {
+					if node != nil && node.Id == "root" {
+						changeRoot = node
+						break
+					}
 				}
+				if changeRoot == nil {
+					changeRoot = result.RightDrDoc.V3Document.Node
+				}
+
+				var colorScheme terminal.ColorScheme
+				if markdown {
+					colorScheme = terminal.NoColorScheme{}
+				} else {
+					colorScheme = terminal.NewThemeColorScheme(theme, palette.Profile, palette.DarkBackground)
+				}
+
+				result.Changerator.BuildNodeChangeTree(changeRoot)
+				semanticRenderer := renderer.NewSemanticTreeRenderer(changeRoot, result.DocChanges.GetAllChanges(), &renderer.TreeConfig{
+					UseEmojis:       markdown,
+					ShowLineNumbers: withLines,
+					ShowStatistics:  true,
+					ColorScheme:     colorScheme,
+				})
+
+				sb.WriteString(renderBreakingHighlights(semanticRenderer.Highlights(8), markdown, styles))
+				treeOutput := semanticRenderer.Render()
+
+				if markdown {
+					sb.WriteString("```\n")
+					sb.WriteString(treeOutput)
+					sb.WriteString("\n```\n")
+				} else {
+					sb.WriteString(treeOutput)
+					sb.WriteString("\n")
+				}
+				treeRendered = true
 			}
-			if changeRoot == nil {
-				changeRoot = result.RightDrDoc.V3Document.Node
-			}
 
-			var colorScheme terminal.ColorScheme
-			if noColor || markdown {
-				colorScheme = terminal.NoColorScheme{}
-			} else {
-				colorScheme = lipglossColorScheme{styles: styles}
-			}
+			sb.WriteString(renderDedupedCountsNote(markdown, styles))
+			sb.WriteString(renderElementSummaryTable(buildElementSummaries(deduplicatedChanges), markdown, styles))
 
-			result.Changerator.BuildNodeChangeTree(changeRoot)
-			semanticRenderer := renderer.NewSemanticTreeRenderer(changeRoot, result.DocChanges.GetAllChanges(), &renderer.TreeConfig{
-				UseEmojis:       markdown,
-				ShowLineNumbers: withLines,
-				ShowStatistics:  true,
-				ColorScheme:     colorScheme,
-			})
+			counts := changecounts.FromChanges(deduplicatedChanges)
+			breaking := counts.Breaking
+			total := counts.Total
+			totalChanges += total
+			totalBreaking += breaking
 
-			sb.WriteString(renderBreakingHighlights(semanticRenderer.Highlights(8), markdown, styles))
-			treeOutput := semanticRenderer.Render()
+			sb.WriteString("\n")
 
+			dateStr := commit.CommitDate.Format("01/02/06")
 			if markdown {
-				sb.WriteString("```\n")
-				sb.WriteString(treeOutput)
-				sb.WriteString("\n```\n")
+				sb.WriteString(fmt.Sprintf("**Date**: %s | **Commit**: %s\n", dateStr, commit.Message))
 			} else {
-				sb.WriteString(treeOutput)
+				sb.WriteString(styles.title.Render(fmt.Sprintf("Date: %s | Commit: %s", dateStr, commit.Message)))
 				sb.WriteString("\n")
 			}
-			treeRendered = true
-		}
 
-		sb.WriteString(renderDedupedCountsNote(markdown, styles))
-		sb.WriteString(renderElementSummaryTable(buildElementSummaries(deduplicatedChanges), markdown, styles))
+			if breaking == 0 {
+				if markdown {
+					sb.WriteString(fmt.Sprintf("- **Total Changes**: _%d_\n", total))
+				} else {
+					sb.WriteString(fmt.Sprintf("  Total Changes: %s\n", styles.title.Render(fmt.Sprint(total))))
+				}
+			} else {
+				if markdown {
+					sb.WriteString(fmt.Sprintf("- ❌ **BREAKING Changes**: _%d_ out of _%d_\n", breaking, total))
+				} else {
+					sb.WriteString(fmt.Sprintf("  %s\n", styles.breaking.Render(fmt.Sprintf("❌  %d Breaking changes out of %d", breaking, total))))
+				}
+			}
 
-		counts := changecounts.FromChanges(deduplicatedChanges)
-		breaking := counts.Breaking
-		total := counts.Total
-		totalChanges += total
-		totalBreaking += breaking
+			if counts.Additions > 0 {
+				if markdown {
+					sb.WriteString(fmt.Sprintf("- **Additions**: _%d_\n", counts.Additions))
+				} else {
+					sb.WriteString(fmt.Sprintf("  Additions: %s\n", styles.addition.Render(fmt.Sprint(counts.Additions))))
+				}
+			}
+			if counts.Modifications > 0 {
+				if markdown {
+					sb.WriteString(fmt.Sprintf("- **Modifications**: _%d_\n", counts.Modifications))
+				} else {
+					sb.WriteString(fmt.Sprintf("  Modifications: %s\n", styles.modification.Render(fmt.Sprint(counts.Modifications))))
+				}
+			}
+			if counts.Removals > 0 {
+				if markdown {
+					sb.WriteString(fmt.Sprintf("- **Removals**: _%d_\n", counts.Removals))
+				} else {
+					sb.WriteString(fmt.Sprintf("  Removals: %s\n", styles.removal.Render(fmt.Sprint(counts.Removals))))
+				}
+			}
 
-		// Build output
-		sb.WriteString("\n")
+			if counts.BreakingAdditions > 0 {
+				if markdown {
+					sb.WriteString(fmt.Sprintf("- **Breaking Additions**: _%d_\n", counts.BreakingAdditions))
+				} else {
+					sb.WriteString(fmt.Sprintf("  Breaking Additions: %s\n", styles.breaking.Render(fmt.Sprint(counts.BreakingAdditions))))
+				}
+			}
+			if counts.BreakingModifications > 0 {
+				if markdown {
+					sb.WriteString(fmt.Sprintf("- **Breaking Modifications**: _%d_\n", counts.BreakingModifications))
+				} else {
+					sb.WriteString(fmt.Sprintf("  Breaking Modifications: %s\n", styles.breaking.Render(fmt.Sprint(counts.BreakingModifications))))
+				}
+			}
+			if counts.BreakingRemovals > 0 {
+				if markdown {
+					sb.WriteString(fmt.Sprintf("- **Breaking Removals**: _%d_\n", counts.BreakingRemovals))
+				} else {
+					sb.WriteString(fmt.Sprintf("  Breaking Removals: %s\n", styles.breaking.Render(fmt.Sprint(counts.BreakingRemovals))))
+				}
+			}
 
-		// Commit metadata
-		dateStr := commit.CommitDate.Format("01/02/06")
-		if markdown {
-			sb.WriteString(fmt.Sprintf("**Date**: %s | **Commit**: %s\n", dateStr, commit.Message))
-		} else {
-			sb.WriteString(styles.title.Render(fmt.Sprintf("Date: %s | Commit: %s", dateStr, commit.Message)))
 			sb.WriteString("\n")
-		}
-
-		// Total changes + breaking
-		if breaking == 0 {
-			if markdown {
-				sb.WriteString(fmt.Sprintf("- **Total Changes**: _%d_\n", total))
-			} else {
-				sb.WriteString(fmt.Sprintf("  Total Changes: %s\n", styles.title.Render(fmt.Sprint(total))))
-			}
-		} else {
-			if markdown {
-				sb.WriteString(fmt.Sprintf("- ❌ **BREAKING Changes**: _%d_ out of _%d_\n", breaking, total))
-			} else {
-				sb.WriteString(fmt.Sprintf("  %s\n", styles.breaking.Render(fmt.Sprintf("❌  %d Breaking changes out of %d", breaking, total))))
-			}
-		}
-
-		// Additions / Modifications / Deletions
-		if counts.Additions > 0 {
-			if markdown {
-				sb.WriteString(fmt.Sprintf("- **Additions**: _%d_\n", counts.Additions))
-			} else {
-				sb.WriteString(fmt.Sprintf("  Additions: %s\n", styles.addition.Render(fmt.Sprint(counts.Additions))))
-			}
-		}
-		if counts.Modifications > 0 {
-			if markdown {
-				sb.WriteString(fmt.Sprintf("- **Modifications**: _%d_\n", counts.Modifications))
-			} else {
-				sb.WriteString(fmt.Sprintf("  Modifications: %s\n", styles.modification.Render(fmt.Sprint(counts.Modifications))))
-			}
-		}
-		if counts.Removals > 0 {
-			if markdown {
-				sb.WriteString(fmt.Sprintf("- **Removals**: _%d_\n", counts.Removals))
-			} else {
-				sb.WriteString(fmt.Sprintf("  Removals: %s\n", styles.removal.Render(fmt.Sprint(counts.Removals))))
-			}
-		}
-
-		// Breaking breakdown
-		if counts.BreakingAdditions > 0 {
-			if markdown {
-				sb.WriteString(fmt.Sprintf("- **Breaking Additions**: _%d_\n", counts.BreakingAdditions))
-			} else {
-				sb.WriteString(fmt.Sprintf("  Breaking Additions: %s\n", styles.breaking.Render(fmt.Sprint(counts.BreakingAdditions))))
-			}
-		}
-		if counts.BreakingModifications > 0 {
-			if markdown {
-				sb.WriteString(fmt.Sprintf("- **Breaking Modifications**: _%d_\n", counts.BreakingModifications))
-			} else {
-				sb.WriteString(fmt.Sprintf("  Breaking Modifications: %s\n", styles.breaking.Render(fmt.Sprint(counts.BreakingModifications))))
-			}
-		}
-		if counts.BreakingRemovals > 0 {
-			if markdown {
-				sb.WriteString(fmt.Sprintf("- **Breaking Removals**: _%d_\n", counts.BreakingRemovals))
-			} else {
-				sb.WriteString(fmt.Sprintf("  Breaking Removals: %s\n", styles.breaking.Render(fmt.Sprint(counts.BreakingRemovals))))
-			}
-		}
-
-		sb.WriteString("\n")
-
-		result.Release()
+		}()
 	}
 
 	hasBreaking := totalBreaking > 0
@@ -449,7 +448,7 @@ func renderSummary(
 		return sb.String(), false, false, fmt.Errorf("all %d commits failed to render: %w", len(renderErrors), errors.Join(renderErrors...))
 	}
 	if len(renderErrors) > 0 {
-		return sb.String(), hasBreaking, hasChanges, fmt.Errorf("%d commits failed to render: %w", len(renderErrors), errors.Join(renderErrors...))
+		fmt.Fprintf(os.Stderr, "warning: %d commits failed to render\n", len(renderErrors))
 	}
 	if !hasChanges && len(renderErrors) == 0 {
 		if sb.Len() == 0 {
@@ -469,17 +468,17 @@ func GetSummaryCommand() *cobra.Command {
 		Long:         "print a summary of what changed using the doctor changerator engine with tree visualization",
 		Example:      "openapi-changes summary /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts, configFlag := readCommonFlags(cmd)
+			opts, configFlag, err := readCommonFlags(cmd)
+			if err != nil {
+				return err
+			}
 			opts.markdown, _ = cmd.Flags().GetBool("markdown")
 			opts.errorOnDiff, _ = cmd.Flags().GetBool("error-on-diff")
 
-			noBanner, _ := cmd.Flags().GetBool("no-logo")
-			if !noBanner {
-				PrintBanner(opts.noColor)
-			}
+			maybePrintBanner(cmd, opts.palette)
 
 			if len(args) == 0 {
-				printSummaryUsage(opts.noColor)
+				printSummaryUsage(opts.palette)
 				return nil
 			}
 
@@ -493,14 +492,11 @@ func GetSummaryCommand() *cobra.Command {
 				return fmt.Errorf("too many arguments provided, expecting at most two (2)")
 			}
 
-			styles := summaryStyles{}
-			if !opts.noColor {
-				styles = summaryStylesFor()
-			}
+			styles := summaryStylesForPalette(opts.palette)
 
 			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
 			if err != nil {
-				PrintConfigError(err)
+				PrintConfigError(err, opts.palette)
 				return err
 			}
 
@@ -516,8 +512,8 @@ func GetSummaryCommand() *cobra.Command {
 				}
 			}
 
-			output, hasBreaking, hasChanges, renderErr := renderSummary(
-				commits, breakingConfig, opts.markdown, opts.noColor, opts.withLines, styles,
+			output, hasBreaking, hasChanges, renderErr := renderSummaryWithTheme(
+				commits, breakingConfig, opts.markdown, opts.theme, opts.palette, opts.withLines, styles,
 			)
 			if output != "" {
 				fmt.Print(output)
@@ -534,15 +530,15 @@ func GetSummaryCommand() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().BoolP("no-color", "n", false, "Disable color and style output (very useful for CI/CD)")
+	addTerminalThemeFlags(cmd)
 	cmd.Flags().BoolP("markdown", "m", false, "Render output in markdown, using emojis")
 	cmd.Flags().Bool("with-lines", false, "Include source line and column locations in semantic tree leaves")
 	cmd.Flags().BoolP("error-on-diff", "", false, "Treat any differences as errors")
 	return cmd
 }
 
-func printSummaryUsage(noColor bool) {
+func printSummaryUsage(palette terminal.Palette) {
 	printCommandUsage("summary",
 		"The summary command prints out a simplified, reduced summary of a change report as a change tree and summary table",
-		noColor)
+		palette)
 }
