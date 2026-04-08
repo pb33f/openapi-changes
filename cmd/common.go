@@ -135,7 +135,13 @@ func maybePrintBanner(cmd *cobra.Command, palette terminal.Palette) {
 			return
 		}
 	}
-	PrintBanner(palette)
+	terminal.PrintBanner(terminal.BannerOptions{
+		Palette:     palette,
+		ProductName: "openapi-changes",
+		ProductURL:  "https://pb33f.io/openapi-changes/",
+		Version:     Version,
+		Date:        Date,
+	})
 }
 
 // commandInput holds the resolved state from the shared command preamble.
