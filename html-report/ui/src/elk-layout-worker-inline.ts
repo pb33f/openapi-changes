@@ -1,4 +1,4 @@
-import ELK from '@report-elkjs';
+import ELK from 'elkjs/lib/elk.bundled.js';
 
 type LayoutRequest = {
     requestId?: number;

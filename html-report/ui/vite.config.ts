@@ -1,6 +1,7 @@
 import { defineConfig, Plugin } from 'vite';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
 import { readFileSync } from 'fs';
+import { createRequire } from 'module';
 
 /**
  * Inline font files as base64 data URIs in @font-face CSS declarations.
@@ -11,8 +12,8 @@ import { readFileSync } from 'fs';
  * a base64 data URI so fonts work for everyone, not just users with BerkeleyMono installed.
  */
 function inlineFontDataURIs(): Plugin {
-  // cowboy-components/src/fonts/ is where the font files live
-  const fontsDir = resolve(__dirname, '../../../cowboy-components/src/fonts');
+  const require = createRequire(import.meta.url);
+  const fontsDir = dirname(require.resolve('@pb33f/cowboy-components/fonts/BerkeleyMono-Regular.woff2'));
 
   return {
     name: 'inline-font-data-uris',
@@ -93,9 +94,6 @@ export default defineConfig({
       'lit',
       'chart.js',
     ],
-    alias: {
-      '@report-elkjs': resolve(__dirname, '../../../cowboy-components/node_modules/elkjs/lib/elk.bundled.js'),
-    },
   },
   build: {
     outDir: 'build/static',

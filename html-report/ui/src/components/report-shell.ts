@@ -4,15 +4,14 @@ import type { SlTabShowEvent } from '@shoelace-style/shoelace/dist/events/sl-tab
 import { ReportShellBase } from './report-shell-base.js';
 import type { Change } from '@pb33f/cowboy-components/static-report';
 
-import { ExplorerComponent, ExplorerChangePanel, ExplorerNodeClicked, FocusedDiffPanel, GraphMode } from '@pb33f/cowboy-components/static-report';
+import { ExplorerComponent, ExplorerChangePanel, ExplorerNodeClicked, FocusedDiffPanel, GraphMode, createInlineGraphDependentWorker } from '@pb33f/cowboy-components/static-report';
 import type { NodeClickedEvent } from '@pb33f/cowboy-components/static-report';
 void ExplorerChangePanel;
 void FocusedDiffPanel;
 import { createElkLayoutWorker } from '../elk-layout-worker-inline.js';
-import { createGraphDependentWorker } from '../graph-dependent-worker-inline.js';
 
 ExplorerComponent.elkWorkerFactory = createElkLayoutWorker;
-ExplorerComponent.graphDependentWorkerFactory = createGraphDependentWorker;
+ExplorerComponent.graphDependentWorkerFactory = createInlineGraphDependentWorker;
 
 @customElement('openapi-changes-report')
 export class ReportShell extends ReportShellBase {

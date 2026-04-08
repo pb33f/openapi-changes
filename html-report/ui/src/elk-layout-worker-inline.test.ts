@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 
 // Mock ELK before importing the worker
 const mockLayout = vi.fn();
-vi.mock('@report-elkjs', () => {
+vi.mock('elkjs/lib/elk.bundled.js', () => {
     return {
         default: class MockELK {
             layout = mockLayout;
