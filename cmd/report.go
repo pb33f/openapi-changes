@@ -44,7 +44,7 @@ func changerateAndFlatten(commits []*model.Commit, breakingConfig *whatChangedMo
 		if result == nil {
 			continue
 		}
-		reports = append(reports, FlattenReportWithDocuments(createReport(commit), result.LeftDrDoc.V3Document, result.RightDrDoc.V3Document))
+		reports = append(reports, FlattenReportWithParameterNames(createReport(commit), result.Changerator.ParameterNames))
 		result.Release()
 	}
 	if len(errs) > 0 {
@@ -69,7 +69,7 @@ func runLeftRightReport(left, right string, opts summaryOpts, breakingConfig *wh
 		return nil, nil
 	}
 	defer result.Release()
-	flat := FlattenReportWithDocuments(createReport(commits[0]), result.LeftDrDoc.V3Document, result.RightDrDoc.V3Document)
+	flat := FlattenReportWithParameterNames(createReport(commits[0]), result.Changerator.ParameterNames)
 	flat.Commit = nil
 	return flat, nil
 }

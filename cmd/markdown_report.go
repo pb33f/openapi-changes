@@ -6,25 +6,15 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"regexp"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/pb33f/doctor/changerator/renderer"
 	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
-	"github.com/pb33f/openapi-changes/internal/changecounts"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/spf13/cobra"
-)
-
-var (
-	reChangesDetected = regexp.MustCompile(`(?m)^\*\*\d+\*\* changes detected, \*\*\d+\*\* are \*\*\(💔 breaking\)\*\*\.$`)
-	reAdditions       = regexp.MustCompile(`(?m)^- Additions: \*\*\d+\*\*$`)
-	reModifications   = regexp.MustCompile(`(?m)^- Modifications: \*\*\d+\*\*$`)
-	reRemovals        = regexp.MustCompile(`(?m)^- Removals: \*\*\d+\*\*$`)
 )
 
 func printMarkdownReportUsage(palette terminal.Palette) {
@@ -56,7 +46,7 @@ func renderCommitMarkdown(commit *model.Commit, breakingConfig *whatChangedModel
 	if err != nil {
 		return "", err
 	}
-	return rewriteMarkdownSummary(markdown, deduplicatedChanges), nil
+	return markdown, nil
 }
 
 // generateUnifiedDiff produces a unified diff between original and modified strings.
@@ -74,139 +64,6 @@ func generateUnifiedDiff(original, modified string) string {
 		return ""
 	}
 	return text
-}
-
-func rewriteMarkdownSummary(markdown string, deduplicatedChanges []*whatChangedModel.Change) string {
-	if markdown == "" || len(deduplicatedChanges) == 0 {
-		return markdown
-	}
-
-	counts := changecounts.FromChanges(deduplicatedChanges)
-
-	markdown = reChangesDetected.
-		ReplaceAllString(markdown, fmt.Sprintf("**%d** changes detected, **%d** are **(💔 breaking)**.", counts.Total, counts.Breaking))
-	markdown = reAdditions.
-		ReplaceAllString(markdown, fmt.Sprintf("- Additions: **%d**", counts.Additions))
-	markdown = reModifications.
-		ReplaceAllString(markdown, fmt.Sprintf("- Modifications: **%d**", counts.Modifications))
-	markdown = reRemovals.
-		ReplaceAllString(markdown, fmt.Sprintf("- Removals: **%d**", counts.Removals))
-
-	if table := buildDeduplicatedObjectStatsTable(deduplicatedChanges); table != "" {
-		start := strings.Index(markdown, "| Object")
-		breakdown := strings.Index(markdown, "## Change Breakdown")
-		if start >= 0 && breakdown > start {
-			markdown = markdown[:start] + table + markdown[breakdown:]
-		}
-	}
-
-	return markdown
-}
-
-type markdownObjectStat struct {
-	label    string
-	total    int
-	breaking int
-	order    int
-}
-
-func buildDeduplicatedObjectStatsTable(deduplicatedChanges []*whatChangedModel.Change) string {
-	typeOrders := map[string]int{
-		"Contact":              10,
-		"Info":                 20,
-		"Operation":            30,
-		"Parameter":            40,
-		"PathItem":             50,
-		"Request Body":         60,
-		"Response":             70,
-		"Responses":            80,
-		"Schema":               90,
-		"Security Requirement": 100,
-		"Security Scheme":      110,
-		"OAuth Flow":           120,
-		"Tag":                  130,
-	}
-
-	normalizeType := func(changeType string) string {
-		switch changeType {
-		case "contact":
-			return "Contact"
-		case "info":
-			return "Info"
-		case "operation":
-			return "Operation"
-		case "parameter":
-			return "Parameter"
-		case "pathItem":
-			return "PathItem"
-		case "requestBody":
-			return "Request Body"
-		case "response":
-			return "Response"
-		case "responses":
-			return "Responses"
-		case "schema":
-			return "Schema"
-		case "security":
-			return "Security Requirement"
-		case "securityScheme":
-			return "Security Scheme"
-		case "oauthFlow":
-			return "OAuth Flow"
-		case "tag", "tags":
-			return "Tag"
-		default:
-			return ""
-		}
-	}
-
-	statsByLabel := make(map[string]*markdownObjectStat)
-	for _, change := range deduplicatedChanges {
-		if change == nil {
-			continue
-		}
-		label := normalizeType(change.Type)
-		if label == "" {
-			continue
-		}
-		stat := statsByLabel[label]
-		if stat == nil {
-			stat = &markdownObjectStat{label: label, order: typeOrders[label]}
-			statsByLabel[label] = stat
-		}
-		stat.total++
-		if change.Breaking {
-			stat.breaking++
-		}
-	}
-
-	if len(statsByLabel) == 0 {
-		return ""
-	}
-
-	rows := make([]*markdownObjectStat, 0, len(statsByLabel))
-	for _, stat := range statsByLabel {
-		rows = append(rows, stat)
-	}
-	sort.Slice(rows, func(i, j int) bool {
-		if rows[i].order != rows[j].order {
-			return rows[i].order < rows[j].order
-		}
-		return rows[i].label < rows[j].label
-	})
-
-	var sb strings.Builder
-	sb.WriteString("| Object               | Total Changes | Breaking Changes |\n")
-	sb.WriteString("|----------------------|---------------|------------------|\n")
-	for _, row := range rows {
-		breaking := "-"
-		if row.breaking > 0 {
-			breaking = fmt.Sprintf("%d", row.breaking)
-		}
-		sb.WriteString(fmt.Sprintf("| %s | %d | %s |\n", row.label, row.total, breaking))
-	}
-	sb.WriteString("\n")
-	return sb.String()
 }
 
 func isSyntheticLeftRightCommit(commit *model.Commit) bool {

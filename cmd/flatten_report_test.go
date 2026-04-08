@@ -80,333 +80,60 @@ func TestSplitParameterPath_LargeIndex(t *testing.T) {
 	assert.Equal(t, 99, idx)
 }
 
-// --- findParameterNameForLine ---
+// --- normalizeParameterPath ---
 
-func TestFindParameterNameForLine_NilLine(t *testing.T) {
-	ranges := []parameterLineRange{{name: "a", start: 10, end: 20}}
-	assert.Equal(t, "", findParameterNameForLine(ranges, nil))
-}
-
-func TestFindParameterNameForLine_ZeroLine(t *testing.T) {
-	ranges := []parameterLineRange{{name: "a", start: 10, end: 20}}
-	assert.Equal(t, "", findParameterNameForLine(ranges, intPtr(0)))
-}
-
-func TestFindParameterNameForLine_EmptyRanges(t *testing.T) {
-	assert.Equal(t, "", findParameterNameForLine(nil, intPtr(5)))
-}
-
-func TestFindParameterNameForLine_LineBeforeFirstRange(t *testing.T) {
-	ranges := []parameterLineRange{{name: "a", start: 10, end: 20}}
-	assert.Equal(t, "", findParameterNameForLine(ranges, intPtr(5)))
-}
-
-func TestFindParameterNameForLine_LineAtRangeStart(t *testing.T) {
-	ranges := []parameterLineRange{{name: "a", start: 10, end: 20}}
-	assert.Equal(t, "a", findParameterNameForLine(ranges, intPtr(10)))
-}
-
-func TestFindParameterNameForLine_LineInMiddle(t *testing.T) {
-	ranges := []parameterLineRange{{name: "a", start: 10, end: 20}}
-	assert.Equal(t, "a", findParameterNameForLine(ranges, intPtr(15)))
-}
-
-func TestFindParameterNameForLine_LineAtRangeEnd(t *testing.T) {
-	ranges := []parameterLineRange{{name: "a", start: 10, end: 20}}
-	assert.Equal(t, "a", findParameterNameForLine(ranges, intPtr(20)))
-}
-
-func TestFindParameterNameForLine_LineAfterRangeEnd(t *testing.T) {
-	ranges := []parameterLineRange{{name: "a", start: 10, end: 20}}
-	assert.Equal(t, "", findParameterNameForLine(ranges, intPtr(21)))
-}
-
-func TestFindParameterNameForLine_OpenEndedRange(t *testing.T) {
-	ranges := []parameterLineRange{{name: "a", start: 10, end: 0}}
-	assert.Equal(t, "a", findParameterNameForLine(ranges, intPtr(999)))
-}
-
-func TestFindParameterNameForLine_MultipleRanges_MatchesSecond(t *testing.T) {
-	ranges := []parameterLineRange{
-		{name: "a", start: 10, end: 15},
-		{name: "b", start: 16, end: 25},
-	}
-	assert.Equal(t, "b", findParameterNameForLine(ranges, intPtr(20)))
-}
-
-func TestFindParameterNameForLine_MultipleRanges_LastOpenEnded(t *testing.T) {
-	ranges := []parameterLineRange{
-		{name: "a", start: 10, end: 15},
-		{name: "b", start: 16, end: 0},
-	}
-	assert.Equal(t, "b", findParameterNameForLine(ranges, intPtr(100)))
-}
-
-// --- resolveName ---
-
-func TestResolveName_NilScope(t *testing.T) {
-	var s *parameterScope
-	change := &wcModel.Change{Path: "$.test"}
-	assert.Equal(t, "", s.resolveName(change, 0))
-}
-
-func TestResolveName_BothNamesMatch(t *testing.T) {
-	s := &parameterScope{
-		byIndex:        map[int]string{0: "petId"},
-		originalRanges: []parameterLineRange{{name: "petId", start: 10, end: 20}},
-		newRanges:      []parameterLineRange{{name: "petId", start: 10, end: 20}},
-	}
-	change := &wcModel.Change{
-		ChangeType: wcModel.Modified,
-		Context:    &wcModel.ChangeContext{OriginalLine: intPtr(15), NewLine: intPtr(15)},
-	}
-	assert.Equal(t, "petId", s.resolveName(change, 0))
-}
-
-func TestResolveName_Modified_UsesNewName(t *testing.T) {
-	s := &parameterScope{
-		byIndex:        map[int]string{},
-		originalRanges: []parameterLineRange{{name: "limit", start: 10, end: 20}},
-		newRanges:      []parameterLineRange{{name: "offset", start: 10, end: 20}},
-	}
-	change := &wcModel.Change{
-		ChangeType: wcModel.Modified,
-		Context:    &wcModel.ChangeContext{OriginalLine: intPtr(15), NewLine: intPtr(15)},
-	}
-	assert.Equal(t, "offset", s.resolveName(change, 0))
-}
-
-func TestResolveName_PropertyAdded_UsesNewName(t *testing.T) {
-	s := &parameterScope{
-		byIndex:   map[int]string{},
-		newRanges: []parameterLineRange{{name: "offset", start: 10, end: 20}},
-	}
-	change := &wcModel.Change{
-		ChangeType: wcModel.PropertyAdded,
-		Context:    &wcModel.ChangeContext{NewLine: intPtr(15)},
-	}
-	assert.Equal(t, "offset", s.resolveName(change, 0))
-}
-
-func TestResolveName_ObjectAdded_UsesNewName(t *testing.T) {
-	s := &parameterScope{
-		byIndex:   map[int]string{},
-		newRanges: []parameterLineRange{{name: "offset", start: 10, end: 20}},
-	}
-	change := &wcModel.Change{
-		ChangeType: wcModel.ObjectAdded,
-		Context:    &wcModel.ChangeContext{NewLine: intPtr(15)},
-	}
-	assert.Equal(t, "offset", s.resolveName(change, 0))
-}
-
-func TestResolveName_PropertyRemoved_UsesOriginalName(t *testing.T) {
-	s := &parameterScope{
-		byIndex:        map[int]string{},
-		originalRanges: []parameterLineRange{{name: "limit", start: 10, end: 20}},
-	}
-	change := &wcModel.Change{
-		ChangeType: wcModel.PropertyRemoved,
-		Context:    &wcModel.ChangeContext{OriginalLine: intPtr(15)},
-	}
-	assert.Equal(t, "limit", s.resolveName(change, 0))
-}
-
-func TestResolveName_ObjectRemoved_UsesOriginalName(t *testing.T) {
-	s := &parameterScope{
-		byIndex:        map[int]string{},
-		originalRanges: []parameterLineRange{{name: "limit", start: 10, end: 20}},
-	}
-	change := &wcModel.Change{
-		ChangeType: wcModel.ObjectRemoved,
-		Context:    &wcModel.ChangeContext{OriginalLine: intPtr(15)},
-	}
-	assert.Equal(t, "limit", s.resolveName(change, 0))
-}
-
-func TestResolveName_OnlyNewName_FallsThrough(t *testing.T) {
-	s := &parameterScope{
-		byIndex:   map[int]string{},
-		newRanges: []parameterLineRange{{name: "offset", start: 10, end: 20}},
-	}
-	change := &wcModel.Change{
-		ChangeType: wcModel.PropertyRemoved,
-		Context:    &wcModel.ChangeContext{NewLine: intPtr(15)},
-	}
-	assert.Equal(t, "offset", s.resolveName(change, 0))
-}
-
-func TestResolveName_OnlyOriginalName_FallsThrough(t *testing.T) {
-	s := &parameterScope{
-		byIndex:        map[int]string{},
-		originalRanges: []parameterLineRange{{name: "limit", start: 10, end: 20}},
-	}
-	change := &wcModel.Change{
-		ChangeType: wcModel.Modified,
-		Context:    &wcModel.ChangeContext{OriginalLine: intPtr(15)},
-	}
-	assert.Equal(t, "limit", s.resolveName(change, 0))
-}
-
-func TestResolveName_NoLineMatch_FallsBackToIndex(t *testing.T) {
-	s := &parameterScope{
-		byIndex: map[int]string{0: "petId"},
-	}
-	change := &wcModel.Change{
-		ChangeType: wcModel.Modified,
-		Context:    &wcModel.ChangeContext{OriginalLine: intPtr(999), NewLine: intPtr(999)},
-	}
-	assert.Equal(t, "petId", s.resolveName(change, 0))
-}
-
-func TestResolveName_NoMatch_ReturnsEmpty(t *testing.T) {
-	s := &parameterScope{
-		byIndex: map[int]string{},
-	}
-	change := &wcModel.Change{
-		ChangeType: wcModel.Modified,
-		Context:    &wcModel.ChangeContext{OriginalLine: intPtr(999), NewLine: intPtr(999)},
-	}
-	assert.Equal(t, "", s.resolveName(change, 0))
-}
-
-func TestResolveName_NilContext_FallsBackToIndex(t *testing.T) {
-	s := &parameterScope{
-		byIndex: map[int]string{0: "petId"},
-	}
-	change := &wcModel.Change{ChangeType: wcModel.Modified}
-	assert.Equal(t, "petId", s.resolveName(change, 0))
-}
-
-// --- NormalizeChange integration ---
-
-func TestNormalizeChange_NonParameterPath(t *testing.T) {
-	n := &changePathNormalizer{
-		parameterScopes: map[string]*parameterScope{},
-	}
+func TestNormalizeParameterPath_NonParameterPath(t *testing.T) {
+	names := map[string]string{"$.paths['/pets'].get.parameters[0]": "petId"}
 	change := &wcModel.Change{Path: "$.paths['/pets'].get.responses.200"}
-	path, rawPath := n.NormalizeChange(change)
+	path, rawPath := normalizeParameterPath(change, names)
 	assert.Equal(t, "$.paths['/pets'].get.responses.200", path)
 	assert.Equal(t, "$.paths['/pets'].get.responses.200", rawPath)
 }
 
-func TestNormalizeChange_WithMatchingScope(t *testing.T) {
-	n := &changePathNormalizer{
-		parameterScopes: map[string]*parameterScope{
-			"$.paths['/pets'].get.parameters": {
-				byIndex: map[int]string{0: "petId", 1: "limit"},
-			},
-		},
+func TestNormalizeParameterPath_WithMatchingName(t *testing.T) {
+	names := map[string]string{
+		"$.paths['/pets'].get.parameters[0]": "petId",
+		"$.paths['/pets'].get.parameters[1]": "limit",
 	}
-	change := &wcModel.Change{
-		Path:       "$.paths['/pets'].get.parameters[1].schema",
-		ChangeType: wcModel.Modified,
-	}
-	path, rawPath := n.NormalizeChange(change)
+	change := &wcModel.Change{Path: "$.paths['/pets'].get.parameters[1].schema"}
+	path, rawPath := normalizeParameterPath(change, names)
 	assert.Equal(t, "$.paths['/pets'].get.parameters['limit'].schema", path)
 	assert.Equal(t, "$.paths['/pets'].get.parameters[1].schema", rawPath)
 }
 
-func TestNormalizeChange_NoMatchingScope(t *testing.T) {
-	n := &changePathNormalizer{
-		parameterScopes: map[string]*parameterScope{
-			"$.paths['/dogs'].get.parameters": {
-				byIndex: map[int]string{0: "dogId"},
-			},
-		},
-	}
-	change := &wcModel.Change{
-		Path:       "$.paths['/cats'].get.parameters[0]",
-		ChangeType: wcModel.Modified,
-	}
-	path, rawPath := n.NormalizeChange(change)
+func TestNormalizeParameterPath_NoMatchingName(t *testing.T) {
+	names := map[string]string{"$.paths['/dogs'].get.parameters[0]": "dogId"}
+	change := &wcModel.Change{Path: "$.paths['/cats'].get.parameters[0]"}
+	path, rawPath := normalizeParameterPath(change, names)
 	assert.Equal(t, "$.paths['/cats'].get.parameters[0]", path)
 	assert.Equal(t, "$.paths['/cats'].get.parameters[0]", rawPath)
 }
 
-// --- isSimpleJSONPathProperty ---
-
-func TestIsSimpleJSONPathProperty(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected bool
-	}{
-		{"", false},
-		{"get", true},
-		{"my_prop", true},
-		{"prop1", true},
-		{"1prop", false},
-		{"a.b", false},
-		{"my-prop", false},
-		{"/pets", false},
-		{"it's", false},
-		{"MyProp", true},
-		{"x", true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			assert.Equal(t, tt.expected, isSimpleJSONPathProperty(tt.input))
-		})
-	}
+func TestNormalizeParameterPath_NilChange(t *testing.T) {
+	path, rawPath := normalizeParameterPath(nil, map[string]string{})
+	assert.Equal(t, "", path)
+	assert.Equal(t, "", rawPath)
 }
 
-// --- appendJSONPathProperty ---
-
-func TestAppendJSONPathProperty(t *testing.T) {
-	tests := []struct {
-		name     string
-		path     string
-		property string
-		expected string
-	}{
-		{"EmptyPath", "", "get", ""},
-		{"EmptyProperty", "$.paths", "", "$.paths"},
-		{"SimpleProperty", "$.paths", "get", "$.paths.get"},
-		{"NeedsQuoting", "$.paths", "/pets", "$.paths['/pets']"},
-		{"SingleQuoteEscape", "$.paths", "it's", "$.paths['it\\'s']"},
-		{"BothEmpty", "", "", ""},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.expected, appendJSONPathProperty(tt.path, tt.property))
-		})
-	}
+func TestNormalizeParameterPath_EmptyPath(t *testing.T) {
+	change := &wcModel.Change{Path: ""}
+	path, rawPath := normalizeParameterPath(change, map[string]string{})
+	assert.Equal(t, "", path)
+	assert.Equal(t, "", rawPath)
 }
 
-// --- canonicalRawPath ---
+// --- escapeJSONPathSingleQuote ---
 
-func TestCanonicalRawPath_NilScope(t *testing.T) {
-	var s *parameterScope
-	assert.Equal(t, "p[0].s", s.canonicalRawPath("p", "a", ".s", 0))
+func TestEscapeJSONPathSingleQuote_NoQuotes(t *testing.T) {
+	assert.Equal(t, "/pets", escapeJSONPathSingleQuote("/pets"))
 }
 
-func TestCanonicalRawPath_NameFoundInIndex(t *testing.T) {
-	s := &parameterScope{byIndex: map[int]string{0: "a", 1: "b"}}
-	assert.Equal(t, "p[1].s", s.canonicalRawPath("p", "b", ".s", 0))
+func TestEscapeJSONPathSingleQuote_WithQuote(t *testing.T) {
+	assert.Equal(t, "it\\'s", escapeJSONPathSingleQuote("it's"))
 }
 
-func TestCanonicalRawPath_NameNotFound_UsesFallback(t *testing.T) {
-	s := &parameterScope{byIndex: map[int]string{0: "a"}}
-	assert.Equal(t, "p[5].s", s.canonicalRawPath("p", "c", ".s", 5))
-}
-
-func TestCanonicalRawPath_EmptySuffix(t *testing.T) {
-	s := &parameterScope{byIndex: map[int]string{0: "a"}}
-	assert.Equal(t, "p[0]", s.canonicalRawPath("p", "a", "", 0))
-}
-
-// --- buildParameterLineRanges ---
-
-func TestBuildParameterLineRanges_NilSlice(t *testing.T) {
-	assert.Empty(t, buildParameterLineRanges(nil))
-}
-
-func TestBuildParameterLineRanges_EmptySlice(t *testing.T) {
-	assert.Empty(t, buildParameterLineRanges(nil))
-}
-
-func TestBuildParameterLineRanges_AllNilParams(t *testing.T) {
-	assert.Empty(t, buildParameterLineRanges(nil))
+func TestEscapeJSONPathSingleQuote_MultipleQuotes(t *testing.T) {
+	assert.Equal(t, "a\\'b\\'c", escapeJSONPathSingleQuote("a'b'c"))
 }
 
 // --- cloneChange ---
@@ -431,7 +158,6 @@ func TestCloneChange_WithContext(t *testing.T) {
 	}
 	cloned := cloneChange(original)
 	assert.Equal(t, 10, *cloned.Context.OriginalLine)
-	// Context struct is copied, so replacing the pointer field isolates the clone
 	newLine := 999
 	cloned.Context.OriginalLine = &newLine
 	assert.Equal(t, 10, *original.Context.OriginalLine)
@@ -449,18 +175,4 @@ func TestRawPathIfChanged_SamePaths(t *testing.T) {
 
 func TestRawPathIfChanged_DifferentPaths(t *testing.T) {
 	assert.Equal(t, "$.parameters[0]", rawPathIfChanged("$.parameters[0]", "$.parameters['petId']"))
-}
-
-// --- escapeJSONPathSingleQuote ---
-
-func TestEscapeJSONPathSingleQuote_NoQuotes(t *testing.T) {
-	assert.Equal(t, "/pets", escapeJSONPathSingleQuote("/pets"))
-}
-
-func TestEscapeJSONPathSingleQuote_WithQuote(t *testing.T) {
-	assert.Equal(t, "it\\'s", escapeJSONPathSingleQuote("it's"))
-}
-
-func TestEscapeJSONPathSingleQuote_MultipleQuotes(t *testing.T) {
-	assert.Equal(t, "a\\'b\\'c", escapeJSONPathSingleQuote("a'b'c"))
 }
