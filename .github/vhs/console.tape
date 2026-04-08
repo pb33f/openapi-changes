@@ -3,8 +3,8 @@ Output dist/demos/console.mp4
 
 Set Shell "zsh"
 Set FontSize 20
-Set Width 2048
-Set Height 1120
+Set Width 1920
+Set Height 1080
 Set Theme "GitHub Dark"
 Set TypingSpeed 0ms
 Set Framerate 30
@@ -17,63 +17,111 @@ Enter
 Sleep 200ms
 
 # Timeline pass one: move around a little so the history is visible.
-Type "k"
+Down
 Sleep 300ms
-Type "k"
-Sleep 300ms
-Type "k"
-Sleep 300ms
-Type "k"
-Sleep 300ms
-Type "k"
-Sleep 300ms
-Enter
-Sleep 300ms
-Type "j"
-Type "j"
-Type "j"
-Type "j"
-Type "j"
-Type "j"
-Type "j"
+Down
+Sleep 200ms
+Down
 
-Ctrl+[
-Ctrl+[
-
-Type "k"
-Sleep 300ms
-
-
-# Open the highlighted change set and browse the tree a little.
-Enter
 Sleep 1s
-Type "j"
-Sleep 700ms
-Type "j"
-Sleep 700ms
-
-# Return to the timeline and select another change set.
-Ctrl+[
-Sleep 1s
-Type "j"
-Sleep 700ms
 Enter
+
 Sleep 1s
 
-# Walk down to a leaf change, then open the large code/detail view.
-Type "j"
+Down
+Sleep 50ms
+
+Down
+Sleep 50ms
+
+Down
+Sleep 50ms
+
+Down
+Sleep 50ms
+
+Down
+Sleep 50ms
+
+Down
+Sleep 1s
+
+Escape
+
+Sleep 1s
+
+Down
+Sleep 200ms
+
+Down
 Sleep 500ms
-Type "j"
-Sleep 500ms
-Type "j"
-Sleep 500ms
-Enter
-Sleep 1s
 
-# Scroll the large view a bit and stop on the detail.
-Type "j"
+Down
+Sleep 50ms
+
+Down
+Sleep 50ms
+
+Down
+Sleep 50ms
+
+Down
+Sleep 50ms
+
+Down
+Sleep 50ms
+
+Enter
+
+Sleep 2s
+
+Escape
+
+Sleep 200ms
+
+Escape
+
+Sleep 200ms
+
+Down
+Sleep 50ms
+
+Down
 Sleep 700ms
-Type "j"
-Sleep 700ms
-Type "k"
-Sleep 700ms
+
+Enter
+
+Sleep 500ms
+Down
+
+Sleep 300ms
+
+Enter
+Sleep 300ms
+
+Down
+Sleep 50ms
+
+Down
+Sleep 50ms
+
+Down
+Sleep 50ms
+
+Down
+Sleep 50ms
+
+Down
+Sleep 50ms
+
+Down
+Sleep 800ms
+
+Escape
+Sleep 300ms
+
+Down
+Sleep 300ms
+
+Down
+Sleep 1s
