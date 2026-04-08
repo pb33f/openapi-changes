@@ -6,6 +6,7 @@ package v2
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"charm.land/bubbles/v2/table"
 	"charm.land/bubbles/v2/viewport"
@@ -75,7 +76,8 @@ type ConsoleModel struct {
 	activeHash string
 
 	// Styles
-	styles consoleStyles
+	styles  consoleStyles
+	palette terminal.Palette
 }
 
 // RunChangeratorFn is the function signature for running the changerator.
@@ -93,7 +95,8 @@ func NewConsoleModel(commits []*model.Commit, breakingConfig *whatChangedModel.B
 			theme = terminal.ThemeLight
 		}
 	}
-	styles := newConsoleStylesForPalette(terminal.PaletteForTheme(theme))
+	palette := terminal.PaletteForTheme(theme)
+	styles := newConsoleStylesForPalette(palette)
 
 	m := ConsoleModel{
 		commits:     commits,
@@ -101,6 +104,7 @@ func NewConsoleModel(commits []*model.Commit, breakingConfig *whatChangedModel.B
 		breakingCfg: breakingConfig,
 		runFn:       runFn,
 		styles:      styles,
+		palette:     palette,
 	}
 
 	// Single commit mode
@@ -110,7 +114,7 @@ func NewConsoleModel(commits []*model.Commit, breakingConfig *whatChangedModel.B
 	m.focus = FocusTree
 
 	// Build commit table (default width, resized on first WindowSizeMsg)
-	m.commitTable = buildCommitTable(commits, 120, styles)
+	m.commitTable = buildCommitTable(commits, 120, 0, styles)
 
 	// Initialize tree with placeholder height (will be recalculated on WindowSizeMsg)
 	m.tree = newTreeModel(nil, 20)
@@ -283,7 +287,7 @@ func (m *ConsoleModel) recalculateLayout() {
 	if !m.singleCommit {
 		tableContent := m.tableHeight() - 2
 		m.commitTable.SetHeight(tableContent - 1) // -1 more for header row
-		resizeCommitTable(&m.commitTable, m.width)
+		resizeCommitTable(&m.commitTable, m.commits, m.highlightedIdx, m.width, m.styles)
 	}
 
 	bottomH := m.bottomHeight()
@@ -471,6 +475,7 @@ func (m *ConsoleModel) selectHighlightedCommit() {
 		return
 	}
 	m.highlightedIdx = row
+	m.commitTable.SetRows(buildCommitRows(m.commits, m.highlightedIdx, m.styles))
 	if row == m.activeIdx {
 		return // already loaded
 	}
@@ -630,7 +635,7 @@ func (m *ConsoleModel) openReportModal() {
 	// Use cached rendered output if width hasn't changed
 	rendered := entry.renderedMarkdown
 	if rendered == "" || entry.renderedWidth != contentW {
-		rendered = renderMarkdown(entry.markdown, contentW)
+		rendered = renderMarkdown(entry.markdown, contentW, m.palette)
 		entry.renderedMarkdown = rendered
 		entry.renderedWidth = contentW
 	}
@@ -665,10 +670,10 @@ func innerWidth(termWidth int) int {
 
 // buildCommitTable creates a bubbles table from the commit list.
 // Message column fills all remaining width inside the border panel.
-func buildCommitTable(commits []*model.Commit, termWidth int, styles consoleStyles) table.Model {
+func buildCommitTable(commits []*model.Commit, termWidth int, highlightedIdx int, styles consoleStyles) table.Model {
 	iw := innerWidth(termWidth)
 	cols := commitColumns(iw)
-	rows := buildCommitRows(commits)
+	rows := buildCommitRows(commits, highlightedIdx, styles)
 
 	t := table.New(
 		table.WithColumns(cols),
@@ -676,18 +681,19 @@ func buildCommitTable(commits []*model.Commit, termWidth int, styles consoleStyl
 		table.WithHeight(5),
 		table.WithFocused(true),
 		table.WithWidth(iw),
-		table.WithStyles(commitTableStyles(iw)),
+		table.WithStyles(commitTableStyles(iw, styles)),
 	)
 
 	return t
 }
 
 // resizeCommitTable updates column widths and styles to fill the new terminal width.
-func resizeCommitTable(t *table.Model, termWidth int) {
+func resizeCommitTable(t *table.Model, commits []*model.Commit, highlightedIdx int, termWidth int, styles consoleStyles) {
 	iw := innerWidth(termWidth)
 	t.SetColumns(commitColumns(iw))
+	t.SetRows(buildCommitRows(commits, highlightedIdx, styles))
 	t.SetWidth(iw)
-	t.SetStyles(commitTableStyles(iw))
+	t.SetStyles(commitTableStyles(iw, styles))
 }
 
 func commitColumns(iw int) []table.Column {
@@ -699,16 +705,17 @@ func commitColumns(iw int) []table.Column {
 		{Title: "Date", Width: dateColWidth},
 		{Title: "Hash", Width: hashColWidth},
 		{Title: "Message", Width: msgWidth},
-		{Title: "Changes", Width: changesColWidth},
-		{Title: "Breaking", Width: breakingColWidth},
+		{Title: centerColumnText("Changes", changesColWidth), Width: changesColWidth},
+		{Title: centerColumnText("Breaking", breakingColWidth), Width: breakingColWidth},
 	}
 }
 
-func buildCommitRows(commits []*model.Commit) []table.Row {
+func buildCommitRows(commits []*model.Commit, highlightedIdx int, styles consoleStyles) []table.Row {
 	rows := make([]table.Row, 0, len(commits))
-	for _, c := range commits {
+	for i, c := range commits {
 		date := c.CommitDate.Format("01/02/06")
 		hash := c.Hash
+		message := c.Message
 		if len(hash) > 7 {
 			hash = hash[:7]
 		}
@@ -718,23 +725,37 @@ func buildCommitRows(commits []*model.Commit) []table.Row {
 			changes = fmt.Sprint(c.Changes.TotalChanges())
 			breaking = fmt.Sprint(c.Changes.TotalBreakingChanges())
 		}
-		rows = append(rows, table.Row{date, hash, c.Message, changes, breaking})
+		changes = centerColumnText(changes, changesColWidth)
+		breaking = centerColumnText(breaking, breakingColWidth)
+		if i != highlightedIdx {
+			date = styles.detail.Render(date)
+			hash = styles.detail.Render(hash)
+			message = styles.detail.Render(message)
+			changes = styles.detail.Render(changes)
+			breaking = styles.detail.Render(breaking)
+		}
+		rows = append(rows, table.Row{date, hash, message, changes, breaking})
 	}
 	return rows
 }
 
-func commitTableStyles(iw int) table.Styles {
+func centerColumnText(value string, width int) string {
+	textWidth := utf8.RuneCountInString(value)
+	if textWidth >= width {
+		return value
+	}
+	leftPad := (width - textWidth) / 2
+	rightPad := width - textWidth - leftPad
+	return strings.Repeat(" ", leftPad) + value + strings.Repeat(" ", rightPad)
+}
+
+func commitTableStyles(iw int, styles consoleStyles) table.Styles {
 	return table.Styles{
-		Header: lipgloss.NewStyle().
+		Header: styles.helpKey.
 			Bold(true).
-			Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)).
 			Padding(0, 1),
 		Cell: lipgloss.NewStyle().
 			Padding(0, 1),
-		Selected: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color(terminal.LipglossSecondaryPink)).
-			Background(lipgloss.Color("#4a1a4e")).
-			Width(iw),
+		Selected: styles.selectedRow.Width(iw),
 	}
 }

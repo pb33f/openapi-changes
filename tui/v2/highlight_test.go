@@ -62,8 +62,8 @@ func TestHighlightLine_YAMLKeyValue(t *testing.T) {
 func TestHighlightLine_NoColon(t *testing.T) {
 	styles := newConsoleStyles()
 	result := highlightLine("  - item", styles)
-	// No colon found, returned as-is
-	assert.Equal(t, "  - item", result)
+	// No colon found, body text should still be styled explicitly
+	assert.NotEqual(t, "  - item", result)
 }
 
 func TestHighlightLine_PreservesIndent(t *testing.T) {

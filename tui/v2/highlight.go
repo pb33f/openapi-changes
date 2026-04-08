@@ -19,13 +19,13 @@ func highlightLine(line string, styles consoleStyles) string {
 	// Find the first colon that's not inside a quoted string
 	colonIdx := findYAMLColon(trimmed)
 	if colonIdx < 0 {
-		return line
+		return styles.detail.Render(line)
 	}
 
 	indent := line[:len(line)-len(trimmed)]
 	key := trimmed[:colonIdx+1]
 	rest := trimmed[colonIdx+1:]
-	return indent + styles.yamlKey.Render(key) + rest
+	return styles.detail.Render(indent) + styles.yamlKey.Render(key) + styles.detail.Render(rest)
 }
 
 // findYAMLColon finds the index of the first colon that looks like a YAML key separator.

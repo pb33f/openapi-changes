@@ -29,6 +29,7 @@ type consoleStyles struct {
 	removed        lipgloss.Style
 	breaking       lipgloss.Style
 	grey           lipgloss.Style
+	detail         lipgloss.Style
 	info           lipgloss.Style
 	nav            lipgloss.Style
 	helpKey        lipgloss.Style
@@ -73,6 +74,7 @@ func newConsoleStylesForPalette(palette terminal.Palette) consoleStyles {
 		removed:        consoleStyleFg(palette.Removal),
 		breaking:       consoleStyleFg(palette.Breaking).Bold(true),
 		grey:           consoleStyleFg(palette.Muted),
+		detail:         consoleStyleFg(palette.Detail),
 		info:           consoleStyleFg(palette.Primary),
 		nav:            consoleStyleFg(palette.Nav),
 		helpKey:        consoleStyleFg(palette.HelpKey),
@@ -101,6 +103,7 @@ func newNoColorStyles() consoleStyles {
 		removed:        lipgloss.NewStyle(),
 		breaking:       lipgloss.NewStyle().Bold(true),
 		grey:           lipgloss.NewStyle(),
+		detail:         lipgloss.NewStyle(),
 		info:           lipgloss.NewStyle(),
 		nav:            lipgloss.NewStyle(),
 		helpKey:        lipgloss.NewStyle().Bold(true),

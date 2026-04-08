@@ -5,52 +5,50 @@ package v2
 
 import (
 	"fmt"
+	"image/color"
 	"strings"
 
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glamour/ansi"
 	"github.com/muesli/termenv"
+	"github.com/pb33f/doctor/terminal"
 )
 
-// glamour/chroma color constants matching vacuum's palette.
-// Kept unexported — these are library-specific values that don't belong in doctor/terminal.
-var (
-	glamourBlue      = strPtr("45")
-	glamourSoftBlue  = strPtr("117")
-	glamourBlueBg    = strPtr("#002329")
-	glamourPink      = strPtr("201")
-	glamourPinkBg    = strPtr("#2a1a2a")
-	glamourGreen     = strPtr("46")
-	glamourGrey      = strPtr("246")
-	glamourSubGrey   = strPtr("240") // matches terminal.LipglossGrey — "sub 2" level
-	glamourDarkGrey  = strPtr("236")
-	glamourLightGrey = strPtr("253")
+func strPtr(s string) *string { return &s }
+func boolPtr(b bool) *bool    { return &b }
+func uintPtr(u uint) *uint    { return &u }
 
-	chromaBlue      = strPtr("#00d7ff")
-	chromaPink      = strPtr("#ff5fff")
-	chromaYellow    = strPtr("#ffd700")
-	chromaGreen     = strPtr("#00ff00")
-	chromaGrey      = strPtr("#8a8a8a")
-	chromaLightPink = strPtr("#d75fd7")
-)
-
-func strPtr(s string) *string  { return &s }
-func boolPtr(b bool) *bool     { return &b }
-func uintPtr(u uint) *uint     { return &u }
+func colorPtr(c color.Color) *string {
+	if c == nil {
+		return nil
+	}
+	r, g, b, _ := c.RGBA()
+	return strPtr(fmt.Sprintf("#%02x%02x%02x", uint8(r>>8), uint8(g>>8), uint8(b>>8)))
+}
 
 // createPb33fReportStyle creates a glamour ansi.StyleConfig matching vacuum's
 // CreatePb33fDocsStyle. Adapted for the report modal context.
-func createPb33fReportStyle(contentWidth int) ansi.StyleConfig {
+func createPb33fReportStyle(contentWidth int, palette terminal.Palette) ansi.StyleConfig {
 	truePointer := boolPtr(true)
 	falsePointer := boolPtr(false)
+
+	primary := colorPtr(palette.Primary)
+	secondary := colorPtr(palette.Secondary)
+	addition := colorPtr(palette.Addition)
+	modification := colorPtr(palette.Modification)
+	muted := colorPtr(palette.Muted)
+	detail := colorPtr(palette.Detail)
+	primaryBG := colorPtr(palette.PrimaryBG)
+	secondaryBG := colorPtr(palette.SecondaryBG)
+	subtleBG := colorPtr(palette.SubtleBG)
 
 	sectionHeader := ansi.StyleBlock{
 		StylePrimitive: ansi.StylePrimitive{
 			BlockPrefix:     "\n",
-			BackgroundColor: glamourBlueBg,
+			BackgroundColor: primaryBG,
 			Prefix:          fmt.Sprintf("%s\n \u2605 ", strings.Repeat("\u2500", contentWidth)),
 			Suffix:          fmt.Sprintf("\n%s\n", strings.Repeat("\u2500", contentWidth)),
-			Color:           glamourBlue,
+			Color:           primary,
 			Bold:            truePointer,
 		},
 	}
@@ -63,7 +61,7 @@ func createPb33fReportStyle(contentWidth int) ansi.StyleConfig {
 			StylePrimitive: ansi.StylePrimitive{
 				BlockPrefix: "\n",
 				BlockSuffix: "\n",
-				Color:       glamourPink,
+				Color:       secondary,
 				Bold:        truePointer,
 			},
 		},
@@ -71,26 +69,26 @@ func createPb33fReportStyle(contentWidth int) ansi.StyleConfig {
 		H3: sectionHeader,
 		H4: ansi.StyleBlock{
 			StylePrimitive: ansi.StylePrimitive{
-				Color: glamourBlue,
+				Color: primary,
 				Bold:  truePointer,
 			},
 		},
 		H5: ansi.StyleBlock{
 			StylePrimitive: ansi.StylePrimitive{
-				Color: glamourPink,
+				Color: secondary,
 			},
 		},
 		H6: ansi.StyleBlock{
 			StylePrimitive: ansi.StylePrimitive{
-				Color: glamourPink,
+				Color: secondary,
 			},
 		},
 		Emph: ansi.StylePrimitive{
-			Color:  glamourLightGrey,
+			Color:  detail,
 			Italic: truePointer,
 		},
 		Strong: ansi.StylePrimitive{
-			BackgroundColor: glamourPinkBg,
+			BackgroundColor: secondaryBG,
 			Bold:            truePointer,
 		},
 		Code: ansi.StyleBlock{
@@ -98,72 +96,72 @@ func createPb33fReportStyle(contentWidth int) ansi.StyleConfig {
 				Prefix:          "[",
 				Suffix:          "]",
 				Bold:            truePointer,
-				Color:           glamourGreen,
-				BackgroundColor: glamourDarkGrey,
+				Color:           addition,
+				BackgroundColor: subtleBG,
 			},
 		},
 		CodeBlock: ansi.StyleCodeBlock{
 			StyleBlock: ansi.StyleBlock{
 				StylePrimitive: ansi.StylePrimitive{
-					BackgroundColor: glamourPinkBg,
-					Color:           glamourLightGrey,
+					BackgroundColor: secondaryBG,
+					Color:           detail,
 				},
 				Margin: uintPtr(1),
 			},
 			Theme: "monokai",
 			Chroma: &ansi.Chroma{
 				Keyword: ansi.StylePrimitive{
-					Color: chromaBlue,
+					Color: primary,
 					Bold:  falsePointer,
 				},
 				Text: ansi.StylePrimitive{
-					Color: chromaPink,
+					Color: secondary,
 					Bold:  truePointer,
 				},
 				LiteralString: ansi.StylePrimitive{
-					Color: chromaGreen,
+					Color: addition,
 				},
 				LiteralNumber: ansi.StylePrimitive{
-					Color: chromaPink,
+					Color: secondary,
 				},
 				Comment: ansi.StylePrimitive{
-					Color:  chromaGrey,
+					Color:  muted,
 					Italic: truePointer,
 				},
 				NameFunction: ansi.StylePrimitive{
-					Color: chromaGreen,
+					Color: addition,
 				},
 				NameTag: ansi.StylePrimitive{
-					Color: chromaBlue,
+					Color: primary,
 					Bold:  falsePointer,
 				},
 				NameAttribute: ansi.StylePrimitive{
-					Color: chromaGreen,
+					Color: addition,
 				},
 				Operator: ansi.StylePrimitive{
-					Color: chromaYellow,
+					Color: modification,
 				},
 				Punctuation: ansi.StylePrimitive{
-					Color: chromaGrey,
+					Color: muted,
 				},
 				NameBuiltin: ansi.StylePrimitive{
-					Color: chromaBlue,
+					Color: primary,
 				},
 				NameClass: ansi.StylePrimitive{
-					Color: chromaGreen,
+					Color: addition,
 					Bold:  truePointer,
 				},
 				NameConstant: ansi.StylePrimitive{
-					Color: chromaLightPink,
+					Color: secondary,
 				},
 			},
 		},
 		Link: ansi.StylePrimitive{
-			Color:     glamourSoftBlue,
+			Color:     primary,
 			Underline: truePointer,
 		},
 		LinkText: ansi.StylePrimitive{
-			Color:  glamourBlue,
+			Color:  primary,
 			Prefix: "[",
 			Suffix: "]",
 			Bold:   truePointer,
@@ -171,7 +169,7 @@ func createPb33fReportStyle(contentWidth int) ansi.StyleConfig {
 		List: ansi.StyleList{
 			StyleBlock: ansi.StyleBlock{
 				StylePrimitive: ansi.StylePrimitive{
-					Color: glamourBlue,
+					Color: primary,
 				},
 				Indent: uintPtr(2),
 			},
@@ -179,21 +177,21 @@ func createPb33fReportStyle(contentWidth int) ansi.StyleConfig {
 		},
 		Item: ansi.StylePrimitive{
 			Prefix: "> ",
-			Color:  glamourBlue,
+			Color:  primary,
 		},
 		Enumeration: ansi.StylePrimitive{
-			Color: glamourBlue,
+			Color: primary,
 		},
 		BlockQuote: ansi.StyleBlock{
 			StylePrimitive: ansi.StylePrimitive{
-				Color:  glamourGrey,
+				Color:  muted,
 				Italic: truePointer,
 			},
 			Indent:      uintPtr(1),
 			IndentToken: strPtr("\u2502 "),
 		},
 		HorizontalRule: ansi.StylePrimitive{
-			Color:  glamourSubGrey,
+			Color:  muted,
 			Format: fmt.Sprintf("\n%s\n", strings.Repeat("-", contentWidth)),
 		},
 		Table: ansi.StyleTable{
@@ -206,7 +204,7 @@ func createPb33fReportStyle(contentWidth int) ansi.StyleConfig {
 		},
 		Strikethrough: ansi.StylePrimitive{
 			CrossedOut: truePointer,
-			Color:      glamourGrey,
+			Color:      muted,
 		},
 		Task: ansi.StyleTask{
 			StylePrimitive: ansi.StylePrimitive{},
@@ -218,19 +216,19 @@ func createPb33fReportStyle(contentWidth int) ansi.StyleConfig {
 			Margin:         uintPtr(1),
 		},
 		DefinitionTerm: ansi.StylePrimitive{
-			Color: glamourBlue,
+			Color: primary,
 			Bold:  truePointer,
 		},
 		DefinitionDescription: ansi.StylePrimitive{
-			Color: glamourLightGrey,
+			Color: detail,
 		},
 	}
 }
 
 // renderMarkdown renders markdown content using glamour with the pb33f style.
 // Falls back to raw markdown on error.
-func renderMarkdown(markdown string, contentWidth int) string {
-	style := createPb33fReportStyle(contentWidth)
+func renderMarkdown(markdown string, contentWidth int, palette terminal.Palette) string {
+	style := createPb33fReportStyle(contentWidth, palette)
 
 	renderer, err := glamour.NewTermRenderer(
 		glamour.WithStyles(style),
