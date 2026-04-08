@@ -301,44 +301,18 @@ func GetMarkdownReportCommand() *cobra.Command {
 		Long:         "Generate a detailed markdown report of API changes rendered as markdown",
 		Example:      "openapi-changes markdown-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts, configFlag, err := readCommonFlags(cmd)
+			input, err := prepareCommandRun(cmd, args, printMarkdownReportUsage)
 			if err != nil {
 				return err
+			}
+			if input == nil {
+				return nil
 			}
 			reportFile, _ := cmd.Flags().GetString("report-file")
 			includeDiff, _ := cmd.Flags().GetBool("include-diff")
+			styles := commandStylesFor(input.Opts.palette)
 
-			styles := commandStylesFor(opts.palette)
-
-			maybePrintBanner(cmd, opts.palette)
-
-			if len(args) == 0 {
-				printMarkdownReportUsage(opts.palette)
-				return nil
-			}
-
-			if len(args) == 1 {
-				if err := validateGitHubURL(args[0]); err != nil {
-					return err
-				}
-			}
-
-			if len(args) > 2 {
-				return fmt.Errorf("too many arguments provided, expecting at most two (2)")
-			}
-
-			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
-			if err != nil {
-				PrintConfigError(err, opts.palette)
-				return err
-			}
-
-			commits, err := loadCommitsFromArgs(args, opts, breakingConfig)
-			if err != nil {
-				return err
-			}
-
-			report, err := generateMarkdownReport(commits, breakingConfig, includeDiff)
+			report, err := generateMarkdownReport(input.Commits, input.BreakingConfig, includeDiff)
 			if err != nil {
 				return err
 			}

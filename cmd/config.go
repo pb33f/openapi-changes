@@ -12,6 +12,7 @@ import (
 
 	"github.com/pb33f/doctor/terminal"
 	"github.com/pb33f/libopenapi/what-changed/model"
+	"github.com/pb33f/openapi-changes/internal/breakingrules"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -134,23 +135,15 @@ func expandUserPath(path string) (string, error) {
 }
 
 // ApplyBreakingRulesConfig sets the active breaking rules config in libopenapi.
-// If config is nil, uses libopenapi defaults.
-// The config is merged on top of defaults, so only specified rules are overridden.
+// Thread-safe — delegates to internal/breakingrules which guards with a mutex.
 func ApplyBreakingRulesConfig(config *model.BreakingRulesConfig) {
-	if config == nil {
-		model.ResetActiveBreakingRulesConfig()
-		return
-	}
-
-	// Get defaults and merge user config on top
-	defaults := model.GenerateDefaultBreakingRules()
-	defaults.Merge(config)
-	model.SetActiveBreakingRulesConfig(defaults)
+	breakingrules.Apply(config)
 }
 
 // ResetBreakingRulesConfig resets the active breaking rules to libopenapi defaults.
+// Thread-safe — delegates to internal/breakingrules which guards with a mutex.
 func ResetBreakingRulesConfig() {
-	model.ResetActiveBreakingRulesConfig()
+	breakingrules.Reset()
 }
 
 // ConfigParseError represents a YAML parsing error with context

@@ -1,138 +1,179 @@
-
 ![logo](openapi-changes-logo.webp)
 
 [![discord](https://img.shields.io/discord/923258363540815912)](https://discord.gg/x7VACVuEGP)
-[![GitHub downloads](https://img.shields.io/github/downloads/pb33f/openapi-changes/total?label=github%20downloads&style=flat-square)](https://github.com/pb33f/wiretap/releases)
+[![GitHub downloads](https://img.shields.io/github/downloads/pb33f/openapi-changes/total?label=github%20downloads&style=flat-square)](https://github.com/pb33f/openapi-changes/releases)
 [![npm](https://img.shields.io/npm/dm/@pb33f/openapi-changes?style=flat-square&label=npm%20downloads)](https://www.npmjs.com/package/@pb33f/openapi-changes)
 [![Docker Pulls](https://img.shields.io/docker/pulls/pb33f/openapi-changes?style=flat-square)](https://hub.docker.com/r/pb33f/openapi-changes)
 
 # OpenAPI Changes
 
-## The world's **_sexiest_** OpenAPI diff tool.
+## The world's **_most powerful and complete_** OpenAPI diff tool.
 
-We will get to the sexy part in a moment, but in a nutshell `openapi-changes` allows you 
-to see and explore what has changed with your OpenAPI Specification, between a single change, 
-or for all time! 
+`openapi-changes` lets you inspect what changed in an OpenAPI specification between two files, across local git history, or directly from a GitHub-hosted file URL.
 
-Explore OpenAPI change history using a terminal or a browser, you decide which experience suits you. Perfect for
-individual use, or in a CI/CD pipeline for automation.
+It can render the same semantic change model as:
 
-> This is an early tool and is active, daily development
+- an interactive terminal UI
+- a terminal summary
+- a machine-readable JSON report
+- a markdown report
+- a self-contained offline HTML report
 
-## How is it the 'sexiest'?
+It works well for local exploration, CI/CD checks, release notes, and API review workflows.
 
-Have you ever seen an OpenAPI summary look like this?
+## How is it the 'most powerful and complete?'?
+
+openapi-changes gives you the power to view all changes between two OpenAPI contracts, and over time in every which
+way you can possibly think of. Graphs, trees, lists, diffs, JSON, mark down.
+
+Has no network dependencies at all. Runs 100% offline, including the HTML report.
+
+### Summary view
 
 ![](./.github/assets/summary.gif)
 
-What about a terminal UI that does the same?
+
+### A full terminal UI
+
+Comes in multiple themes!
 
 ![](./.github/assets/console.gif)
 
----
 
+### Powerful HTML report with no rival.
+
+ UI goes here. 
+
+
+---
 
 ## Documentation
 
-### 👉 [⚡ Try the online Demo ⚡](https://pb33f.io/openapi-changes/demo/) 👈
-
 ### [Quick Start Guide 🚀](https://pb33f.io/openapi-changes/quickstart/)
 
-See all the documentation at https://pb33f.io/openapi-changes/
+Full docs: https://pb33f.io/openapi-changes/
 
 - [Installing openapi-changes](https://pb33f.io/openapi-changes/installing/)
 - [Configuring breaking changes](https://pb33f.io/openapi-changes/configuring/)
 - [Command arguments](https://pb33f.io/openapi-changes/command-arguments/)
-- CLI Commands
-    - [`console` command](https://pb33f.io/openapi-changes/console/)
-    - [`html-report` command](https://pb33f.io/openapi-changes/html-report/)
-    - [`markdown-report` command](https://pb33f.io/openapi-changes/markdown-report/)
-    - [`report` command](https://pb33f.io/openapi-changes/report/)
-    - [`summary` command](https://pb33f.io/openapi-changes/summary/)
+- Commands:
+  - [`console`](https://pb33f.io/openapi-changes/console/)
+  - [`summary`](https://pb33f.io/openapi-changes/summary/)
+  - [`report`](https://pb33f.io/openapi-changes/report/)
+  - [`markdown-report`](https://pb33f.io/openapi-changes/markdown-report/)
+  - [`html-report`](https://pb33f.io/openapi-changes/html-report/)
+  - [`completion`](https://pb33f.io/openapi-changes/completion/)
 - [About openapi-changes](https://pb33f.io/openapi-changes/about/)
 
 ---
- 
-Are you ready to try it out?
 
-## Install using homebrew tap
+## Install with Homebrew
 
 ```bash
 brew install pb33f/taps/openapi-changes
 ```
 
----
-
-## Install using npm or yarn
+## Install with npm or yarn
 
 ```bash
 npm i -g @pb33f/openapi-changes
 ```
 
-If you prefer yarn _(recommended)_
+If you prefer yarn:
 
 ```bash
 yarn global add @pb33f/openapi-changes
 ```
 
----
-
-## Install using cURL
+## Install with cURL
 
 ```bash
-curl -fsSL https://pb33f.io/openapi-changes/install.sh | sh 
+curl -fsSL https://pb33f.io/openapi-changes/install.sh | sh
 ```
----
 
-## Install/run using Docker
+## Install or run with Docker
 
 ```bash
 docker pull pb33f/openapi-changes
 ```
 
-Docker images are available for both `linux/amd64` and `linux/arm64` architectures.
+Docker images are available for both `linux/amd64` and `linux/arm64`.
 
-To run, mount the current working dir to the container like so:
+To run a command, mount the current working directory into the container:
 
-```
+```bash
 docker run --rm -v $PWD:/work:rw pb33f/openapi-changes summary . sample-specs/petstorev3.json
 ```
-> The `console` cannot run via docker.
+
+> The `console` command is not usable through Docker.
+
+## Build from source
+
+`openapi-changes` currently requires Go `1.25.0`.
+
+```bash
+git clone https://github.com/pb33f/openapi-changes.git
+cd openapi-changes
+go build -o bin/openapi-changes .
+```
+
+Or use `make`:
+
+```bash
+make
+```
 
 ---
 
-## Custom Breaking Rules Configuration
+## Command overview
 
-> Supported in `v0.91+`
+The current command surface is:
 
-openapi-changes uses [libopenapi](https://github.com/pb33f/libopenapi)'s configurable breaking change
-detection system. You can customize which changes are considered "breaking" by providing a configuration file.
+- `console` for the interactive terminal UI
+- `summary` for fast terminal and CI output
+- `report` for machine-readable JSON
+- `markdown-report` for shareable markdown output
+- `html-report` for the interactive offline browser report
+- `completion` for shell completion scripts
 
-### Using a Config File
+Run `openapi-changes --help` or `openapi-changes <command> --help` for the live CLI surface.
+
+### Terminal themes
+
+The terminal-facing commands support multiple presentation modes:
+
+- `--no-color` for the light Roger monochrome theme
+- `--roger-mode` as an alias for `--no-color`
+- `--tektronix` for the green monochrome terminal theme
+
+See the [command arguments docs](https://pb33f.io/openapi-changes/command-arguments/) for the full shared flag set.
+
+---
+
+## Custom breaking rules configuration
+
+`openapi-changes` supports configurable breaking-change rules via `changes-rules.yaml`.
+
+### Use an explicit config file
 
 ```bash
-# Use explicit config file
 openapi-changes summary -c my-rules.yaml old.yaml new.yaml
+```
 
-# Or place changes-rules.yaml in current directory (auto-detected)
+### Or let it auto-discover the default config file
+
+```bash
 openapi-changes summary old.yaml new.yaml
 ```
 
-### Default Config Locations
+Default lookup locations:
 
-openapi-changes searches for `changes-rules.yaml` in:
-1. Current working directory (`./changes-rules.yaml`)
-2. User config directory (`~/.config/changes-rules.yaml`)
+1. `./changes-rules.yaml`
+2. `~/.config/changes-rules.yaml`
 
-### Example Configuration
-
-Create a `changes-rules.yaml` file:
+### Example
 
 ```yaml
-# Custom breaking rules configuration
-# Only specify overrides - unspecified rules use defaults
-
-# Make operation removal non-breaking (for deprecation workflows)
 pathItem:
   get:
     removed: false
@@ -143,42 +184,24 @@ pathItem:
   delete:
     removed: false
 
-# Make enum value removal non-breaking
 schema:
   enum:
     removed: false
 
-# Make parameter changes non-breaking
 parameter:
   required:
     modified: false
 ```
 
-### Configuration Structure
+Each rule supports:
 
-Each rule has three options:
-- `added`: Is adding this property a breaking change? (true/false)
-- `modified`: Is modifying this property a breaking change? (true/false)
-- `removed`: Is removing this property a breaking change? (true/false)
+- `added`
+- `modified`
+- `removed`
 
-### Available Components
-
-You can configure rules for these OpenAPI components:
-
-| Component             | Description                                        |
-|-----------------------|----------------------------------------------------|
-| `paths`               | Path definitions                                   |
-| `pathItem`            | Operations (get, post, put, delete, etc.)          |
-| `operation`           | Operation details (operationId, requestBody, etc.) |
-| `parameter`           | Parameter properties (name, required, schema)      |
-| `schema`              | Schema properties (type, format, enum, properties) |
-| `response`            | Response definitions                               |
-| `securityScheme`      | Security scheme properties                         |
-| `securityRequirement` | Security requirements                              |
-
-For the complete list of configurable properties and more examples, see the
-[full configuration documentation](https://pb33f.io/openapi-changes/configuring/).
+For the full rules reference and more examples, see the
+[configuration docs](https://pb33f.io/openapi-changes/configuring/).
 
 ---
 
-Check out all the docs at https://pb33f.io/openapi-changes/
+See the full docs at https://pb33f.io/openapi-changes/

@@ -16,10 +16,11 @@ import (
 	"time"
 
 	"github.com/araddon/dateparse"
+	"github.com/pb33f/doctor/terminal"
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
-	"github.com/pb33f/doctor/terminal"
+	"github.com/pb33f/openapi-changes/internal/breakingrules"
 	"github.com/pb33f/openapi-changes/model"
 )
 
@@ -191,10 +192,8 @@ func buildCommitChangelog(commitHistory []*model.Commit,
 
 	// apply breaking rules configuration before comparisons
 	if breakingConfig != nil {
-		defaults := whatChangedModel.GenerateDefaultBreakingRules()
-		defaults.Merge(breakingConfig)
-		whatChangedModel.SetActiveBreakingRulesConfig(defaults)
-		defer whatChangedModel.ResetActiveBreakingRulesConfig()
+		breakingrules.Apply(breakingConfig)
+		defer breakingrules.Reset()
 	}
 
 	// create a new document config and set to default closed state,

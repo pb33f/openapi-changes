@@ -468,43 +468,18 @@ func GetSummaryCommand() *cobra.Command {
 		Long:         "print a summary of what changed using the doctor changerator engine with tree visualization",
 		Example:      "openapi-changes summary /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts, configFlag, err := readCommonFlags(cmd)
+			input, err := prepareCommandRun(cmd, args, printSummaryUsage)
 			if err != nil {
 				return err
 			}
-			opts.markdown, _ = cmd.Flags().GetBool("markdown")
-			opts.errorOnDiff, _ = cmd.Flags().GetBool("error-on-diff")
-
-			maybePrintBanner(cmd, opts.palette)
-
-			if len(args) == 0 {
-				printSummaryUsage(opts.palette)
+			if input == nil {
 				return nil
 			}
+			input.Opts.markdown, _ = cmd.Flags().GetBool("markdown")
+			input.Opts.errorOnDiff, _ = cmd.Flags().GetBool("error-on-diff")
+			styles := summaryStylesForPalette(input.Opts.palette)
 
-			if len(args) == 1 {
-				if err := validateGitHubURL(args[0]); err != nil {
-					return err
-				}
-			}
-
-			if len(args) > 2 {
-				return fmt.Errorf("too many arguments provided, expecting at most two (2)")
-			}
-
-			styles := summaryStylesForPalette(opts.palette)
-
-			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
-			if err != nil {
-				PrintConfigError(err, opts.palette)
-				return err
-			}
-
-			commits, err := loadCommitsFromArgs(args, opts, breakingConfig)
-			if err != nil {
-				return err
-			}
-			if len(commits) == 0 && len(args) == 2 {
+			if len(input.Commits) == 0 && len(args) == 2 {
 				firstArgInfo, statErr := os.Stat(args[0])
 				if statErr == nil && firstArgInfo.IsDir() {
 					printNoPriorVersionText()
@@ -513,7 +488,7 @@ func GetSummaryCommand() *cobra.Command {
 			}
 
 			output, hasBreaking, hasChanges, renderErr := renderSummaryWithTheme(
-				commits, breakingConfig, opts.markdown, opts.theme, opts.palette, opts.withLines, styles,
+				input.Commits, input.BreakingConfig, input.Opts.markdown, input.Opts.theme, input.Opts.palette, input.Opts.withLines, styles,
 			)
 			if output != "" {
 				fmt.Print(output)
@@ -524,7 +499,7 @@ func GetSummaryCommand() *cobra.Command {
 			if hasBreaking {
 				return errors.New("breaking changes discovered")
 			}
-			if hasChanges && opts.errorOnDiff {
+			if hasChanges && input.Opts.errorOnDiff {
 				return errors.New("differences discovered")
 			}
 			return nil

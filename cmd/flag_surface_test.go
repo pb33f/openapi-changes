@@ -22,6 +22,7 @@ func flagNames(cmd *cobra.Command) map[string]bool {
 func TestCanonicalCommandLocalFlags(t *testing.T) {
 	assert.Equal(t, map[string]bool{
 		"no-color":      true,
+		"roger-mode":    true,
 		"tektronix":     true,
 		"markdown":      true,
 		"with-lines":    true,
@@ -29,12 +30,14 @@ func TestCanonicalCommandLocalFlags(t *testing.T) {
 	}, flagNames(GetSummaryCommand()))
 
 	assert.Equal(t, map[string]bool{
-		"no-color":  true,
-		"tektronix": true,
+		"no-color":   true,
+		"roger-mode": true,
+		"tektronix":  true,
 	}, flagNames(GetReportCommand()))
 
 	assert.Equal(t, map[string]bool{
 		"no-color":     true,
+		"roger-mode":   true,
 		"tektronix":    true,
 		"report-file":  true,
 		"include-diff": true,
@@ -42,14 +45,16 @@ func TestCanonicalCommandLocalFlags(t *testing.T) {
 
 	assert.Equal(t, map[string]bool{
 		"no-color":    true,
+		"roger-mode":  true,
 		"tektronix":   true,
 		"report-file": true,
 		"no-explorer": true,
 	}, flagNames(GetHTMLReportCommand()))
 
 	assert.Equal(t, map[string]bool{
-		"no-color":  true,
-		"tektronix": true,
+		"no-color":   true,
+		"roger-mode": true,
+		"tektronix":  true,
 	}, flagNames(GetConsoleCommand()))
 }
 

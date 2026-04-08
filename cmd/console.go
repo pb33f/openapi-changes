@@ -62,40 +62,15 @@ func GetConsoleCommand() *cobra.Command {
 		Long:         "Navigate through changes visually in an interactive terminal UI built with Bubbletea, using the doctor changerator engine.",
 		Example:      "openapi-changes console /path/to/git/repo path/to/file/in/repo/openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts, configFlag, err := readCommonFlags(cmd)
+			input, err := prepareCommandRun(cmd, args, printConsoleUsage)
 			if err != nil {
 				return err
 			}
-
-			maybePrintBanner(cmd, opts.palette)
-
-			if len(args) == 0 {
-				printConsoleUsage(opts.palette)
+			if input == nil {
 				return nil
 			}
 
-			if len(args) == 1 {
-				if err := validateGitHubURL(args[0]); err != nil {
-					return err
-				}
-			}
-
-			if len(args) > 2 {
-				return fmt.Errorf("too many arguments provided, expecting at most two (2)")
-			}
-
-			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
-			if err != nil {
-				PrintConfigError(err, opts.palette)
-				return err
-			}
-
-			commits, err := loadCommitsFromArgs(args, opts, breakingConfig)
-			if err != nil {
-				return err
-			}
-
-			if len(commits) == 0 {
+			if len(input.Commits) == 0 {
 				firstArgInfo, statErr := os.Stat(args[0])
 				if len(args) == 2 && statErr == nil && firstArgInfo.IsDir() {
 					printNoPriorVersionText()
@@ -105,13 +80,13 @@ func GetConsoleCommand() *cobra.Command {
 				return nil
 			}
 
-			if !hasRenderableDocuments(commits) {
+			if !hasRenderableDocuments(input.Commits) {
 				printNoChangesText()
 				return nil
 			}
 
 			// Build and run the TUI
-			m := v2tui.NewConsoleModel(commits, breakingConfig, opts.theme, Version, bridgeRunChangerator)
+			m := v2tui.NewConsoleModel(input.Commits, input.BreakingConfig, input.Opts.theme, Version, bridgeRunChangerator)
 			p := tea.NewProgram(m)
 			if _, err := p.Run(); err != nil {
 				return wrapConsoleStartError(err)

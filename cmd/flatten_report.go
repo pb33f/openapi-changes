@@ -96,7 +96,7 @@ func collectDocumentParameterScopes(doc *drV3.Document, scopes map[string]*param
 			continue
 		}
 		for op := pathItem.Value.Value.GetOperations().Oldest(); op != nil; op = op.Next() {
-			collectHighParameterScope(
+			collectParameterScope(
 				appendJSONPathProperty(basePath, op.Key)+".parameters",
 				op.Value.Parameters,
 				scopes,
@@ -107,17 +107,7 @@ func collectDocumentParameterScopes(doc *drV3.Document, scopes map[string]*param
 }
 
 func collectDoctorParameterScope(prefix string, params []*drV3.Parameter, scopes map[string]*parameterScope, original bool) {
-	highParams := make([]*oaV3.Parameter, len(params))
-	for idx, param := range params {
-		if param != nil {
-			highParams[idx] = param.Value
-		}
-	}
-	collectParameterScope(prefix, highParams, scopes, original)
-}
-
-func collectHighParameterScope(prefix string, params []*oaV3.Parameter, scopes map[string]*parameterScope, original bool) {
-	collectParameterScope(prefix, params, scopes, original)
+	collectParameterScope(prefix, drV3.ExtractParameterValues(params), scopes, original)
 }
 
 func collectParameterScope(prefix string, params []*oaV3.Parameter, scopes map[string]*parameterScope, original bool) {

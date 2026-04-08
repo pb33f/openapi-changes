@@ -56,7 +56,7 @@ func styleWithForeground(c color.Color) lipgloss.Style {
 
 func resolveTheme(noColor, tektronix bool) (terminal.ThemeName, error) {
 	if noColor && tektronix {
-		return "", fmt.Errorf("--no-color and --tektronix cannot be used together")
+		return "", fmt.Errorf("--no-color/--roger-mode and --tektronix cannot be used together")
 	}
 	if tektronix {
 		return terminal.ThemeTektronix, nil
@@ -76,12 +76,15 @@ func commandStylesFor(palette terminal.Palette) commandStyles {
 
 func addTerminalThemeFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolP("no-color", "n", false, "Use the light Roger monochrome terminal theme")
+	cmd.Flags().Bool("roger-mode", false, "Alias for --no-color")
 	cmd.Flags().Bool("tektronix", false, "Use the Tektronix green monochrome terminal theme")
 }
 
 // readCommonFlags reads the flags shared by the current doctor-based commands.
 func readCommonFlags(cmd *cobra.Command) (opts summaryOpts, configFlag string, err error) {
 	opts.noColor, _ = cmd.Flags().GetBool("no-color")
+	rogerMode, _ := cmd.Flags().GetBool("roger-mode")
+	opts.noColor = opts.noColor || rogerMode
 	if cmd.Flags().Lookup("tektronix") != nil {
 		opts.tektronix, _ = cmd.Flags().GetBool("tektronix")
 	}
@@ -133,6 +136,65 @@ func maybePrintBanner(cmd *cobra.Command, palette terminal.Palette) {
 		}
 	}
 	PrintBanner(palette)
+}
+
+// commandInput holds the resolved state from the shared command preamble.
+type commandInput struct {
+	Opts           summaryOpts
+	BreakingConfig *whatChangedModel.BreakingRulesConfig
+	Commits        []*model.Commit
+}
+
+// prepareCommandRun is the shared preamble for commands that use loadCommitsFromArgs
+// (console, summary, html-report, markdown-report). It reads common flags, prints
+// the banner, validates arguments, loads the breaking config, and dispatches to the
+// appropriate commit loader.
+//
+// Returns (nil, nil) when args are empty and the usage message has already been
+// printed. Callers should return nil in that case.
+func prepareCommandRun(
+	cmd *cobra.Command,
+	args []string,
+	printUsage func(terminal.Palette),
+) (*commandInput, error) {
+	opts, configFlag, err := readCommonFlags(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	maybePrintBanner(cmd, opts.palette)
+
+	if len(args) == 0 {
+		printUsage(opts.palette)
+		return nil, nil
+	}
+
+	if len(args) == 1 {
+		if err := validateGitHubURL(args[0]); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(args) > 2 {
+		return nil, fmt.Errorf("too many arguments provided, expecting at most two (2)")
+	}
+
+	breakingConfig, err := LoadBreakingRulesConfig(configFlag)
+	if err != nil {
+		PrintConfigError(err, opts.palette)
+		return nil, err
+	}
+
+	commits, err := loadCommitsFromArgs(args, opts, breakingConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return &commandInput{
+		Opts:           opts,
+		BreakingConfig: breakingConfig,
+		Commits:        commits,
+	}, nil
 }
 
 // loadCommitsFromArgs dispatches to the appropriate commit loader based on argument types.

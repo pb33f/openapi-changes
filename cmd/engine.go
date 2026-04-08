@@ -6,21 +6,14 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"sync"
 
 	"github.com/pb33f/doctor/changerator"
 	drModel "github.com/pb33f/doctor/model"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
+	"github.com/pb33f/openapi-changes/internal/breakingrules"
 	"github.com/pb33f/openapi-changes/model"
 )
 
-// breakingConfigMu guards the global breaking-rule configuration in libopenapi.
-// The apply → changerate → reset sequence in runChangerator is protected by this mutex.
-//
-// Note: buildCommitChangelog in git/read_local.go also writes to the same global
-// via whatChangedModel.SetActiveBreakingRulesConfig. This mutex only protects the
-// cmd-layer path. If the git layer is ever parallelized, it needs its own guard.
-var breakingConfigMu sync.Mutex
 
 // changeratorResult owns the doctor-side resources created for a single comparison.
 //
@@ -71,12 +64,9 @@ func runChangerator(commit *model.Commit, breakingConfig *whatChangedModel.Break
 		return nil, fmt.Errorf("failed to create DrDocument models")
 	}
 
-	breakingConfigMu.Lock()
-	defer breakingConfigMu.Unlock()
-
 	if breakingConfig != nil {
-		ApplyBreakingRulesConfig(breakingConfig)
-		defer ResetBreakingRulesConfig()
+		breakingrules.Apply(breakingConfig)
+		defer breakingrules.Reset()
 	}
 
 	ctr := changerator.NewChangerator(&changerator.ChangeratorConfig{

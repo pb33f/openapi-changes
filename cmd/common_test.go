@@ -47,12 +47,82 @@ func TestResolveTheme(t *testing.T) {
 func TestResolveTheme_RejectsConflictingFlags(t *testing.T) {
 	_, err := resolveTheme(true, true)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "--no-color and --tektronix cannot be used together")
+	assert.Contains(t, err.Error(), "--no-color/--roger-mode and --tektronix cannot be used together")
+}
+
+// --- prepareCommandRun ---
+
+func TestPrepareCommandRun_ZeroArgs_PrintsUsageAndReturnsNil(t *testing.T) {
+	var usageCalled bool
+	sub := &cobra.Command{
+		Use: "test",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			input, err := prepareCommandRun(cmd, args, func(_ terminal.Palette) { usageCalled = true })
+			assert.NoError(t, err)
+			assert.Nil(t, input)
+			assert.True(t, usageCalled)
+			return nil
+		},
+	}
+	addTerminalThemeFlags(sub)
+	root := testRootCmd(sub)
+	require.NoError(t, root.Execute())
+}
+
+func TestPrepareCommandRun_NonGitHubURL_ReturnsError(t *testing.T) {
+	sub := &cobra.Command{
+		Use: "test",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, err := prepareCommandRun(cmd, args, func(_ terminal.Palette) {})
+			return err
+		},
+	}
+	addTerminalThemeFlags(sub)
+	root := testRootCmd(sub, "https://example.com/foo")
+	err := root.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "github.com URL")
+}
+
+func TestPrepareCommandRun_TooManyArgs_ReturnsError(t *testing.T) {
+	sub := &cobra.Command{
+		Use: "test",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, err := prepareCommandRun(cmd, args, func(_ terminal.Palette) {})
+			return err
+		},
+	}
+	addTerminalThemeFlags(sub)
+	root := testRootCmd(sub, "a", "b", "c")
+	err := root.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "too many arguments")
+}
+
+func TestPrepareCommandRun_BadConfig_ReturnsError(t *testing.T) {
+	sub := &cobra.Command{
+		Use: "test",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, err := prepareCommandRun(cmd, args, func(_ terminal.Palette) {})
+			return err
+		},
+	}
+	addTerminalThemeFlags(sub)
+	root := testRootCmd(sub, "--config", "/nonexistent/config.yaml", "file1", "file2")
+	err := root.Execute()
+	require.Error(t, err)
 }
 
 func TestConsoleCommand_RejectsConflictingThemeFlags(t *testing.T) {
 	cmd := testRootCmd(GetConsoleCommand(), "--no-logo", "--no-color", "--tektronix")
 	err := cmd.Execute()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "--no-color and --tektronix cannot be used together")
+	assert.Contains(t, err.Error(), "--no-color/--roger-mode and --tektronix cannot be used together")
+}
+
+func TestConsoleCommand_RejectsConflictingRogerModeFlag(t *testing.T) {
+	cmd := testRootCmd(GetConsoleCommand(), "--no-logo", "--roger-mode", "--tektronix")
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--no-color/--roger-mode and --tektronix cannot be used together")
 }
