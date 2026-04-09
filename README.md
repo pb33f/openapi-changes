@@ -42,8 +42,39 @@ Comes in multiple themes!
 
 ### Powerful HTML report with no rival.
 
- UI goes here. 
+A self-contained, offline HTML report with interactive timeline, change explorer graph, diff views, and more.
 
+#### Timeline overview with change history chart
+
+![](./.github/assets/timeline-overview.png)
+
+#### Interactive explorer graph
+
+![](./.github/assets/timline-explorer.png)
+
+![](./.github/assets/explorer-deletion.png)
+
+#### Change report breakdown
+
+![](./.github/assets/change-report.png)
+
+![](./.github/assets/change-list.png)
+
+#### Side by side, focused, unified or inline diffing
+
+![](./.github/assets/file-diff.png)
+
+![](./.github/assets/focus-diff.png)
+
+#### Roger mode (monochrome light theme)
+
+![](./.github/assets/roger-mode-explorer.png)
+
+![](./.github/assets/roger-mode-items.png)
+
+#### Tektronix mode (green monochrome)
+
+![](./.github/assets/tektronix.png)
 
 ---
 
