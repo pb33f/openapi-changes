@@ -1,7 +1,9 @@
 import { defineConfig, Plugin } from 'vite';
 import { resolve, dirname } from 'path';
 import { readFileSync } from 'fs';
-import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Inline font files as base64 data URIs in @font-face CSS declarations.
@@ -12,8 +14,7 @@ import { createRequire } from 'module';
  * a base64 data URI so fonts work for everyone, not just users with BerkeleyMono installed.
  */
 function inlineFontDataURIs(): Plugin {
-  const require = createRequire(import.meta.url);
-  const fontsDir = dirname(require.resolve('@pb33f/cowboy-components/fonts/BerkeleyMono-Regular.woff2'));
+  const fontsDir = resolve(__dirname, 'fonts');
 
   return {
     name: 'inline-font-data-uris',
