@@ -129,6 +129,13 @@ export abstract class ReportShellBase extends LitElement {
     @state() protected selectedNodeId: string | null = null;
     @state() protected selectedNodeChanges: Change[] = [];
 
+    // Chart data is chronological (oldest-first) but items are newest-first.
+    // This maps activeItemIndex to the corresponding chart point index.
+    private get _chartPointIndex(): number {
+        const n = this.data?.history?.changeData?.labels?.length ?? 0;
+        return n > 0 ? n - 1 - this.activeItemIndex : 0;
+    }
+
     private _graphNodeMap: Map<string, Node> = new Map();
     private _cachedChartIndex: number = -1;
     private _cachedData: ReportPayload | null = null;
@@ -228,7 +235,7 @@ export abstract class ReportShellBase extends LitElement {
         if (!this.beefyChart || !this.data?.history?.changeData) return;
         const cd = this.data.history.changeData;
         const pointCount = cd.labels.length;
-        const activeIdx = this.activeItemIndex;
+        const activeIdx = this._chartPointIndex;
 
         const bg = this.beefyChart.background || '#1a1e2e';
         const isLight = document.documentElement.getAttribute('theme') === 'light';
@@ -260,7 +267,7 @@ export abstract class ReportShellBase extends LitElement {
     private _drawActiveGlow(): void {
         const chartInst = this.beefyChart?.chart;
         if (!chartInst) return;
-        const activeIdx = this.activeItemIndex;
+        const activeIdx = this._chartPointIndex;
         const ctx = chartInst.ctx;
         for (const meta of chartInst.getSortedVisibleDatasetMetas()) {
             const point = meta.data[activeIdx];
@@ -284,7 +291,7 @@ export abstract class ReportShellBase extends LitElement {
     private updateBeefyChartHighlight(): void {
         const chartInst = this.beefyChart?.chart;
         if (!chartInst) return;
-        const activeIdx = this.activeItemIndex;
+        const activeIdx = this._chartPointIndex;
         const bg = this.beefyChart.background || '#1a1e2e';
         for (const ds of chartInst.data.datasets) {
             const n = ds.data.length;

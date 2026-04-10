@@ -1,5 +1,5 @@
-// Copyright 2026 Princess Beef Heavy Industries, LLC / Dave Shanley
-// SPDX-License-Identifier: MIT
+// Copyright 2023-2026 Princess Beef Heavy Industries, LLC / Dave Shanley
+// SPDX-License-Identifier: Apache-2.0
 
 package changecounts
 

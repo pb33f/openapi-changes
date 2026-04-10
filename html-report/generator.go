@@ -1,5 +1,5 @@
-// Copyright 2026 Princess Beef Heavy Industries, LLC / Dave Shanley
-// SPDX-License-Identifier: MIT
+// Copyright 2023-2026 Princess Beef Heavy Industries, LLC / Dave Shanley
+// SPDX-License-Identifier: Apache-2.0
 
 package html_report
 
@@ -460,20 +460,23 @@ func buildCommitInfo(commit *model.Commit) *CommitInfo {
 }
 
 // BuildHistoryData aggregates across all ReportItems to produce chart datasets
-// for the history line charts.
+// for the history line charts. Items are reversed so the chart reads
+// oldest (left) to newest (right).
 func BuildHistoryData(items []*ReportItem) *HistoryData {
-	labels := make([]string, len(items))
-	additions := make([]float64, len(items))
-	modifications := make([]float64, len(items))
-	removals := make([]float64, len(items))
-	changeIds := make([]string, len(items))
+	n := len(items)
+	labels := make([]string, n)
+	additions := make([]float64, n)
+	modifications := make([]float64, n)
+	removals := make([]float64, n)
+	changeIds := make([]string, n)
 
 	for i, item := range items {
-		labels[i] = item.Commit.Date
-		additions[i] = float64(item.Summary.Additions)
-		modifications[i] = float64(item.Summary.Modifications)
-		removals[i] = float64(item.Summary.Removals)
-		changeIds[i] = item.ChangeId
+		j := n - 1 - i
+		labels[j] = item.Commit.Date
+		additions[j] = float64(item.Summary.Additions)
+		modifications[j] = float64(item.Summary.Modifications)
+		removals[j] = float64(item.Summary.Removals)
+		changeIds[j] = item.ChangeId
 	}
 
 	return &HistoryData{

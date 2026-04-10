@@ -1,5 +1,5 @@
-// Copyright 2023 Princess B33f Heavy Industries / Dave Shanley
-// SPDX-License-Identifier: MIT
+// Copyright 2023-2026 Princess B33f Heavy Industries / Dave Shanley
+// SPDX-License-Identifier: Apache-2.0
 
 package model
 

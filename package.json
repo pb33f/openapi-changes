@@ -4,7 +4,7 @@
   "description": "The world's sexiest and most detailed OpenAPI diff/changelog tool",
   "type": "module",
   "author": "Princess Beef Heavy Industries",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "homepage": "https://pb33f.io/openapi-changes/",
   "repository": {
     "type": "git",

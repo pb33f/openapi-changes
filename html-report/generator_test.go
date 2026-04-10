@@ -1,5 +1,5 @@
-// Copyright 2026 Princess Beef Heavy Industries, LLC / Dave Shanley
-// SPDX-License-Identifier: MIT
+// Copyright 2023-2026 Princess Beef Heavy Industries, LLC / Dave Shanley
+// SPDX-License-Identifier: Apache-2.0
 
 package html_report
 
@@ -113,16 +113,17 @@ func TestBuildHistoryData(t *testing.T) {
 	assert.Nil(t, history.QualityData)
 	assert.Nil(t, history.ViolationData)
 
-	assert.Equal(t, []string{"2024-01-01T00:00:00Z", "2024-02-01T00:00:00Z"}, history.ChangeData.Labels)
-	assert.Equal(t, []string{"0", "1"}, history.ChangeIds)
+	// Items are newest-first, chart data is reversed to chronological (oldest-first)
+	assert.Equal(t, []string{"2024-02-01T00:00:00Z", "2024-01-01T00:00:00Z"}, history.ChangeData.Labels)
+	assert.Equal(t, []string{"1", "0"}, history.ChangeIds)
 
 	require.Len(t, history.ChangeData.Datasets, 3)
 	assert.Equal(t, "Additions", history.ChangeData.Datasets[0].Label)
-	assert.Equal(t, []float64{5, 2}, history.ChangeData.Datasets[0].Data)
+	assert.Equal(t, []float64{2, 5}, history.ChangeData.Datasets[0].Data)
 	assert.Equal(t, "Modifications", history.ChangeData.Datasets[1].Label)
-	assert.Equal(t, []float64{3, 0}, history.ChangeData.Datasets[1].Data)
+	assert.Equal(t, []float64{0, 3}, history.ChangeData.Datasets[1].Data)
 	assert.Equal(t, "Removals", history.ChangeData.Datasets[2].Label)
-	assert.Equal(t, []float64{1, 4}, history.ChangeData.Datasets[2].Data)
+	assert.Equal(t, []float64{4, 1}, history.ChangeData.Datasets[2].Data)
 }
 
 func TestBuildHistoryData_Empty(t *testing.T) {

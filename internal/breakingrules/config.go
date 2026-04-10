@@ -1,5 +1,5 @@
-// Copyright 2026 Princess Beef Heavy Industries, LLC / Dave Shanley
-// SPDX-License-Identifier: MIT
+// Copyright 2023-2026 Princess Beef Heavy Industries, LLC / Dave Shanley
+// SPDX-License-Identifier: Apache-2.0
 
 // Package breakingrules provides mutex-guarded access to the global breaking
 // rules configuration in libopenapi. All code paths that set the global config
