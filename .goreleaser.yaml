@@ -64,13 +64,8 @@ homebrew_casks:
       name: goreleaserbot
       email: goreleaser@quobix.com
 
-    homepage: "https://pb33f.io/openapi-changes"
-    description: "The worlds sexiest OpenAPI diffing and change detection engine"
-
-    hooks:
-      post:
-        install: |
-          system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/openapi-changes"]
+    homepage: "https://pb33f.io/openapi-changes/"
+    description: "The worlds most powerful OpenAPI diffing and change detection engine"
 
 snapshot:
   version_template: "{{ .Tag }}"
