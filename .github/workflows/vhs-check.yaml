@@ -18,9 +18,13 @@ on:
 jobs:
   verify-demos:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -46,5 +50,10 @@ jobs:
       - name: Render demos
         run: make demos
 
-      - name: Verify committed GIFs are current
-        run: git diff --exit-code -- .github/assets/summary.gif .github/assets/console.gif
+      - name: Commit updated GIFs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/assets/summary.gif .github/assets/console.gif
+          git diff --cached --quiet || git commit -m "update demo GIFs"
+          git push

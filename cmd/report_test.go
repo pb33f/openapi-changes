@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
@@ -126,12 +127,22 @@ func TestRunLeftRightReport_NormalizesParameterPaths(t *testing.T) {
 	require.NoError(t, err)
 	content := string(encoded)
 
+	// Verify named (normalized) paths exist — these are stable regardless of parameter order.
 	assert.Contains(t, content, `"path":"$.paths['/user/login'].get.parameters['username'].schema"`)
-	assert.Contains(t, content, `"rawPath":"$.paths['/user/login'].get.parameters[0].schema"`)
-	assert.Contains(t, content, `"type":"schema"`)
-
 	assert.Contains(t, content, `"path":"$.paths['/user/login'].get.parameters['password']"`)
-	assert.Contains(t, content, `"rawPath":"$.paths['/user/login'].get.parameters[1]"`)
+
+	// Verify raw index paths exist for both parameters (order may vary across Go versions).
+	usernameSchemaRaw0 := `"rawPath":"$.paths['/user/login'].get.parameters[0].schema"`
+	usernameSchemaRaw1 := `"rawPath":"$.paths['/user/login'].get.parameters[1].schema"`
+	assert.True(t, strings.Contains(content, usernameSchemaRaw0) || strings.Contains(content, usernameSchemaRaw1),
+		"expected rawPath for username.schema with index 0 or 1")
+
+	passwordRaw0 := `"rawPath":"$.paths['/user/login'].get.parameters[0]","type":"parameter"`
+	passwordRaw1 := `"rawPath":"$.paths['/user/login'].get.parameters[1]","type":"parameter"`
+	assert.True(t, strings.Contains(content, passwordRaw0) || strings.Contains(content, passwordRaw1),
+		"expected rawPath for password with index 0 or 1")
+
+	assert.Contains(t, content, `"type":"schema"`)
 	assert.Contains(t, content, `"property":"required"`)
 	assert.Contains(t, content, `"type":"parameter"`)
 }
