@@ -1,3 +1,4 @@
 .github/vhs/tmp/
 dist/demos/
 html-report/ui/build/
+html-report/ui/node_modules/
