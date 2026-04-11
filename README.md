@@ -9,7 +9,8 @@
 
 ## The world's **_most powerful and complete_** OpenAPI diff tool.
 
-`openapi-changes` lets you inspect what changed in an OpenAPI specification between two files, across local git history, or directly from a GitHub-hosted file URL.
+`openapi-changes` lets you inspect what changed in an OpenAPI specification between two files, 
+across local git history, or directly from a GitHub-hosted file URL.
 
 It can render the same semantic change model as:
 
@@ -28,6 +29,55 @@ way you can possibly think of. Graphs, trees, lists, diffs, JSON, mark down.
 
 Has no network dependencies at all. Runs 100% offline, including the HTML report.
 
+---
+
+## Install with Homebrew
+
+```bash
+brew install pb33f/taps/openapi-changes
+```
+
+## Install with npm or yarn
+
+```bash
+npm i -g @pb33f/openapi-changes
+```
+
+If you prefer yarn:
+
+```bash
+yarn global add @pb33f/openapi-changes
+```
+
+## Install with cURL
+
+```bash
+curl -fsSL https://pb33f.io/openapi-changes/install.sh | sh
+```
+
+## Install or run with Docker
+
+```bash
+docker pull pb33f/openapi-changes
+```
+
+Docker images are available for both `linux/amd64` and `linux/arm64`.
+
+To run a command, mount the current working directory into the container:
+
+```bash
+docker run --rm -v $PWD:/work:rw pb33f/openapi-changes summary . sample-specs/petstorev3.json
+```
+
+To run the interactive `console` through Docker, allocate a TTY with `-it`:
+
+```bash
+docker run --rm -it -v $PWD:/work:rw pb33f/openapi-changes console . path/to/openapi.yaml
+```
+
+
+---
+
 ### Summary view
 
 ![](./.github/assets/summary.gif)
@@ -35,7 +85,7 @@ Has no network dependencies at all. Runs 100% offline, including the HTML report
 
 ### A full terminal UI
 
-Comes in multiple themes!
+Comes in multiple themes! PB33F (Dark), Roger Mode (Light) and Tektronix (Retro Dark)
 
 ![](./.github/assets/console.gif)
 
@@ -97,46 +147,6 @@ Full docs: https://pb33f.io/openapi-changes/
 - [About openapi-changes](https://pb33f.io/openapi-changes/about/)
 
 ---
-
-## Install with Homebrew
-
-```bash
-brew install pb33f/taps/openapi-changes
-```
-
-## Install with npm or yarn
-
-```bash
-npm i -g @pb33f/openapi-changes
-```
-
-If you prefer yarn:
-
-```bash
-yarn global add @pb33f/openapi-changes
-```
-
-## Install with cURL
-
-```bash
-curl -fsSL https://pb33f.io/openapi-changes/install.sh | sh
-```
-
-## Install or run with Docker
-
-```bash
-docker pull pb33f/openapi-changes
-```
-
-Docker images are available for both `linux/amd64` and `linux/arm64`.
-
-To run a command, mount the current working directory into the container:
-
-```bash
-docker run --rm -v $PWD:/work:rw pb33f/openapi-changes summary . sample-specs/petstorev3.json
-```
-
-> The `console` command is not usable through Docker.
 
 ## Build from source
 
