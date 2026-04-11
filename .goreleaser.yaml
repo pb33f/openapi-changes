@@ -1,3 +1,4 @@
+version: 2
 project_name: openapi-changes
 before:
   hooks:
@@ -31,7 +32,7 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
-brews:
+homebrew_casks:
   - repository:
       owner: pb33f
       name: homebrew-taps
@@ -43,11 +44,10 @@ brews:
     homepage: "https://pb33f.io/openapi-changes"
     description: "The worlds sexiest OpenAPI diffing and change detection engine"
 
-    install: |
-      bin.install "openapi-changes"
+    binary: openapi-changes
 
 snapshot:
-  name_template: "{{ .Tag }}"
+  version_template: "{{ .Tag }}"
 
 # disabled for now, it works but no-one is really using it, and it's screwing up the npm release.
 #chocolateys:
