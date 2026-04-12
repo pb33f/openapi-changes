@@ -8,7 +8,6 @@ import (
 	"image/color"
 	"net/url"
 	"os"
-	"strings"
 
 	"charm.land/lipgloss/v2"
 	"github.com/pb33f/doctor/terminal"
@@ -209,9 +208,14 @@ func loadCommitsFromArgs(args []string, opts summaryOpts, breakingConfig *whatCh
 	if len(args) == 1 {
 		return loadGitHubCommits(args[0], opts, breakingConfig)
 	}
-	firstURL, _ := url.Parse(args[0])
-	if firstURL != nil && strings.HasPrefix(firstURL.Scheme, "http") {
-		return loadLeftRightCommits(args[0], args[1], opts, breakingConfig)
+	if isHTTPURL(args[0]) {
+		return loadLeftRightCommits(args[0], args[1], opts)
+	}
+	if _, _, ok := parseGitRef(args[0]); ok {
+		return loadLeftRightCommits(args[0], args[1], opts)
+	}
+	if _, _, ok := parseGitRef(args[1]); ok {
+		return loadLeftRightCommits(args[0], args[1], opts)
 	}
 	f, statErr := os.Stat(args[0])
 	if statErr != nil {
@@ -220,7 +224,7 @@ func loadCommitsFromArgs(args []string, opts summaryOpts, breakingConfig *whatCh
 	if f.IsDir() {
 		return loadGitHistoryCommits(args[0], args[1], opts, breakingConfig)
 	}
-	return loadLeftRightCommits(args[0], args[1], opts, breakingConfig)
+	return loadLeftRightCommits(args[0], args[1], opts)
 }
 
 // printCommandUsage prints lipgloss-styled usage for any doctor-based command.
@@ -239,6 +243,7 @@ func printCommandUsage(commandName, description string, palette terminal.Palette
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" ./specs/old.yaml ./specs/new.yaml"))
+	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" HEAD~1:openapi.yaml ./openapi.yaml"))
 	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" https://github.com/user/repo/blob/main/openapi.yaml"))
 	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" /path/to/git/repo path/to/openapi.yaml"))
 	fmt.Println()

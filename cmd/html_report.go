@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"text/template"
 	"time"
@@ -94,10 +93,11 @@ func generateHTMLReport(commits []*model.Commit, breakingConfig *whatChangedMode
 		History:       history,
 	}
 
-	// For left/right comparisons, include sanitized spec paths (basename only)
+	// For left/right comparisons, preserve explicit git-ref and URL labels while
+	// keeping plain local files compact.
 	if len(args) == 2 && len(items) == 1 {
-		payload.OriginalPath = filepath.Base(args[0])
-		payload.ModifiedPath = filepath.Base(args[1])
+		payload.OriginalPath = displayLabelForHTML(args[0])
+		payload.ModifiedPath = displayLabelForHTML(args[1])
 	}
 
 	// json.Marshal escapes <, >, & by default — prevents </script> injection.
@@ -135,7 +135,7 @@ func GetHTMLReportCommand() *cobra.Command {
 		Use:          "html-report",
 		Short:        "Generate an interactive HTML report",
 		Long:         "Generate a rich, interactive HTML report. The report is fully self-contained and works offline.",
-		Example:      "openapi-changes html-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Example:      "openapi-changes html-report HEAD~1:openapi.yaml ./openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			input, err := prepareCommandRun(cmd, args, printHTMLReportUsage)
 			if err != nil {

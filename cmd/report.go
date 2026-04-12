@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"strings"
 	"time"
 
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
@@ -54,7 +53,7 @@ func changerateAndFlatten(commits []*model.Commit, breakingConfig *whatChangedMo
 }
 
 func runLeftRightReport(left, right string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatReport, error) {
-	commits, err := loadLeftRightCommits(left, right, opts, breakingConfig)
+	commits, err := loadLeftRightCommits(left, right, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +138,7 @@ func GetReportCommand() *cobra.Command {
 		Use:          "report",
 		Short:        "Generate a machine readable report",
 		Long:         "Generate a JSON report for what has changed between commits/specs",
-		Example:      "openapi-changes report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Example:      "openapi-changes report HEAD~1:openapi.yaml ./openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, configFlag, err := readCommonFlags(cmd)
 			if err != nil {
@@ -176,8 +175,13 @@ func GetReportCommand() *cobra.Command {
 				return printReportJSON(flat)
 			}
 
-			firstURL, _ := url.Parse(args[0])
-			if firstURL == nil || !strings.HasPrefix(firstURL.Scheme, "http") {
+			if !isHTTPURL(args[0]) {
+				if _, _, ok := parseGitRef(args[0]); ok {
+					return printReportJSONOrNoChanges(args, opts, breakingConfig)
+				}
+				if _, _, ok := parseGitRef(args[1]); ok {
+					return printReportJSONOrNoChanges(args, opts, breakingConfig)
+				}
 				f, statErr := os.Stat(args[0])
 				if statErr == nil && f.IsDir() {
 					flat, reportErr := runGitHistoryReport(args[0], args[1], opts, breakingConfig)
@@ -192,17 +196,21 @@ func GetReportCommand() *cobra.Command {
 				}
 			}
 
-			flat, reportErr := runLeftRightReport(args[0], args[1], opts, breakingConfig)
-			if reportErr != nil {
-				return reportErr
-			}
-			if flat == nil {
-				printNoChangesJSON()
-				return nil
-			}
-			return printReportJSON(flat)
+			return printReportJSONOrNoChanges(args, opts, breakingConfig)
 		},
 	}
 	addTerminalThemeFlags(cmd)
 	return cmd
+}
+
+func printReportJSONOrNoChanges(args []string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) error {
+	flat, reportErr := runLeftRightReport(args[0], args[1], opts, breakingConfig)
+	if reportErr != nil {
+		return reportErr
+	}
+	if flat == nil {
+		printNoChangesJSON()
+		return nil
+	}
+	return printReportJSON(flat)
 }

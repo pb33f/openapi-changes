@@ -60,7 +60,7 @@ func GetConsoleCommand() *cobra.Command {
 		Use:          "console",
 		Short:        "Interactive terminal UI for exploring changes",
 		Long:         "Navigate through changes visually in an interactive terminal UI built with Bubbletea, using the doctor changerator engine.",
-		Example:      "openapi-changes console /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Example:      "openapi-changes console HEAD~1:openapi.yaml ./openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			input, err := prepareCommandRun(cmd, args, printConsoleUsage)
 			if err != nil {

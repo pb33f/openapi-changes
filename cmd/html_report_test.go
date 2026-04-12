@@ -5,6 +5,8 @@ package cmd
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -20,7 +22,6 @@ func TestGenerateHTMLReport_UnchangedLeftRight(t *testing.T) {
 		"../sample-specs/petstorev3.json",
 		"../sample-specs/petstorev3.json",
 		summaryOpts{noColor: true},
-		nil,
 	)
 	require.NoError(t, err)
 
@@ -37,7 +38,6 @@ func TestGenerateHTMLReport_LeftRightIncludesSanitizedPaths(t *testing.T) {
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
 		summaryOpts{noColor: true},
-		nil,
 	)
 	require.NoError(t, err)
 
@@ -54,6 +54,54 @@ func TestGenerateHTMLReport_LeftRightIncludesSanitizedPaths(t *testing.T) {
 	assert.Contains(t, content, "<!DOCTYPE html")
 }
 
+func TestGenerateHTMLReport_LeftRightPreservesGitRefPaths(t *testing.T) {
+	repoDir := createGitSpecRepo(t)
+	chdirForTest(t, repoDir)
+
+	commits, err := loadLeftRightCommits(
+		"HEAD~1:openapi.yaml",
+		"HEAD:openapi.yaml",
+		summaryOpts{noColor: true},
+	)
+	require.NoError(t, err)
+
+	report, err := generateHTMLReport(commits, nil, true,
+		"HEAD~1:openapi.yaml",
+		"HEAD:openapi.yaml",
+	)
+	require.NoError(t, err)
+	require.NotNil(t, report)
+
+	content := string(report)
+	assert.Contains(t, content, `"originalPath":"HEAD~1:openapi.yaml"`)
+	assert.Contains(t, content, `"modifiedPath":"HEAD:openapi.yaml"`)
+}
+
+func TestGenerateHTMLReport_LeftRightPreservesURLPaths(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/left.yaml" {
+			_, _ = w.Write([]byte("openapi: 3.0.3\ninfo:\n  title: Left\n  version: '1.0'\npaths: {}\n"))
+			return
+		}
+		_, _ = w.Write([]byte("openapi: 3.0.3\ninfo:\n  title: Right\n  version: '1.1'\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: ok\n"))
+	}))
+	defer server.Close()
+
+	leftURL := server.URL + "/left.yaml"
+	rightURL := server.URL + "/right.yaml"
+
+	commits, err := loadLeftRightCommits(leftURL, rightURL, summaryOpts{noColor: true})
+	require.NoError(t, err)
+
+	report, err := generateHTMLReport(commits, nil, true, leftURL, rightURL)
+	require.NoError(t, err)
+	require.NotNil(t, report)
+
+	content := string(report)
+	assert.Contains(t, content, `"originalPath":"`+leftURL+`"`)
+	assert.Contains(t, content, `"modifiedPath":"`+rightURL+`"`)
+}
+
 func TestBuildHTMLReportItems_AllCommitsFail(t *testing.T) {
 	items, err := buildHTMLReportItems([]*model.Commit{makeSwagger2Commit(t)}, nil)
 	require.Error(t, err)
@@ -66,7 +114,6 @@ func TestBuildHTMLReportItems_PartialFailureReturnsPartialResults(t *testing.T) 
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
 		summaryOpts{noColor: true},
-		nil,
 	)
 	require.NoError(t, err)
 	require.NotEmpty(t, commits)
@@ -88,7 +135,6 @@ func TestGenerateHTMLReport_PartialFailureReturnsPartialReport(t *testing.T) {
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
 		summaryOpts{noColor: true},
-		nil,
 	)
 	require.NoError(t, err)
 	require.NotEmpty(t, commits)
@@ -136,7 +182,6 @@ func TestBuildHTMLReportItems_PreservesSchemaNodesInDocumentTree(t *testing.T) {
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
 		summaryOpts{noColor: true},
-		nil,
 	)
 	require.NoError(t, err)
 	require.NotEmpty(t, commits)
@@ -179,7 +224,6 @@ func TestBuildHTMLReportItems_SplitsStandardAndChangeExplorerGraphs(t *testing.T
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
 		summaryOpts{noColor: true},
-		nil,
 	)
 	require.NoError(t, err)
 	require.NotEmpty(t, commits)

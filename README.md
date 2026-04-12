@@ -9,8 +9,8 @@
 
 ## The world's **_most powerful and complete_** OpenAPI diff tool.
 
-`openapi-changes` lets you inspect what changed in an OpenAPI specification between two files, 
-across local git history, or directly from a GitHub-hosted file URL.
+`openapi-changes` lets you inspect what changed in an OpenAPI specification between two files,
+between git revisions of the same file, across local git history, or directly from a GitHub-hosted file URL.
 
 It can render the same semantic change model as:
 
@@ -125,6 +125,21 @@ A self-contained, offline HTML report with interactive timeline, change explorer
 #### Tektronix mode (green monochrome)
 
 ![](./.github/assets/tektronix.png)
+
+---
+
+## Comparing git revisions
+
+Compare a file at different git revisions without checking out branches:
+
+```bash
+openapi-changes summary HEAD~1:openapi.yaml ./openapi.yaml
+openapi-changes html-report main:api/openapi.yaml feature-branch:api/openapi.yaml
+```
+
+The `revision:path` syntax works with any git ref -- branches, tags, `HEAD~N`, commit SHAs.
+The path is relative to the repository root. This works with all commands and supports
+multi-file specs with `$ref` references resolved from the same revision.
 
 ---
 

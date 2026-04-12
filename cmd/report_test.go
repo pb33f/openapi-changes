@@ -112,6 +112,42 @@ func TestRunLeftRightReport_OmitsCommitDetailsInJSON(t *testing.T) {
 	assert.NotContains(t, string(encoded), "commitDetails")
 }
 
+func TestRunLeftRightReport_GitRefExplodedSpecIncludesSiblingChanges(t *testing.T) {
+	repoDir, _ := createExplodedGitSpecRepo(t)
+	chdirForTest(t, repoDir)
+
+	report, err := runLeftRightReport(
+		"HEAD~1:apis/openapi.yaml",
+		"HEAD:apis/openapi.yaml",
+		summaryOpts{noColor: true},
+		nil,
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	assert.NotEmpty(t, report.Changes)
+
+	encoded, err := json.Marshal(report)
+	require.NoError(t, err)
+	assert.Contains(t, string(encoded), `"property":"required"`)
+	assert.Contains(t, string(encoded), `"path":"$.paths['/pets'].get.responses['200'].content['application/json'].schema"`)
+}
+
+func TestRunLeftRightReport_LocalExplodedSpecIncludesSiblingChanges(t *testing.T) {
+	leftPath, rightPath := createExplodedLocalSpecPair(t)
+
+	report, err := runLeftRightReport(leftPath, rightPath, summaryOpts{noColor: true}, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	assert.NotEmpty(t, report.Changes)
+
+	encoded, err := json.Marshal(report)
+	require.NoError(t, err)
+	assert.Contains(t, string(encoded), `"property":"required"`)
+	assert.Contains(t, string(encoded), `"path":"$.paths['/pets'].get.responses['200'].content['application/json'].schema"`)
+}
+
 func TestRunLeftRightReport_NormalizesParameterPaths(t *testing.T) {
 	report, err := runLeftRightReport(
 		"../sample-specs/petstorev3-original.json",
@@ -145,4 +181,24 @@ func TestRunLeftRightReport_NormalizesParameterPaths(t *testing.T) {
 	assert.Contains(t, content, `"type":"schema"`)
 	assert.Contains(t, content, `"property":"required"`)
 	assert.Contains(t, content, `"type":"parameter"`)
+}
+
+func TestReportCommand_GitRefUsesLeftRightMode(t *testing.T) {
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	repoRoot := filepath.Clean(filepath.Join(wd, ".."))
+	chdirForTest(t, repoRoot)
+
+	cmd := testRootCmd(GetReportCommand(),
+		"HEAD:sample-specs/petstorev3-original.json",
+		"sample-specs/petstorev3.json",
+	)
+
+	output := captureStdout(t, func() {
+		require.NoError(t, cmd.Execute())
+	})
+
+	assert.Contains(t, output, `"changes"`)
+	assert.Contains(t, output, `"summary"`)
+	assert.NotContains(t, output, `"reports"`)
 }

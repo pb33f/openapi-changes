@@ -107,6 +107,26 @@ func TestReadFile(t *testing.T) {
 	assert.NotEmpty(t, contentRaw)
 }
 
+func TestReadFileAtRevision(t *testing.T) {
+	contentRaw, err := ReadFileAtRevision("../", "HEAD", "go.mod")
+	require.NoError(t, err)
+	assert.NotEmpty(t, contentRaw)
+}
+
+func TestReadFileAtRevision_BadRevision(t *testing.T) {
+	contentRaw, err := ReadFileAtRevision("../", "not-a-real-revision", "go.mod")
+	require.Error(t, err)
+	assert.Nil(t, contentRaw)
+	assert.Contains(t, err.Error(), "cannot read 'go.mod' at revision 'not-a-real-revision'")
+}
+
+func TestReadFileAtRevision_BadFile(t *testing.T) {
+	contentRaw, err := ReadFileAtRevision("../", "HEAD", "missing-file.yaml")
+	require.Error(t, err)
+	assert.Nil(t, contentRaw)
+	assert.Contains(t, err.Error(), "cannot read 'missing-file.yaml' at revision 'HEAD'")
+}
+
 func TestBuildChangelog_IdenticalLeftRightPreservesSentinelCommit(t *testing.T) {
 	specBytes := mustReadTestFile(t, "../sample-specs/petstorev3.json")
 	progressChan := make(chan *model.ProgressUpdate, 32)

@@ -333,3 +333,12 @@ func readFile(repoDir, hash, filePath string) ([]byte, error) {
 
 	return ou.Bytes(), nil
 }
+
+// ReadFileAtRevision reads a file from a git repository at the given revision.
+func ReadFileAtRevision(repoDir, revision, filePath string) ([]byte, error) {
+	data, err := readFile(repoDir, revision, filePath)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read '%s' at revision '%s': %w", filePath, revision, err)
+	}
+	return data, nil
+}

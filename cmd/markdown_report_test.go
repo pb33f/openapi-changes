@@ -19,7 +19,7 @@ func TestMarkdownReport_UnchangedLeftRight(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3.json",
 		"../sample-specs/petstorev3.json",
-		opts, nil,
+		opts,
 	)
 	require.NoError(t, err)
 
@@ -61,7 +61,7 @@ func TestMarkdownReport_HeadingStripping(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		opts, nil,
+		opts,
 	)
 	require.NoError(t, err)
 
@@ -78,7 +78,7 @@ func TestMarkdownReport_SingleCommitLeftRight(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		opts, nil,
+		opts,
 	)
 	require.NoError(t, err)
 
@@ -97,7 +97,7 @@ func TestMarkdownReport_UsesDeduplicatedCounts(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		opts, nil,
+		opts,
 	)
 	require.NoError(t, err)
 
@@ -117,7 +117,7 @@ func TestMarkdownReport_UsesDeduplicatedObjectStats(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		opts, nil,
+		opts,
 	)
 	require.NoError(t, err)
 
@@ -140,7 +140,7 @@ func TestMarkdownReport_LeftRightOmitsSyntheticCommitMetadata(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		opts, nil,
+		opts,
 	)
 	require.NoError(t, err)
 
@@ -162,7 +162,7 @@ func TestMarkdownReport_PartialFailureReturnsPartialResults(t *testing.T) {
 	validCommits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		opts, nil,
+		opts,
 	)
 	require.NoError(t, err)
 	require.NotEmpty(t, validCommits)
@@ -206,7 +206,7 @@ func TestMarkdownReport_IncludeDiffFlag(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		opts, nil,
+		opts,
 	)
 	require.NoError(t, err)
 
@@ -221,7 +221,7 @@ func TestMarkdownReport_IncludeDiffFlag(t *testing.T) {
 	commits, err = loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
-		opts, nil,
+		opts,
 	)
 	require.NoError(t, err)
 

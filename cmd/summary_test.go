@@ -233,11 +233,11 @@ func TestLoadLeftRightCommits_IdenticalSpecsPreserveComparableRevision(t *testin
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3.json",
 		"../sample-specs/petstorev3.json",
-		opts, nil,
+		opts,
 	)
 
 	require.NoError(t, err)
-	require.Len(t, commits, 2)
+	require.Len(t, commits, 1)
 	assert.NotNil(t, commits[0].Document)
 	assert.NotNil(t, commits[0].OldDocument)
 	assert.Nil(t, commits[0].Changes)
@@ -248,7 +248,6 @@ func TestRenderSummary_DirectComparisonNoChangesUsesGenericMessage(t *testing.T)
 		"../sample-specs/petstorev3.json",
 		"../sample-specs/petstorev3.json",
 		summaryOpts{noColor: true},
-		nil,
 	)
 	require.NoError(t, err)
 
@@ -352,14 +351,7 @@ paths: {}
 	assert.True(t, hasChanges)
 }
 
-func TestLoadLeftRightCommits_DownloadedFilesAreCleanedUp(t *testing.T) {
-	originalHTTPGet := httpGet
-	originalBuildChangelog := buildChangelog
-	t.Cleanup(func() {
-		httpGet = originalHTTPGet
-		buildChangelog = originalBuildChangelog
-	})
-
+func TestLoadLeftRightCommits_DownloadedFilesPreserveRawLabels(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`openapi: 3.0.3
 info:
@@ -370,22 +362,43 @@ paths: {}
 	}))
 	defer server.Close()
 
-	var originalPath string
-	var modifiedPath string
-	buildChangelog = func(commits []*model.Commit, progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
-		opts git.HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
-	) ([]*model.Commit, []error) {
-		originalPath = strings.TrimPrefix(commits[1].Message, "Original file: ")
-		modifiedPath = strings.TrimPrefix(commits[0].Message, "Original: "+originalPath+", Modified: ")
-		return commits, nil
-	}
+	leftURL := server.URL + "/left.yaml"
+	rightURL := server.URL + "/right.yaml"
 
-	commits, err := loadLeftRightCommits(server.URL+"/left.yaml", server.URL+"/right.yaml", summaryOpts{}, nil)
+	commits, err := loadLeftRightCommits(leftURL, rightURL, summaryOpts{})
 
 	require.NoError(t, err)
-	require.Len(t, commits, 2)
-	assert.NoFileExists(t, originalPath)
-	assert.NoFileExists(t, modifiedPath)
+	require.Len(t, commits, 1)
+	assert.Equal(t, "Original: "+leftURL+", Modified: "+rightURL, commits[0].Message)
+}
+
+func TestRenderSummary_GitRefExplodedSpecDetectsSiblingChanges(t *testing.T) {
+	repoDir, _ := createExplodedGitSpecRepo(t)
+	chdirForTest(t, repoDir)
+
+	commits, err := loadLeftRightCommits(
+		"HEAD~1:apis/openapi.yaml",
+		"HEAD:apis/openapi.yaml",
+		summaryOpts{noColor: true},
+	)
+	require.NoError(t, err)
+	require.Len(t, commits, 1)
+
+	output, hasBreaking, hasChanges, err := renderSummary(
+		commits,
+		nil,
+		false,
+		true,
+		false,
+		summaryStyles{},
+	)
+	require.NoError(t, err)
+	assert.True(t, hasChanges)
+	assert.True(t, hasBreaking)
+	assert.NotContains(t, output, "No changes found between specifications")
+	assert.Contains(t, output, "paths")
+	assert.Contains(t, output, "name")
+	assert.Contains(t, output, "Breaking Highlights")
 }
 
 func TestLoadLeftRightCommits_ReturnsHTTPStatusErrors(t *testing.T) {
@@ -394,7 +407,7 @@ func TestLoadLeftRightCommits_ReturnsHTTPStatusErrors(t *testing.T) {
 	}))
 	defer server.Close()
 
-	commits, err := loadLeftRightCommits(server.URL+"/left.yaml", "../sample-specs/petstorev3.json", summaryOpts{}, nil)
+	commits, err := loadLeftRightCommits(server.URL+"/left.yaml", "../sample-specs/petstorev3.json", summaryOpts{})
 
 	require.Error(t, err)
 	assert.Nil(t, commits)

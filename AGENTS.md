@@ -12,7 +12,7 @@ Public documentation:
 
 `openapi-changes` is a Go CLI for comparing OpenAPI specifications across:
 
-- direct left/right file or URL comparison
+- direct left/right file, URL, or git-revision comparison
 - local git history for a file in a repository
 - GitHub-hosted file history via file URL
 
@@ -65,6 +65,7 @@ All `cmd/` implementation files use their canonical names (e.g., `cmd/summary.go
 
 - Left/right comparisons are synthetic comparisons, not fake git history.
 - Do not emit synthetic commit metadata in left/right machine- or human-facing report output.
+- Git revision inputs (`revision:path`) resolve `$ref` siblings from the same revision via `GitRevisionFS`, not from the working tree.
 
 ### Failure semantics
 
@@ -99,7 +100,9 @@ All `cmd/` implementation files use their canonical names (e.g., `cmd/summary.go
 - `cmd/console.go` — launches the interactive Bubbletea terminal UI
 - `cmd/flatten_report.go` — flattens hierarchical change reports into flat structures with hashed changes and normalized paths
 - `cmd/report_common.go` — shared utilities: summary report creation from commits, formatted report file writing
+- `cmd/left_right_sources.go` — resolves local, URL, and git-revision inputs into uniform comparison sources with proper document configuration
 - `git/read_local.go` — local git history extraction via git commands; commit and file content preparation
+- `git/revision_fs.go` — virtual filesystem that reads files from a git revision for `$ref` resolution in revision-scoped comparisons
 - `git/github.go` — remote file history fetching from GitHub repos via doctor GitHub service
 - `html-report/generator.go` — renders self-contained HTML using embedded templates and syntax-highlighted code
 - `model/report.go` — hashed change structures with SHA256 hashes and raw paths for serialization

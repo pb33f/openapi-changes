@@ -466,7 +466,7 @@ func GetSummaryCommand() *cobra.Command {
 		Use:          "summary",
 		Short:        "See a summary of changes",
 		Long:         "print a summary of what changed using the doctor changerator engine with tree visualization",
-		Example:      "openapi-changes summary /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Example:      "openapi-changes summary HEAD~1:openapi.yaml ./openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			input, err := prepareCommandRun(cmd, args, printSummaryUsage)
 			if err != nil {

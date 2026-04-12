@@ -156,7 +156,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 		Use:          "markdown-report",
 		Short:        "Generate a markdown report",
 		Long:         "Generate a detailed markdown report of API changes rendered as markdown",
-		Example:      "openapi-changes markdown-report /path/to/git/repo path/to/file/in/repo/openapi.yaml",
+		Example:      "openapi-changes markdown-report HEAD~1:openapi.yaml ./openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			input, err := prepareCommandRun(cmd, args, printMarkdownReportUsage)
 			if err != nil {

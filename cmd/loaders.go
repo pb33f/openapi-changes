@@ -6,16 +6,13 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/google/uuid"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/git"
 	"github.com/pb33f/openapi-changes/model"
@@ -24,7 +21,6 @@ import (
 var processGithubRepo = git.ProcessGithubRepo
 var extractHistoryFromFile = git.ExtractHistoryFromFile
 var populateHistory = git.PopulateHistory
-var buildChangelog = git.BuildChangelog
 var httpGet = http.Get
 
 // progressDrainer drains git progress channels that use synchronous sends.
@@ -203,103 +199,135 @@ func loadGitHistoryCommits(gitPath, filePath string, opts summaryOpts, breakingC
 	return commits, nil
 }
 
-func loadLeftRightCommits(left, right string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
-	d := makeProgressDrainer()
-	defer d.close()
-
-	var err error
-	left, leftCleanup, err := resolveLeftRightInput(left)
+func loadLeftRightCommits(left, right string, opts summaryOpts) ([]*model.Commit, error) {
+	leftSource, err := resolveComparisonSource(left, opts)
 	if err != nil {
 		return nil, err
 	}
-	defer leftCleanup()
+	defer leftSource.Cleanup()
 
-	right, rightCleanup, err := resolveLeftRightInput(right)
+	rightSource, err := resolveComparisonSource(right, opts)
 	if err != nil {
 		return nil, err
 	}
-	defer rightCleanup()
+	defer rightSource.Cleanup()
 
-	leftBytes, err := os.ReadFile(left)
+	commit, err := buildLeftRightCommit(leftSource, rightSource)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read original spec: %w", err)
-	}
-	rightBytes, err := os.ReadFile(right)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read modified spec: %w", err)
-	}
-
-	commits := []*model.Commit{
-		{
-			Hash:       uuid.New().String()[:6],
-			Message:    fmt.Sprintf("Original: %s, Modified: %s", left, right),
-			CommitDate: time.Now(),
-			Data:       rightBytes,
-			Synthetic:  true,
-		},
-		{
-			Hash:       uuid.New().String()[:6],
-			Message:    fmt.Sprintf("Original file: %s", left),
-			CommitDate: time.Now(),
-			Data:       leftBytes,
-			Synthetic:  true,
-		},
-	}
-
-	commits, errs := buildChangelog(commits, d.ProgressChan, d.ErrorChan,
-		git.HistoryOptions{
-			Base:           opts.base,
-			Remote:         opts.remote,
-			ExtRefs:        opts.extRefs,
-			KeepComparable: true,
-		}, breakingConfig)
-	if err := d.collectErrors(errs); err != nil {
 		return nil, err
 	}
-	return commits, nil
+	return []*model.Commit{commit}, nil
 }
 
-func resolveLeftRightInput(raw string) (string, func(), error) {
-	specURL, err := url.Parse(raw)
-	if err != nil || specURL == nil || !strings.HasPrefix(specURL.Scheme, "http") {
-		return raw, func() {}, nil
+func parseGitRef(raw string) (revision, filePath string, ok bool) {
+	if isHTTPURL(raw) {
+		return "", "", false
 	}
+	if shouldPreferLocalPath(raw) {
+		return "", "", false
+	}
+	colonIdx := strings.IndexByte(raw, ':')
+	if colonIdx < 0 {
+		return "", "", false
+	}
+	if colonIdx == 1 && len(raw) > 1 && ((raw[0] >= 'A' && raw[0] <= 'Z') || (raw[0] >= 'a' && raw[0] <= 'z')) {
+		return "", "", false
+	}
+	revision = raw[:colonIdx]
+	filePath = raw[colonIdx+1:]
+	if revision == "" || filePath == "" {
+		return "", "", false
+	}
+	return revision, filePath, true
+}
 
-	resp, err := httpGet(raw)
+func shouldPreferLocalPath(raw string) bool {
+	if raw == "" {
+		return false
+	}
+	if filepath.IsAbs(raw) || strings.HasPrefix(raw, "."+string(filepath.Separator)) || strings.HasPrefix(raw, ".."+string(filepath.Separator)) {
+		return true
+	}
+	_, err := os.Lstat(raw)
+	return err == nil
+}
+
+func isHTTPURL(raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil || u == nil {
+		return false
+	}
+	return (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
+}
+
+func canonicalizePath(path string) (string, error) {
+	absPath, err := filepath.Abs(filepath.Clean(path))
 	if err != nil {
-		return "", func() {}, fmt.Errorf("error downloading file '%s': %w", raw, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return "", func() {}, fmt.Errorf("error downloading file '%s': unexpected status %s", raw, resp.Status)
+		return "", err
 	}
 
-	const maxDownloadSize = 100 << 20 // 100 MB
-	bits, err := io.ReadAll(io.LimitReader(resp.Body, maxDownloadSize))
+	existingPath := absPath
+	var missingParts []string
+	for {
+		if _, err := os.Lstat(existingPath); err == nil {
+			break
+		} else if !os.IsNotExist(err) {
+			return "", err
+		}
+
+		parent := filepath.Dir(existingPath)
+		if parent == existingPath {
+			return absPath, nil
+		}
+		missingParts = append([]string{filepath.Base(existingPath)}, missingParts...)
+		existingPath = parent
+	}
+
+	resolvedPath, err := filepath.EvalSymlinks(existingPath)
 	if err != nil {
-		return "", func() {}, fmt.Errorf("error reading downloaded file '%s': %w", raw, err)
+		return "", err
 	}
-	if len(bits) == 0 {
-		return "", func() {}, fmt.Errorf("downloaded file '%s' is empty", raw)
+	for _, part := range missingParts {
+		resolvedPath = filepath.Join(resolvedPath, part)
 	}
+	return resolvedPath, nil
+}
 
-	tmpFile, err := os.CreateTemp("", "openapi-changes-*")
+func normalizeGitRefPath(_ string, repoRoot, filePath string) (string, error) {
+	canonicalRepoRoot, err := canonicalizePath(repoRoot)
 	if err != nil {
-		return "", func() {}, fmt.Errorf("cannot create temp file for '%s': %w", raw, err)
-	}
-	if _, err = tmpFile.Write(bits); err != nil {
-		tmpName := tmpFile.Name()
-		_ = tmpFile.Close()
-		_ = os.Remove(tmpName)
-		return "", func() {}, fmt.Errorf("downloaded file '%s' cannot be written: %w", raw, err)
-	}
-	if err = tmpFile.Close(); err != nil {
-		tmpName := tmpFile.Name()
-		_ = os.Remove(tmpName)
-		return "", func() {}, fmt.Errorf("downloaded file '%s' cannot be closed: %w", raw, err)
+		return "", fmt.Errorf("cannot canonicalize repository root '%s': %w", repoRoot, err)
 	}
 
-	tmpName := tmpFile.Name()
-	return tmpName, func() { _ = os.Remove(tmpName) }, nil
+	var absPath string
+	if filepath.IsAbs(filePath) {
+		absPath, err = canonicalizePath(filePath)
+		if err != nil {
+			return "", fmt.Errorf("cannot canonicalize git ref path '%s': %w", filePath, err)
+		}
+	} else {
+		absPath = filepath.Join(canonicalRepoRoot, filepath.Clean(filePath))
+	}
+
+	relPath, err := filepath.Rel(canonicalRepoRoot, absPath)
+	if err != nil {
+		return "", fmt.Errorf("cannot normalize git ref path '%s': %w", filePath, err)
+	}
+	if relPath == "." || relPath == "" {
+		return "", fmt.Errorf("git ref path '%s' must point to a file", filePath)
+	}
+	if relPath == ".." || strings.HasPrefix(relPath, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("git ref path '%s' resolves outside the current repository", filePath)
+	}
+	return filepath.ToSlash(relPath), nil
+}
+
+func displayLabelForHTML(raw string) string {
+	if _, _, ok := parseGitRef(raw); ok {
+		return raw
+	}
+	if isHTTPURL(raw) {
+		return raw
+	}
+	return filepath.Base(raw)
 }
