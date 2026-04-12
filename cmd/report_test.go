@@ -165,6 +165,31 @@ func TestRunLeftRightReport_OmitsCommitDetailsInJSON(t *testing.T) {
 	assert.NotContains(t, string(encoded), "commitDetails")
 }
 
+func TestReportCommand_ReproducibleOutputIsStableAcrossRuns(t *testing.T) {
+	args := []string{
+		"--no-logo",
+		"--no-color",
+		"--reproducible",
+		"../sample-specs/petstorev3-original.json",
+		"../sample-specs/petstorev3.json",
+	}
+
+	runOnce := func() string {
+		cmd := testRootCmd(GetReportCommand(), args...)
+		return captureStdout(t, func() {
+			require.NoError(t, cmd.Execute())
+		})
+	}
+
+	first := runOnce()
+	second := runOnce()
+
+	assert.Equal(t, first, second)
+	assert.NotContains(t, first, `"dateGenerated"`)
+	assert.NotContains(t, first, `"commitDetails"`)
+	assert.NotContains(t, first, `"rawPath"`)
+}
+
 func TestRunLeftRightReport_GitRefExplodedSpecIncludesSiblingChanges(t *testing.T) {
 	repoDir, _ := createExplodedGitSpecRepo(t)
 	chdirForTest(t, repoDir)

@@ -87,6 +87,6 @@ type FlatHistoricalReport struct {
 	GitRepoPath   string        `json:"gitRepoPath"`
 	GitFilePath   string        `json:"gitFilePath"`
 	Filename      string        `json:"filename"`
-	DateGenerated string        `json:"dateGenerated"`
+	DateGenerated string        `json:"dateGenerated,omitempty"`
 	Reports       []*FlatReport `json:"reports" `
 }

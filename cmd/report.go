@@ -146,6 +146,10 @@ func GetReportCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			reproducible, err := cmd.Flags().GetBool("reproducible")
+			if err != nil {
+				return err
+			}
 
 			if len(args) == 0 {
 				maybePrintBanner(cmd, opts.palette)
@@ -174,15 +178,18 @@ func GetReportCommand() *cobra.Command {
 				if reportErr != nil {
 					return reportErr
 				}
+				if reproducible {
+					makeReportOutputReproducible(flat)
+				}
 				return printReportJSON(flat)
 			}
 
 			if !isHTTPURL(args[0]) {
 				if _, _, ok := parseGitRef(args[0]); ok {
-					return printReportJSONOrNoChanges(args, opts, breakingConfig)
+					return printReportJSONOrNoChanges(args, opts, breakingConfig, reproducible)
 				}
 				if _, _, ok := parseGitRef(args[1]); ok {
-					return printReportJSONOrNoChanges(args, opts, breakingConfig)
+					return printReportJSONOrNoChanges(args, opts, breakingConfig, reproducible)
 				}
 				f, statErr := os.Stat(args[0])
 				if statErr == nil && f.IsDir() {
@@ -194,18 +201,22 @@ func GetReportCommand() *cobra.Command {
 						printNoChangesJSON()
 						return nil
 					}
+					if reproducible {
+						makeReportOutputReproducible(flat)
+					}
 					return printReportJSON(flat)
 				}
 			}
 
-			return printReportJSONOrNoChanges(args, opts, breakingConfig)
+			return printReportJSONOrNoChanges(args, opts, breakingConfig, reproducible)
 		},
 	}
 	addTerminalThemeFlags(cmd)
+	cmd.Flags().Bool("reproducible", false, "Omit generated timestamps so report JSON is stable across runs")
 	return cmd
 }
 
-func printReportJSONOrNoChanges(args []string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) error {
+func printReportJSONOrNoChanges(args []string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig, reproducible bool) error {
 	flat, reportErr := runLeftRightReport(args[0], args[1], opts, breakingConfig)
 	if reportErr != nil {
 		return reportErr
@@ -214,5 +225,37 @@ func printReportJSONOrNoChanges(args []string, opts summaryOpts, breakingConfig 
 		printNoChangesJSON()
 		return nil
 	}
+	if reproducible {
+		makeReportOutputReproducible(flat)
+	}
 	return printReportJSON(flat)
+}
+
+func makeReportOutputReproducible(report any) {
+	switch typed := report.(type) {
+	case *model.FlatReport:
+		if typed != nil {
+			makeFlatReportReproducible(typed)
+		}
+	case *model.FlatHistoricalReport:
+		if typed == nil {
+			return
+		}
+		typed.DateGenerated = ""
+		for _, item := range typed.Reports {
+			makeFlatReportReproducible(item)
+		}
+	}
+}
+
+func makeFlatReportReproducible(report *model.FlatReport) {
+	if report == nil {
+		return
+	}
+	report.DateGenerated = ""
+	for _, change := range report.Changes {
+		if change != nil {
+			change.RawPath = ""
+		}
+	}
 }

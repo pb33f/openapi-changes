@@ -30,9 +30,10 @@ func TestCanonicalCommandLocalFlags(t *testing.T) {
 	}, flagNames(GetSummaryCommand()))
 
 	assert.Equal(t, map[string]bool{
-		"no-color":   true,
-		"roger-mode": true,
-		"tektronix":  true,
+		"no-color":     true,
+		"roger-mode":   true,
+		"reproducible": true,
+		"tektronix":    true,
 	}, flagNames(GetReportCommand()))
 
 	assert.Equal(t, map[string]bool{

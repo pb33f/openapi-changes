@@ -4,6 +4,8 @@
 package cmd
 
 import (
+	"cmp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -44,6 +46,7 @@ func flattenReport(report *model.Report, parameterNames map[string]string) *mode
 
 		changes = append(changes, &hashedChange)
 	}
+	sortFlatReportChanges(changes)
 	flatReport.Changes = changes
 
 	// Copy the Commit information from the report to the flatReport and then delete the changes
@@ -119,4 +122,131 @@ func rawPathIfChanged(rawPath, semanticPath string) string {
 		return ""
 	}
 	return rawPath
+}
+
+func sortFlatReportChanges(changes []*model.HashedChange) {
+	sort.SliceStable(changes, func(i, j int) bool {
+		return compareHashedChanges(changes[i], changes[j]) < 0
+	})
+}
+
+func compareHashedChanges(left, right *model.HashedChange) int {
+	if diff := cmp.Compare(changePath(left), changePath(right)); diff != 0 {
+		return diff
+	}
+	if diff := cmp.Compare(changeRawPath(left), changeRawPath(right)); diff != 0 {
+		return diff
+	}
+	if diff := cmp.Compare(changeType(left), changeType(right)); diff != 0 {
+		return diff
+	}
+	if diff := cmp.Compare(changeProperty(left), changeProperty(right)); diff != 0 {
+		return diff
+	}
+	if diff := cmp.Compare(changeKind(left), changeKind(right)); diff != 0 {
+		return diff
+	}
+	if diff := cmp.Compare(changeBreaking(left), changeBreaking(right)); diff != 0 {
+		return diff
+	}
+	if diff := cmp.Compare(changeOriginal(left), changeOriginal(right)); diff != 0 {
+		return diff
+	}
+	if diff := cmp.Compare(changeNew(left), changeNew(right)); diff != 0 {
+		return diff
+	}
+	if diff := cmp.Compare(changeOriginalEncoded(left), changeOriginalEncoded(right)); diff != 0 {
+		return diff
+	}
+	if diff := cmp.Compare(changeNewEncoded(left), changeNewEncoded(right)); diff != 0 {
+		return diff
+	}
+	if diff := cmp.Compare(changeReference(left), changeReference(right)); diff != 0 {
+		return diff
+	}
+	return cmp.Compare(changeHash(left), changeHash(right))
+}
+
+func changePath(change *model.HashedChange) string {
+	if change == nil || change.Change == nil {
+		return ""
+	}
+	return change.Path
+}
+
+func changeRawPath(change *model.HashedChange) string {
+	if change == nil {
+		return ""
+	}
+	return change.RawPath
+}
+
+func changeType(change *model.HashedChange) string {
+	if change == nil || change.Change == nil {
+		return ""
+	}
+	return change.Type
+}
+
+func changeProperty(change *model.HashedChange) string {
+	if change == nil || change.Change == nil {
+		return ""
+	}
+	return change.Property
+}
+
+func changeKind(change *model.HashedChange) int {
+	if change == nil || change.Change == nil {
+		return 0
+	}
+	return change.ChangeType
+}
+
+func changeBreaking(change *model.HashedChange) int {
+	if change == nil || change.Change == nil || !change.Breaking {
+		return 0
+	}
+	return 1
+}
+
+func changeOriginal(change *model.HashedChange) string {
+	if change == nil || change.Change == nil {
+		return ""
+	}
+	return change.Original
+}
+
+func changeNew(change *model.HashedChange) string {
+	if change == nil || change.Change == nil {
+		return ""
+	}
+	return change.New
+}
+
+func changeOriginalEncoded(change *model.HashedChange) string {
+	if change == nil || change.Change == nil {
+		return ""
+	}
+	return change.OriginalEncoded
+}
+
+func changeNewEncoded(change *model.HashedChange) string {
+	if change == nil || change.Change == nil {
+		return ""
+	}
+	return change.NewEncoded
+}
+
+func changeReference(change *model.HashedChange) string {
+	if change == nil || change.Change == nil {
+		return ""
+	}
+	return change.Reference
+}
+
+func changeHash(change *model.HashedChange) string {
+	if change == nil {
+		return ""
+	}
+	return change.ChangeHash
 }

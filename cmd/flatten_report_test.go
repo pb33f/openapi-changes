@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	wcModel "github.com/pb33f/libopenapi/what-changed/model"
+	openapiModel "github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -175,4 +176,47 @@ func TestRawPathIfChanged_SamePaths(t *testing.T) {
 
 func TestRawPathIfChanged_DifferentPaths(t *testing.T) {
 	assert.Equal(t, "$.parameters[0]", rawPathIfChanged("$.parameters[0]", "$.parameters['petId']"))
+}
+
+func TestFlattenReport_SortsChangesDeterministically(t *testing.T) {
+	report := &openapiModel.Report{
+		Commit: &openapiModel.Commit{
+			Changes: &wcModel.DocumentChanges{
+				PropertyChanges: wcModel.NewPropertyChanges([]*wcModel.Change{
+					{
+						Context:    &wcModel.ChangeContext{},
+						ChangeType: wcModel.PropertyAdded,
+						Path:       "$.paths['/pets'].post",
+						Property:   "summary",
+						Type:       "operation",
+						New:        "create a pet",
+					},
+					{
+						Context:    &wcModel.ChangeContext{},
+						ChangeType: wcModel.Modified,
+						Path:       "$.info",
+						Property:   "title",
+						Type:       "info",
+						Original:   "zeta",
+						New:        "alpha",
+					},
+					{
+						Context:    &wcModel.ChangeContext{},
+						ChangeType: wcModel.PropertyRemoved,
+						Path:       "$.paths['/pets'].get",
+						Property:   "description",
+						Type:       "operation",
+						Original:   "list pets",
+					},
+				}),
+			},
+		},
+	}
+
+	flat := FlattenReport(report)
+
+	assert.Len(t, flat.Changes, 3)
+	assert.Equal(t, "$.info", flat.Changes[0].Path)
+	assert.Equal(t, "$.paths['/pets'].get", flat.Changes[1].Path)
+	assert.Equal(t, "$.paths['/pets'].post", flat.Changes[2].Path)
 }
