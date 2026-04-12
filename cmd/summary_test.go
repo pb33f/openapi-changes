@@ -404,6 +404,29 @@ func TestRenderSummary_GitRefExplodedSpecDetectsSiblingChanges(t *testing.T) {
 	assert.Contains(t, output, "Breaking Highlights")
 }
 
+func TestRenderSummary_ComposedSchemaTitleRemovalDoesNotMislabelAsAnyOf(t *testing.T) {
+	leftPath, rightPath := createComposedSchemaTitleRemovalSpecPair(t, "allOf")
+
+	commits, err := loadLeftRightCommits(leftPath, rightPath, summaryOpts{noColor: true})
+	require.NoError(t, err)
+	require.Len(t, commits, 1)
+
+	output, hasBreaking, hasChanges, err := renderSummary(
+		commits,
+		nil,
+		false,
+		true,
+		false,
+		summaryStyles{},
+	)
+
+	require.NoError(t, err)
+	assert.True(t, hasChanges)
+	assert.False(t, hasBreaking)
+	assert.Contains(t, output, "title")
+	assert.NotContains(t, output, "anyOf")
+}
+
 func TestLoadLeftRightCommits_ReturnsHTTPStatusErrors(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing", http.StatusNotFound)

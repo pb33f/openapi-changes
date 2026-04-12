@@ -264,6 +264,25 @@ func TestRunLeftRightReport_NormalizesParameterPaths(t *testing.T) {
 	assert.Contains(t, content, `"type":"parameter"`)
 }
 
+func TestRunLeftRightReport_ComposedSchemaTitleRemovalDoesNotMislabelAsAnyOf(t *testing.T) {
+	leftPath, rightPath := createComposedSchemaTitleRemovalSpecPair(t, "allOf")
+
+	report, err := runLeftRightReport(leftPath, rightPath, summaryOpts{noColor: true}, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	require.Len(t, report.Changes, 1)
+
+	change := report.Changes[0]
+	assert.Equal(t, "title", change.Property)
+	assert.Equal(t, "schema", change.Type)
+	assert.Equal(t, "$.components.schemas['Contract']", change.Path)
+
+	encoded, err := json.Marshal(report)
+	require.NoError(t, err)
+	assert.NotContains(t, string(encoded), `"property":"anyOf"`)
+}
+
 func TestReportCommand_GitRefUsesLeftRightMode(t *testing.T) {
 	wd, err := os.Getwd()
 	require.NoError(t, err)

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	htmlReport "github.com/pb33f/openapi-changes/html-report"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
@@ -271,6 +272,27 @@ func TestBuildHTMLReportItems_SplitsStandardAndChangeExplorerGraphs(t *testing.T
 	require.NotNil(t, explorerNodeWithChildChanges)
 	assert.Contains(t, standardNodeWithInstance, "instance", "standard graph nodes render semantic bodies")
 	assert.Contains(t, explorerNodeWithChildChanges, "childChanges", "change explorer nodes render change summaries")
+}
+
+func TestBuildHTMLReportItems_ComposedSchemaTitleRemovalPreservesPropertyLabel(t *testing.T) {
+	leftPath, rightPath := createComposedSchemaTitleRemovalSpecPair(t, "allOf")
+
+	commits, err := loadLeftRightCommits(leftPath, rightPath, summaryOpts{noColor: true})
+	require.NoError(t, err)
+	require.Len(t, commits, 1)
+
+	items, err := buildHTMLReportItems(commits, nil)
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+
+	var changes []*whatChangedModel.Change
+	require.NoError(t, json.Unmarshal(items[0].Graph.Changes, &changes))
+	require.Len(t, changes, 1)
+
+	assert.Equal(t, "title", changes[0].Property)
+	assert.Equal(t, "schema", changes[0].Type)
+	assert.Equal(t, "$.components.schemas['Contract']", changes[0].Path)
+	assert.NotContains(t, string(items[0].Graph.Changes), `"property":"anyOf"`)
 }
 
 type newHtmlNodeGraph struct {

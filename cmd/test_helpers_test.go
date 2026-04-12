@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -222,6 +223,48 @@ paths:
 	baseDir := t.TempDir()
 	leftPath := createTree(filepath.Join(baseDir, "left"), leftComponent)
 	rightPath := createTree(filepath.Join(baseDir, "right"), rightComponent)
+	return leftPath, rightPath
+}
+
+func createComposedSchemaTitleRemovalSpecPair(t *testing.T, keyword string) (string, string) {
+	t.Helper()
+
+	left := fmt.Sprintf(`openapi: 3.1.0
+info:
+  title: Contracts API
+  version: "1.0"
+paths: {}
+components:
+  schemas:
+    Contract:
+      title: Contract
+      %s:
+        - type: object
+          properties:
+            id:
+              type: string
+`, keyword)
+
+	right := fmt.Sprintf(`openapi: 3.1.0
+info:
+  title: Contracts API
+  version: "1.0"
+paths: {}
+components:
+  schemas:
+    Contract:
+      %s:
+        - type: object
+          properties:
+            id:
+              type: string
+`, keyword)
+
+	baseDir := t.TempDir()
+	leftPath := filepath.Join(baseDir, "left.yaml")
+	rightPath := filepath.Join(baseDir, "right.yaml")
+	require.NoError(t, os.WriteFile(leftPath, []byte(left), 0o644))
+	require.NoError(t, os.WriteFile(rightPath, []byte(right), 0o644))
 	return leftPath, rightPath
 }
 
