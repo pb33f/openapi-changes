@@ -95,6 +95,29 @@ func TestRunLeftRightReport_Success(t *testing.T) {
 	assert.Equal(t, 16, report.Summary["paths"].Breaking)
 }
 
+func TestRunLeftRightReport_SummaryIncludesDocumentLevelOpenAPIChanges(t *testing.T) {
+	dir := t.TempDir()
+
+	left := "openapi: 3.0.0\ninfo:\n  title: test\n  version: 1.0.0\npaths: {}\n"
+	right := "openapi: 3.1.0\ninfo:\n  title: test\n  version: 2.0.0\npaths: {}\n"
+
+	leftPath := filepath.Join(dir, "left.yaml")
+	rightPath := filepath.Join(dir, "right.yaml")
+	require.NoError(t, os.WriteFile(leftPath, []byte(left), 0o644))
+	require.NoError(t, os.WriteFile(rightPath, []byte(right), 0o644))
+
+	report, err := runLeftRightReport(leftPath, rightPath, summaryOpts{noColor: true}, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	require.Contains(t, report.Summary, "openapi")
+	require.Contains(t, report.Summary, "info")
+	assert.Equal(t, 1, report.Summary["openapi"].Total)
+	assert.Equal(t, 1, report.Summary["openapi"].Breaking)
+	assert.Equal(t, 1, report.Summary["info"].Total)
+	assert.Equal(t, 0, report.Summary["info"].Breaking)
+}
+
 func TestRunLeftRightReport_OmitsCommitDetailsInJSON(t *testing.T) {
 	report, err := runLeftRightReport(
 		"../sample-specs/petstorev3-original.json",
