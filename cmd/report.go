@@ -70,6 +70,8 @@ func runLeftRightReport(left, right string, opts summaryOpts, breakingConfig *wh
 	defer result.Release()
 	flat := FlattenReportWithParameterNames(createReport(commits[0]), result.Changerator.ParameterNames)
 	flat.Commit = nil
+	flat.OriginalPath = sourceLabelForReport(left)
+	flat.ModifiedPath = sourceLabelForReport(right)
 	return flat, nil
 }
 

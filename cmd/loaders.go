@@ -331,3 +331,10 @@ func displayLabelForHTML(raw string) string {
 	}
 	return filepath.Base(raw)
 }
+
+func sourceLabelForReport(raw string) string {
+	if isHTTPURL(raw) {
+		return sanitizeURLLabel(raw)
+	}
+	return raw
+}

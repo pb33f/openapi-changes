@@ -77,6 +77,8 @@ type Report struct {
 type FlatReport struct {
 	Summary       map[string]*reports.Changed `json:"reportSummary"`
 	Changes       []*HashedChange             `json:"changes"`
+	OriginalPath  string                      `json:"originalPath,omitempty"`
+	ModifiedPath  string                      `json:"modifiedPath,omitempty"`
 	DateGenerated string                      `json:"dateGenerated,omitempty"`
 	Commit        *Commit                     `gorm:"foreignKey:ID" json:"commitDetails,omitempty"`
 }

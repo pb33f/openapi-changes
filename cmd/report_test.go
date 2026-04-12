@@ -5,6 +5,8 @@ package cmd
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -90,9 +92,37 @@ func TestRunLeftRightReport_Success(t *testing.T) {
 	assert.NotEmpty(t, report.Changes)
 	assert.NotEmpty(t, report.DateGenerated)
 	assert.Nil(t, report.Commit)
+	assert.Equal(t, "../sample-specs/petstorev3-original.json", report.OriginalPath)
+	assert.Equal(t, "../sample-specs/petstorev3.json", report.ModifiedPath)
 	assert.Contains(t, report.Summary, "paths")
 	assert.Equal(t, 30, report.Summary["paths"].Total)
 	assert.Equal(t, 16, report.Summary["paths"].Breaking)
+}
+
+func TestRunLeftRightReport_SanitizesURLSourceMetadata(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/left.yaml" {
+			_, _ = w.Write([]byte("openapi: 3.0.3\ninfo:\n  title: Left\n  version: '1.0'\npaths: {}\n"))
+			return
+		}
+		_, _ = w.Write([]byte("openapi: 3.0.3\ninfo:\n  title: Right\n  version: '1.1'\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: ok\n"))
+	}))
+	defer server.Close()
+
+	leftURL := server.URL + "/left.yaml?token=left-secret#frag"
+	rightURL := server.URL + "/right.yaml?token=right-secret#frag"
+
+	report, err := runLeftRightReport(leftURL, rightURL, summaryOpts{noColor: true}, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	assert.Equal(t, server.URL+"/left.yaml", report.OriginalPath)
+	assert.Equal(t, server.URL+"/right.yaml", report.ModifiedPath)
+
+	encoded, err := json.Marshal(report)
+	require.NoError(t, err)
+	assert.NotContains(t, string(encoded), "left-secret")
+	assert.NotContains(t, string(encoded), "right-secret")
 }
 
 func TestRunLeftRightReport_SummaryIncludesDocumentLevelOpenAPIChanges(t *testing.T) {
@@ -222,6 +252,8 @@ func TestReportCommand_GitRefUsesLeftRightMode(t *testing.T) {
 	})
 
 	assert.Contains(t, output, `"changes"`)
+	assert.Contains(t, output, `"originalPath": "HEAD:sample-specs/petstorev3-original.json"`)
+	assert.Contains(t, output, `"modifiedPath": "sample-specs/petstorev3.json"`)
 	assert.Contains(t, output, `"summary"`)
 	assert.NotContains(t, output, `"reports"`)
 }
