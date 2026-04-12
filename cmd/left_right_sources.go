@@ -183,27 +183,29 @@ func resolveGitRefSource(raw, revision, filePath string, opts summaryOpts) (comp
 }
 
 func resolveURLSource(raw string, opts summaryOpts) (comparisonSource, error) {
+	display := sanitizeURLLabel(raw)
+
 	resp, err := httpGet(raw)
 	if err != nil {
-		return comparisonSource{}, fmt.Errorf("error downloading file '%s': %w", raw, err)
+		return comparisonSource{}, fmt.Errorf("error downloading file '%s': %w", display, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return comparisonSource{}, fmt.Errorf("error downloading file '%s': unexpected status %s", raw, resp.Status)
+		return comparisonSource{}, fmt.Errorf("error downloading file '%s': unexpected status %s", display, resp.Status)
 	}
 
 	const maxDownloadSize = 100 << 20 // 100 MB
 	bits, err := io.ReadAll(io.LimitReader(resp.Body, maxDownloadSize))
 	if err != nil {
-		return comparisonSource{}, fmt.Errorf("error reading downloaded file '%s': %w", raw, err)
+		return comparisonSource{}, fmt.Errorf("error reading downloaded file '%s': %w", display, err)
 	}
 	if len(bits) == 0 {
-		return comparisonSource{}, fmt.Errorf("downloaded file '%s' is empty", raw)
+		return comparisonSource{}, fmt.Errorf("downloaded file '%s' is empty", display)
 	}
 
 	baseURL, err := url.Parse(raw)
 	if err != nil {
-		return comparisonSource{}, fmt.Errorf("invalid URL '%s': %w", raw, err)
+		return comparisonSource{}, fmt.Errorf("invalid URL '%s': %w", display, err)
 	}
 	baseURL.Path = path.Dir(baseURL.Path)
 	baseURL.RawQuery = ""
@@ -230,11 +232,26 @@ func resolveURLSource(raw string, opts summaryOpts) (comparisonSource, error) {
 	}
 
 	return comparisonSource{
-		Display:   raw,
+		Display:   display,
 		RootBytes: bits,
 		DocConfig: docConfig,
 		Cleanup:   func() {},
 	}, nil
+}
+
+func sanitizeURLLabel(raw string) string {
+	if !isHTTPURL(raw) {
+		return raw
+	}
+
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed == nil {
+		return raw
+	}
+	parsed.User = nil
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	return parsed.String()
 }
 
 func attachLazyLocalFS(docConfig *datamodel.DocumentConfiguration) error {

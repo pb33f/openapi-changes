@@ -351,7 +351,7 @@ paths: {}
 	assert.True(t, hasChanges)
 }
 
-func TestLoadLeftRightCommits_DownloadedFilesPreserveRawLabels(t *testing.T) {
+func TestLoadLeftRightCommits_DownloadedFilesSanitizeURLLabels(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`openapi: 3.0.3
 info:
@@ -362,14 +362,17 @@ paths: {}
 	}))
 	defer server.Close()
 
-	leftURL := server.URL + "/left.yaml"
-	rightURL := server.URL + "/right.yaml"
+	leftURL := server.URL + "/left.yaml?token=left-secret#frag"
+	rightURL := server.URL + "/right.yaml?token=right-secret#frag"
 
 	commits, err := loadLeftRightCommits(leftURL, rightURL, summaryOpts{})
 
 	require.NoError(t, err)
 	require.Len(t, commits, 1)
-	assert.Equal(t, "Original: "+leftURL+", Modified: "+rightURL, commits[0].Message)
+	assert.Equal(t,
+		"Original: "+server.URL+"/left.yaml, Modified: "+server.URL+"/right.yaml",
+		commits[0].Message,
+	)
 }
 
 func TestRenderSummary_GitRefExplodedSpecDetectsSiblingChanges(t *testing.T) {

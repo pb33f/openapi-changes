@@ -327,7 +327,7 @@ func displayLabelForHTML(raw string) string {
 		return raw
 	}
 	if isHTTPURL(raw) {
-		return raw
+		return sanitizeURLLabel(raw)
 	}
 	return filepath.Base(raw)
 }

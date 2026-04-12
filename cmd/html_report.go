@@ -93,8 +93,8 @@ func generateHTMLReport(commits []*model.Commit, breakingConfig *whatChangedMode
 		History:       history,
 	}
 
-	// For left/right comparisons, preserve explicit git-ref and URL labels while
-	// keeping plain local files compact.
+	// For left/right comparisons, preserve explicit git-ref labels, sanitize URL
+	// labels, and keep plain local files compact.
 	if len(args) == 2 && len(items) == 1 {
 		payload.OriginalPath = displayLabelForHTML(args[0])
 		payload.ModifiedPath = displayLabelForHTML(args[1])

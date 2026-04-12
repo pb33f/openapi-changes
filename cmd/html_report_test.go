@@ -77,7 +77,7 @@ func TestGenerateHTMLReport_LeftRightPreservesGitRefPaths(t *testing.T) {
 	assert.Contains(t, content, `"modifiedPath":"HEAD:openapi.yaml"`)
 }
 
-func TestGenerateHTMLReport_LeftRightPreservesURLPaths(t *testing.T) {
+func TestGenerateHTMLReport_LeftRightSanitizesURLPaths(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/left.yaml" {
 			_, _ = w.Write([]byte("openapi: 3.0.3\ninfo:\n  title: Left\n  version: '1.0'\npaths: {}\n"))
@@ -87,8 +87,8 @@ func TestGenerateHTMLReport_LeftRightPreservesURLPaths(t *testing.T) {
 	}))
 	defer server.Close()
 
-	leftURL := server.URL + "/left.yaml"
-	rightURL := server.URL + "/right.yaml"
+	leftURL := server.URL + "/left.yaml?token=left-secret#frag"
+	rightURL := server.URL + "/right.yaml?token=right-secret#frag"
 
 	commits, err := loadLeftRightCommits(leftURL, rightURL, summaryOpts{noColor: true})
 	require.NoError(t, err)
@@ -98,8 +98,10 @@ func TestGenerateHTMLReport_LeftRightPreservesURLPaths(t *testing.T) {
 	require.NotNil(t, report)
 
 	content := string(report)
-	assert.Contains(t, content, `"originalPath":"`+leftURL+`"`)
-	assert.Contains(t, content, `"modifiedPath":"`+rightURL+`"`)
+	assert.Contains(t, content, `"originalPath":"`+server.URL+`/left.yaml"`)
+	assert.Contains(t, content, `"modifiedPath":"`+server.URL+`/right.yaml"`)
+	assert.NotContains(t, content, "left-secret")
+	assert.NotContains(t, content, "right-secret")
 }
 
 func TestBuildHTMLReportItems_AllCommitsFail(t *testing.T) {

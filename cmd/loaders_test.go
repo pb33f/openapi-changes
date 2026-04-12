@@ -185,13 +185,13 @@ func TestResolveGitRefSource_RequiresGitRepo(t *testing.T) {
 	assert.Contains(t, err.Error(), "requires the current working directory to be inside a git repository")
 }
 
-func TestResolveComparisonSource_URLPreservesDisplay(t *testing.T) {
+func TestResolveComparisonSource_URLSanitizesDisplay(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("openapi: 3.0.3\ninfo:\n  title: test\n  version: '1.0'\npaths: {}\n"))
 	}))
 	defer server.Close()
 
-	source, err := resolveComparisonSource(server.URL+"/spec.yaml", summaryOpts{})
+	source, err := resolveComparisonSource(server.URL+"/spec.yaml?token=secret#section", summaryOpts{})
 	require.NoError(t, err)
 
 	assert.Equal(t, server.URL+"/spec.yaml", source.Display)
@@ -223,7 +223,7 @@ func TestResolveComparisonSource_URLReturnsStatusErrors(t *testing.T) {
 	assert.Contains(t, err.Error(), "unexpected status 404 Not Found")
 }
 
-func TestLoadLeftRightCommits_PreservesRawDisplayLabels(t *testing.T) {
+func TestLoadLeftRightCommits_UsesSafeDisplayLabels(t *testing.T) {
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 	repoRoot := filepath.Clean(filepath.Join(wd, ".."))
@@ -257,7 +257,7 @@ func TestLoadLeftRightCommits_PreservesRawDisplayLabels(t *testing.T) {
 		},
 		{
 			name:          "url and local file",
-			left:          server.URL + "/spec.yaml",
+			left:          server.URL + "/spec.yaml?token=secret#section",
 			right:         "sample-specs/petstorev3.json",
 			originalLabel: server.URL + "/spec.yaml",
 			modifiedLabel: "sample-specs/petstorev3.json",
