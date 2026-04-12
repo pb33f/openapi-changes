@@ -25,11 +25,14 @@ import (
 )
 
 type comparisonSource struct {
-	Display   string
-	RootBytes []byte
-	DocConfig *datamodel.DocumentConfiguration
-	Cleanup   func()
+	Display             string
+	RootBytes           []byte
+	DocConfig           *datamodel.DocumentConfiguration
+	RewriteDocumentPath documentPathRewriter
+	Cleanup             func()
 }
+
+type documentPathRewriter func(string) string
 
 func newComparisonDocConfig(opts summaryOpts) *datamodel.DocumentConfiguration {
 	docConfig := datamodel.NewDocumentConfiguration()
@@ -108,10 +111,11 @@ func resolveLocalFileSource(raw string, opts summaryOpts) (comparisonSource, err
 	}
 
 	return comparisonSource{
-		Display:   raw,
-		RootBytes: bits,
-		DocConfig: docConfig,
-		Cleanup:   func() {},
+		Display:             raw,
+		RootBytes:           bits,
+		DocConfig:           docConfig,
+		RewriteDocumentPath: nil,
+		Cleanup:             func() {},
 	}, nil
 }
 
@@ -175,11 +179,44 @@ func resolveGitRefSource(raw, revision, filePath string, opts summaryOpts) (comp
 	docConfig.LocalFS = revisionFS
 
 	return comparisonSource{
-		Display:   raw,
-		RootBytes: rootBytes,
-		DocConfig: docConfig,
-		Cleanup:   func() {},
+		Display:             raw,
+		RootBytes:           rootBytes,
+		DocConfig:           docConfig,
+		RewriteDocumentPath: newGitRefDocumentPathRewriter(repoRoot, basePath, virtualBasePath),
+		Cleanup:             func() {},
 	}, nil
+}
+
+func newGitRefDocumentPathRewriter(repoRoot, basePath, virtualBasePath string) documentPathRewriter {
+	baseRelPath, err := filepath.Rel(repoRoot, basePath)
+	if err != nil {
+		return nil
+	}
+	if baseRelPath == ".." || strings.HasPrefix(baseRelPath, ".."+string(filepath.Separator)) {
+		return nil
+	}
+	cleanVirtualBasePath := filepath.Clean(virtualBasePath)
+	if baseRelPath == "." {
+		baseRelPath = ""
+	}
+
+	return func(raw string) string {
+		cleaned := filepath.Clean(filepath.FromSlash(raw))
+		relPath, err := filepath.Rel(cleanVirtualBasePath, cleaned)
+		if err != nil {
+			return raw
+		}
+		if relPath == "." || relPath == "" {
+			return raw
+		}
+		if relPath == ".." || strings.HasPrefix(relPath, ".."+string(filepath.Separator)) {
+			return raw
+		}
+		if baseRelPath != "" {
+			relPath = filepath.Join(baseRelPath, relPath)
+		}
+		return filepath.ToSlash(filepath.Clean(relPath))
+	}
 }
 
 func resolveURLSource(raw string, opts summaryOpts) (comparisonSource, error) {
@@ -232,10 +269,11 @@ func resolveURLSource(raw string, opts summaryOpts) (comparisonSource, error) {
 	}
 
 	return comparisonSource{
-		Display:   display,
-		RootBytes: bits,
-		DocConfig: docConfig,
-		Cleanup:   func() {},
+		Display:             display,
+		RootBytes:           bits,
+		DocConfig:           docConfig,
+		RewriteDocumentPath: nil,
+		Cleanup:             func() {},
 	}, nil
 }
 
@@ -302,4 +340,32 @@ func buildLeftRightCommit(left, right comparisonSource) (*model.Commit, error) {
 		Document:    rightDoc,
 		Synthetic:   true,
 	}, nil
+}
+
+func buildLeftRightCommitAndSources(left, right string, opts summaryOpts) (*model.Commit, []documentPathRewriter, error) {
+	leftSource, err := resolveComparisonSource(left, opts)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer leftSource.Cleanup()
+
+	rightSource, err := resolveComparisonSource(right, opts)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rightSource.Cleanup()
+
+	commit, err := buildLeftRightCommit(leftSource, rightSource)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var rewriters []documentPathRewriter
+	if leftSource.RewriteDocumentPath != nil {
+		rewriters = append(rewriters, leftSource.RewriteDocumentPath)
+	}
+	if rightSource.RewriteDocumentPath != nil {
+		rewriters = append(rewriters, rightSource.RewriteDocumentPath)
+	}
+	return commit, rewriters, nil
 }

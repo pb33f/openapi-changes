@@ -53,14 +53,11 @@ func changerateAndFlatten(commits []*model.Commit, breakingConfig *whatChangedMo
 }
 
 func runLeftRightReport(left, right string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatReport, error) {
-	commits, err := loadLeftRightCommits(left, right, opts)
+	commit, documentPathRewriters, err := buildLeftRightCommitAndSources(left, right, opts)
 	if err != nil {
 		return nil, err
 	}
-	if len(commits) == 0 {
-		return nil, nil
-	}
-	result, err := changerateCommit(commits[0], breakingConfig)
+	result, err := changerateCommit(commit, breakingConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +65,8 @@ func runLeftRightReport(left, right string, opts summaryOpts, breakingConfig *wh
 		return nil, nil
 	}
 	defer result.Release()
-	flat := FlattenReportWithParameterNames(createReport(commits[0]), result.Changerator.ParameterNames)
+	flat := FlattenReportWithParameterNames(createReport(commit), result.Changerator.ParameterNames)
+	rewriteFlatReportDocumentPaths(flat, documentPathRewriters)
 	flat.Commit = nil
 	flat.OriginalPath = sourceLabelForReport(left)
 	flat.ModifiedPath = sourceLabelForReport(right)
@@ -188,9 +186,6 @@ func GetReportCommand() *cobra.Command {
 				if _, _, ok := parseGitRef(args[0]); ok {
 					return printReportJSONOrNoChanges(args, opts, breakingConfig, reproducible)
 				}
-				if _, _, ok := parseGitRef(args[1]); ok {
-					return printReportJSONOrNoChanges(args, opts, breakingConfig, reproducible)
-				}
 				f, statErr := os.Stat(args[0])
 				if statErr == nil && f.IsDir() {
 					flat, reportErr := runGitHistoryReport(args[0], args[1], opts, breakingConfig)
@@ -206,13 +201,16 @@ func GetReportCommand() *cobra.Command {
 					}
 					return printReportJSON(flat)
 				}
+				if _, _, ok := parseGitRef(args[1]); ok {
+					return printReportJSONOrNoChanges(args, opts, breakingConfig, reproducible)
+				}
 			}
 
 			return printReportJSONOrNoChanges(args, opts, breakingConfig, reproducible)
 		},
 	}
 	addTerminalThemeFlags(cmd)
-	cmd.Flags().Bool("reproducible", false, "Omit generated timestamps so report JSON is stable across runs")
+	cmd.Flags().Bool("reproducible", false, "Omit generated timestamps from report JSON")
 	return cmd
 }
 
@@ -253,9 +251,25 @@ func makeFlatReportReproducible(report *model.FlatReport) {
 		return
 	}
 	report.DateGenerated = ""
+}
+
+func rewriteFlatReportDocumentPaths(report *model.FlatReport, rewriters []documentPathRewriter) {
+	if report == nil || len(rewriters) == 0 {
+		return
+	}
 	for _, change := range report.Changes {
-		if change != nil {
-			change.RawPath = ""
+		if change == nil || change.Context == nil || change.Context.DocumentLocation == "" {
+			continue
+		}
+		for _, rewrite := range rewriters {
+			if rewrite == nil {
+				continue
+			}
+			rewritten := rewrite(change.Context.DocumentLocation)
+			if rewritten != change.Context.DocumentLocation {
+				change.Context.DocumentLocation = rewritten
+				break
+			}
 		}
 	}
 }

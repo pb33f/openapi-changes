@@ -59,20 +59,46 @@ func createGitSpecRepo(t *testing.T) string {
 	runGitInDir(t, repoDir, "init")
 	runGitInDir(t, repoDir, "config", "user.name", "Test User")
 	runGitInDir(t, repoDir, "config", "user.email", "test@example.com")
-
-	specPath := filepath.Join(repoDir, "openapi.yaml")
-	first := "openapi: 3.0.3\ninfo:\n  title: first\n  version: '1.0'\npaths: {}\n"
-	second := "openapi: 3.0.3\ninfo:\n  title: second\n  version: '1.1'\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: ok\n"
-
-	require.NoError(t, os.WriteFile(specPath, []byte(first), 0644))
-	runGitInDir(t, repoDir, "add", "openapi.yaml")
-	runGitInDir(t, repoDir, "commit", "-m", "first")
-
-	require.NoError(t, os.WriteFile(specPath, []byte(second), 0644))
-	runGitInDir(t, repoDir, "add", "openapi.yaml")
-	runGitInDir(t, repoDir, "commit", "-m", "second")
+	writeGitHistoryFile(t, repoDir, "openapi.yaml",
+		"openapi: 3.0.3\ninfo:\n  title: first\n  version: '1.0'\npaths: {}\n",
+		"openapi: 3.0.3\ninfo:\n  title: second\n  version: '1.1'\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: ok\n",
+	)
 
 	return repoDir
+}
+
+func createGitSpecRepoForFile(t *testing.T, fileName string) string {
+	t.Helper()
+
+	repoDir := t.TempDir()
+	runGitInDir(t, repoDir, "init")
+	runGitInDir(t, repoDir, "config", "user.name", "Test User")
+	runGitInDir(t, repoDir, "config", "user.email", "test@example.com")
+	writeGitHistoryFile(t, repoDir, fileName,
+		"openapi: 3.0.3\ninfo:\n  title: first\n  version: '1.0'\npaths: {}\n",
+		"openapi: 3.0.3\ninfo:\n  title: second\n  version: '1.1'\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: ok\n",
+	)
+	specPath := filepath.Join(repoDir, fileName)
+	third := "openapi: 3.0.3\ninfo:\n  title: third\n  version: '1.2'\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: updated ok\n"
+	require.NoError(t, os.WriteFile(specPath, []byte(third), 0o644))
+	runGitInDir(t, repoDir, "add", fileName)
+	runGitInDir(t, repoDir, "commit", "-m", "third")
+
+	return repoDir
+}
+
+func writeGitHistoryFile(t *testing.T, repoDir, fileName, first, second string) {
+	t.Helper()
+
+	specPath := filepath.Join(repoDir, fileName)
+	require.NoError(t, os.MkdirAll(filepath.Dir(specPath), 0o755))
+	require.NoError(t, os.WriteFile(specPath, []byte(first), 0o644))
+	runGitInDir(t, repoDir, "add", fileName)
+	runGitInDir(t, repoDir, "commit", "-m", "first")
+
+	require.NoError(t, os.WriteFile(specPath, []byte(second), 0o644))
+	runGitInDir(t, repoDir, "add", fileName)
+	runGitInDir(t, repoDir, "commit", "-m", "second")
 }
 
 func createExplodedGitSpecRepo(t *testing.T) (string, string) {

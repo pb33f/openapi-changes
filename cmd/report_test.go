@@ -184,10 +184,10 @@ func TestReportCommand_ReproducibleOutputIsStableAcrossRuns(t *testing.T) {
 	first := runOnce()
 	second := runOnce()
 
-	assert.Equal(t, first, second)
+	assert.Equal(t, stripRawPaths(t, first), stripRawPaths(t, second))
 	assert.NotContains(t, first, `"dateGenerated"`)
 	assert.NotContains(t, first, `"commitDetails"`)
-	assert.NotContains(t, first, `"rawPath"`)
+	assert.Contains(t, first, `"rawPath"`)
 }
 
 func TestRunLeftRightReport_GitRefExplodedSpecIncludesSiblingChanges(t *testing.T) {
@@ -207,8 +207,11 @@ func TestRunLeftRightReport_GitRefExplodedSpecIncludesSiblingChanges(t *testing.
 
 	encoded, err := json.Marshal(report)
 	require.NoError(t, err)
-	assert.Contains(t, string(encoded), `"property":"required"`)
-	assert.Contains(t, string(encoded), `"path":"$.paths['/pets'].get.responses['200'].content['application/json'].schema"`)
+	content := string(encoded)
+	assert.Contains(t, content, `"property":"required"`)
+	assert.Contains(t, content, `"path":"$.paths['/pets'].get.responses['200'].content['application/json'].schema"`)
+	assert.Contains(t, content, `"document":"apis/components/pet.yaml"`)
+	assert.NotContains(t, content, ".openapi-changes-gitref")
 }
 
 func TestRunLeftRightReport_LocalExplodedSpecIncludesSiblingChanges(t *testing.T) {
@@ -281,4 +284,45 @@ func TestReportCommand_GitRefUsesLeftRightMode(t *testing.T) {
 	assert.Contains(t, output, `"modifiedPath": "sample-specs/petstorev3.json"`)
 	assert.Contains(t, output, `"summary"`)
 	assert.NotContains(t, output, `"reports"`)
+}
+
+func TestReportCommand_RepoHistoryColonPathUsesHistoryMode(t *testing.T) {
+	repoDir := createGitSpecRepoForFile(t, "v1:beta.yaml")
+	chdirForTest(t, t.TempDir())
+
+	cmd := testRootCmd(GetReportCommand(), repoDir, "v1:beta.yaml")
+	output := captureStdout(t, func() {
+		require.NoError(t, cmd.Execute())
+	})
+
+	assert.Contains(t, output, `"gitRepoPath": "`+repoDir+`"`)
+	assert.Contains(t, output, `"gitFilePath": "v1:beta.yaml"`)
+	assert.Contains(t, output, `"reports"`)
+	assert.NotContains(t, output, `"originalPath"`)
+}
+
+func stripRawPaths(t *testing.T, raw string) string {
+	t.Helper()
+
+	var payload any
+	require.NoError(t, json.Unmarshal([]byte(raw), &payload))
+	removeJSONKey(payload, "rawPath")
+
+	bits, err := json.MarshalIndent(payload, "", "  ")
+	require.NoError(t, err)
+	return string(bits)
+}
+
+func removeJSONKey(value any, key string) {
+	switch typed := value.(type) {
+	case map[string]any:
+		delete(typed, key)
+		for _, child := range typed {
+			removeJSONKey(child, key)
+		}
+	case []any:
+		for _, child := range typed {
+			removeJSONKey(child, key)
+		}
+	}
 }

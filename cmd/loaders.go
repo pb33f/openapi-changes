@@ -200,19 +200,7 @@ func loadGitHistoryCommits(gitPath, filePath string, opts summaryOpts, breakingC
 }
 
 func loadLeftRightCommits(left, right string, opts summaryOpts) ([]*model.Commit, error) {
-	leftSource, err := resolveComparisonSource(left, opts)
-	if err != nil {
-		return nil, err
-	}
-	defer leftSource.Cleanup()
-
-	rightSource, err := resolveComparisonSource(right, opts)
-	if err != nil {
-		return nil, err
-	}
-	defer rightSource.Cleanup()
-
-	commit, err := buildLeftRightCommit(leftSource, rightSource)
+	commit, _, err := buildLeftRightCommitAndSources(left, right, opts)
 	if err != nil {
 		return nil, err
 	}

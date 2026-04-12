@@ -320,3 +320,14 @@ func TestLoadCommitsFromArgs_LocalColonPathOutsideGitRepoStaysFileComparison(t *
 	require.Len(t, commits, 1)
 	assert.Equal(t, "Original: "+leftPath+", Modified: "+rightPath, commits[0].Message)
 }
+
+func TestLoadCommitsFromArgs_RepoHistoryColonPathUsesHistoryDispatch(t *testing.T) {
+	repoDir := createGitSpecRepoForFile(t, "v1:beta.yaml")
+	chdirForTest(t, t.TempDir())
+
+	commits, err := loadCommitsFromArgs([]string{repoDir, "v1:beta.yaml"}, summaryOpts{limitTime: -1}, nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, commits)
+	assert.Equal(t, repoDir, commits[0].RepoDirectory)
+	assert.Equal(t, "v1:beta.yaml", commits[0].FilePath)
+}
