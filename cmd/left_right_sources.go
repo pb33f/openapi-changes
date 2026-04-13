@@ -12,7 +12,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -28,11 +27,9 @@ type comparisonSource struct {
 	Display             string
 	RootBytes           []byte
 	DocConfig           *datamodel.DocumentConfiguration
-	RewriteDocumentPath documentPathRewriter
+	RewriteDocumentPath model.DocumentPathRewriter
 	Cleanup             func()
 }
-
-type documentPathRewriter func(string) string
 
 func newComparisonDocConfig(opts summaryOpts) *datamodel.DocumentConfiguration {
 	docConfig := datamodel.NewDocumentConfiguration()
@@ -50,20 +47,7 @@ func newComparisonDocConfig(opts summaryOpts) *datamodel.DocumentConfiguration {
 }
 
 func resolveBaseOverride(base string) (string, *url.URL, error) {
-	if base == "" {
-		return "", nil, nil
-	}
-	if parsed, err := url.Parse(base); err == nil && parsed != nil && parsed.Scheme != "" && parsed.Host != "" {
-		parsed.Path = path.Dir(parsed.Path)
-		parsed.RawQuery = ""
-		parsed.Fragment = ""
-		return "", parsed, nil
-	}
-	absBase, err := filepath.Abs(base)
-	if err != nil {
-		return "", nil, fmt.Errorf("cannot resolve base path '%s': %w", base, err)
-	}
-	return absBase, nil, nil
+	return git.ResolveBaseOverride(base)
 }
 
 func resolveComparisonSource(raw string, opts summaryOpts) (comparisonSource, error) {
@@ -133,7 +117,7 @@ func resolveGitRefSource(raw, revision, filePath string, opts summaryOpts) (comp
 		)
 	}
 
-	normalizedPath, err := normalizeGitRefPath(wd, repoRoot, filePath)
+	normalizedPath, err := normalizeGitRefPath(repoRoot, filePath)
 	if err != nil {
 		return comparisonSource{}, err
 	}
@@ -145,78 +129,27 @@ func resolveGitRefSource(raw, revision, filePath string, opts summaryOpts) (comp
 		return comparisonSource{}, fmt.Errorf("file '%s' at revision '%s' is empty", normalizedPath, revision)
 	}
 
-	basePath := repoRoot
 	basePathOverride, baseURLOverride, err := resolveBaseOverride(opts.base)
 	if err != nil {
 		return comparisonSource{}, err
 	}
-	if basePathOverride != "" {
-		basePath = basePathOverride
-	}
-
-	docConfig := newComparisonDocConfig(opts)
-	docConfig.AllowFileReferences = true
-	specActualPath := filepath.Join(repoRoot, filepath.FromSlash(normalizedPath))
-	relativeSpecPath, err := filepath.Rel(basePath, specActualPath)
-	if err != nil {
-		return comparisonSource{}, fmt.Errorf("cannot relate spec path '%s' to base path '%s': %w", specActualPath, basePath, err)
-	}
-	if relativeSpecPath == ".." || filepath.IsAbs(relativeSpecPath) || strings.HasPrefix(relativeSpecPath, ".."+string(filepath.Separator)) {
-		return comparisonSource{}, fmt.Errorf("git ref path '%s' is not contained by base path '%s'", normalizedPath, basePath)
-	}
-	virtualBasePath := filepath.Join(repoRoot, ".openapi-changes-gitref", uuid.NewString())
-	docConfig.BasePath = virtualBasePath
-	docConfig.SpecFilePath = filepath.Join(virtualBasePath, relativeSpecPath)
-	if baseURLOverride != nil {
-		docConfig.BaseURL = baseURLOverride
-		docConfig.AllowRemoteReferences = true
-	}
-
-	revisionFS, err := git.NewGitRevisionFS(repoRoot, basePath, virtualBasePath, revision, docConfig)
+	revisionContext, err := git.BuildRevisionDocumentContext(repoRoot, normalizedPath, basePathOverride, baseURLOverride)
 	if err != nil {
 		return comparisonSource{}, err
 	}
-	docConfig.LocalFS = revisionFS
+	docConfig := newComparisonDocConfig(opts)
+	docConfig, err = git.BuildRevisionDocumentConfiguration(revisionContext, revision, docConfig)
+	if err != nil {
+		return comparisonSource{}, err
+	}
 
 	return comparisonSource{
 		Display:             raw,
 		RootBytes:           rootBytes,
 		DocConfig:           docConfig,
-		RewriteDocumentPath: newGitRefDocumentPathRewriter(repoRoot, basePath, virtualBasePath),
+		RewriteDocumentPath: revisionContext.DocumentRewriter,
 		Cleanup:             func() {},
 	}, nil
-}
-
-func newGitRefDocumentPathRewriter(repoRoot, basePath, virtualBasePath string) documentPathRewriter {
-	baseRelPath, err := filepath.Rel(repoRoot, basePath)
-	if err != nil {
-		return nil
-	}
-	if baseRelPath == ".." || strings.HasPrefix(baseRelPath, ".."+string(filepath.Separator)) {
-		return nil
-	}
-	cleanVirtualBasePath := filepath.Clean(virtualBasePath)
-	if baseRelPath == "." {
-		baseRelPath = ""
-	}
-
-	return func(raw string) string {
-		cleaned := filepath.Clean(filepath.FromSlash(raw))
-		relPath, err := filepath.Rel(cleanVirtualBasePath, cleaned)
-		if err != nil {
-			return raw
-		}
-		if relPath == "." || relPath == "" {
-			return raw
-		}
-		if relPath == ".." || strings.HasPrefix(relPath, ".."+string(filepath.Separator)) {
-			return raw
-		}
-		if baseRelPath != "" {
-			relPath = filepath.Join(baseRelPath, relPath)
-		}
-		return filepath.ToSlash(filepath.Clean(relPath))
-	}
 }
 
 func resolveURLSource(raw string, opts summaryOpts) (comparisonSource, error) {
@@ -330,42 +263,43 @@ func buildLeftRightCommit(left, right comparisonSource) (*model.Commit, error) {
 		return nil, fmt.Errorf("unable to parse modified document '%s': %w", right.Display, err)
 	}
 
+	var rewriters []model.DocumentPathRewriter
+	if left.RewriteDocumentPath != nil {
+		rewriters = append(rewriters, left.RewriteDocumentPath)
+	}
+	if right.RewriteDocumentPath != nil {
+		rewriters = append(rewriters, right.RewriteDocumentPath)
+	}
+
 	return &model.Commit{
-		Hash:        uuid.New().String()[:6],
-		Message:     fmt.Sprintf("Original: %s, Modified: %s", left.Display, right.Display),
-		CommitDate:  time.Now(),
-		OldData:     left.RootBytes,
-		Data:        right.RootBytes,
-		OldDocument: leftDoc,
-		Document:    rightDoc,
-		Synthetic:   true,
+		Hash:              uuid.New().String()[:6],
+		Message:           fmt.Sprintf("Original: %s, Modified: %s", left.Display, right.Display),
+		CommitDate:        time.Now(),
+		OldData:           left.RootBytes,
+		Data:              right.RootBytes,
+		OldDocument:       leftDoc,
+		Document:          rightDoc,
+		Synthetic:         true,
+		DocumentRewriters: rewriters,
 	}, nil
 }
 
-func buildLeftRightCommitAndSources(left, right string, opts summaryOpts) (*model.Commit, []documentPathRewriter, error) {
+func buildLeftRightCommitAndSources(left, right string, opts summaryOpts) (*model.Commit, error) {
 	leftSource, err := resolveComparisonSource(left, opts)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer leftSource.Cleanup()
 
 	rightSource, err := resolveComparisonSource(right, opts)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer rightSource.Cleanup()
 
 	commit, err := buildLeftRightCommit(leftSource, rightSource)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	var rewriters []documentPathRewriter
-	if leftSource.RewriteDocumentPath != nil {
-		rewriters = append(rewriters, leftSource.RewriteDocumentPath)
-	}
-	if rightSource.RewriteDocumentPath != nil {
-		rewriters = append(rewriters, rightSource.RewriteDocumentPath)
-	}
-	return commit, rewriters, nil
+	return commit, nil
 }

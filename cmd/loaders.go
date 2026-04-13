@@ -200,7 +200,7 @@ func loadGitHistoryCommits(gitPath, filePath string, opts summaryOpts, breakingC
 }
 
 func loadLeftRightCommits(left, right string, opts summaryOpts) ([]*model.Commit, error) {
-	commit, _, err := buildLeftRightCommitAndSources(left, right, opts)
+	commit, err := buildLeftRightCommitAndSources(left, right, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -248,48 +248,15 @@ func isHTTPURL(raw string) bool {
 	return (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
 }
 
-func canonicalizePath(path string) (string, error) {
-	absPath, err := filepath.Abs(filepath.Clean(path))
-	if err != nil {
-		return "", err
-	}
-
-	existingPath := absPath
-	var missingParts []string
-	for {
-		if _, err := os.Lstat(existingPath); err == nil {
-			break
-		} else if !os.IsNotExist(err) {
-			return "", err
-		}
-
-		parent := filepath.Dir(existingPath)
-		if parent == existingPath {
-			return absPath, nil
-		}
-		missingParts = append([]string{filepath.Base(existingPath)}, missingParts...)
-		existingPath = parent
-	}
-
-	resolvedPath, err := filepath.EvalSymlinks(existingPath)
-	if err != nil {
-		return "", err
-	}
-	for _, part := range missingParts {
-		resolvedPath = filepath.Join(resolvedPath, part)
-	}
-	return resolvedPath, nil
-}
-
-func normalizeGitRefPath(_ string, repoRoot, filePath string) (string, error) {
-	canonicalRepoRoot, err := canonicalizePath(repoRoot)
+func normalizeGitRefPath(repoRoot, filePath string) (string, error) {
+	canonicalRepoRoot, err := git.CanonicalizePath(repoRoot)
 	if err != nil {
 		return "", fmt.Errorf("cannot canonicalize repository root '%s': %w", repoRoot, err)
 	}
 
 	var absPath string
 	if filepath.IsAbs(filePath) {
-		absPath, err = canonicalizePath(filePath)
+		absPath, err = git.CanonicalizePath(filePath)
 		if err != nil {
 			return "", fmt.Errorf("cannot canonicalize git ref path '%s': %w", filePath, err)
 		}

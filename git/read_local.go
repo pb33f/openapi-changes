@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/url"
 	"os/exec"
 	"path"
 	"strconv"
@@ -203,17 +202,13 @@ func buildCommitChangelog(commitHistory []*model.Commit,
 	docConfig.IgnoreArrayCircularReferences = true
 	docConfig.IgnorePolymorphicCircularReferences = true
 
-	if opts.Base != "" {
-		// check if this is a URL or not
-		u, e := url.Parse(opts.Base)
-		if e == nil && u.Scheme != "" && u.Host != "" {
-			docConfig.BaseURL = u
-			docConfig.BasePath = ""
-			docConfig.AllowRemoteReferences = true
-		} else {
-			docConfig.AllowFileReferences = true
-			docConfig.BasePath = opts.Base
-		}
+	basePathOverride, baseURLOverride, err := ResolveBaseOverride(opts.Base)
+	if err != nil {
+		return nil, []error{err}
+	}
+	if baseURLOverride != nil {
+		docConfig.BaseURL = baseURLOverride
+		docConfig.AllowRemoteReferences = true
 	}
 
 	// if this is set to true, we'll allow remote references
@@ -231,27 +226,49 @@ func buildCommitChangelog(commitHistory []*model.Commit,
 	})
 
 	docConfig.Logger = logger
+	var revisionContext *RevisionDocumentContext
+	if len(commitHistory) > 0 {
+		revisionContext, err = BuildRevisionDocumentContext(
+			commitHistory[0].RepoDirectory,
+			commitHistory[0].FilePath,
+			basePathOverride,
+			baseURLOverride,
+		)
+		if err != nil {
+			return nil, []error{err}
+		}
+	}
 
 	for c := len(commitHistory) - 1; c > -1; c-- {
 		var oldBits, newBits []byte
+		var oldRevision, newRevision string
 		if len(commitHistory) == c+1 {
 			newBits = commitHistory[c].Data
+			newRevision = commitHistory[c].Hash
 
 			// Obtain data from the previous commit and fail gracefully, if git
 			// errors. This might happen when the file does not exist in the git
 			// history.
-			oldBits, _ = readFile(commitHistory[c].RepoDirectory, fmt.Sprintf("%s~1", commitHistory[c].Hash), commitHistory[c].FilePath)
+			oldRevision = fmt.Sprintf("%s~1", commitHistory[c].Hash)
+			oldBits, _ = readFile(commitHistory[c].RepoDirectory, oldRevision, commitHistory[c].FilePath)
 		} else {
 			oldBits = commitHistory[c+1].Data
+			oldRevision = commitHistory[c+1].Hash
 			commitHistory[c].OldData = oldBits
 			newBits = commitHistory[c].Data
+			newRevision = commitHistory[c].Hash
 		}
 
 		var oldDoc, newDoc libopenapi.Document
 
-		var err error
 		if len(oldBits) > 0 && len(newBits) > 0 {
-			oldDoc, err = libopenapi.NewDocumentWithConfiguration(oldBits, docConfig)
+			oldDocConfig, configErr := BuildRevisionDocumentConfiguration(revisionContext, oldRevision, docConfig)
+			if configErr != nil {
+				model.SendFatalError("building models", fmt.Sprintf("unable to configure original document '%s': %s", commitHistory[c].FilePath, configErr.Error()), errorChan)
+				changeErrors = append(changeErrors, configErr)
+				return nil, changeErrors
+			}
+			oldDoc, err = libopenapi.NewDocumentWithConfiguration(oldBits, oldDocConfig)
 
 			if err != nil {
 				model.SendFatalError("building models", fmt.Sprintf("unable to parse original document '%s': %s", commitHistory[c].FilePath, err.Error()), errorChan)
@@ -261,7 +278,13 @@ func buildCommitChangelog(commitHistory []*model.Commit,
 				model.SendProgressUpdate("building models",
 					fmt.Sprintf("Building original model for commit %s", commitHistory[c].Hash[0:6]), false, progressChan)
 			}
-			newDoc, err = libopenapi.NewDocumentWithConfiguration(newBits, docConfig)
+			newDocConfig, configErr := BuildRevisionDocumentConfiguration(revisionContext, newRevision, docConfig)
+			if configErr != nil {
+				model.SendFatalError("building models", fmt.Sprintf("unable to configure modified document '%s': %s", commitHistory[c].FilePath, configErr.Error()), errorChan)
+				changeErrors = append(changeErrors, configErr)
+				return nil, changeErrors
+			}
+			newDoc, err = libopenapi.NewDocumentWithConfiguration(newBits, newDocConfig)
 			if err != nil {
 				model.SendProgressError("building models", fmt.Sprintf("unable to parse modified document '%s': %s", commitHistory[c].FilePath, err.Error()), errorChan)
 				changeErrors = append(changeErrors, err)
@@ -286,7 +309,13 @@ func buildCommitChangelog(commitHistory []*model.Commit,
 					fmt.Sprintf("Commit %s is the first version of '%s' — no prior version to compare against, skipping",
 						commitHistory[c].Hash, commitHistory[c].FilePath), progressChan)
 			}
-			newDoc, err = libopenapi.NewDocumentWithConfiguration(newBits, docConfig)
+			newDocConfig, configErr := BuildRevisionDocumentConfiguration(revisionContext, newRevision, docConfig)
+			if configErr != nil {
+				model.SendFatalError("building models", fmt.Sprintf("unable to configure modified document '%s': %s", commitHistory[c].FilePath, configErr.Error()), errorChan)
+				changeErrors = append(changeErrors, configErr)
+				return nil, changeErrors
+			}
+			newDoc, err = libopenapi.NewDocumentWithConfiguration(newBits, newDocConfig)
 			if err != nil {
 				model.SendFatalError("building models", fmt.Sprintf("unable to create OpenAPI modified document: %s", err.Error()), errorChan)
 				changeErrors = append(changeErrors, err)
@@ -298,6 +327,9 @@ func buildCommitChangelog(commitHistory []*model.Commit,
 		}
 		if oldDoc != nil {
 			commitHistory[c].OldDocument = oldDoc
+		}
+		if revisionContext != nil && revisionContext.DocumentRewriter != nil {
+			commitHistory[c].DocumentRewriters = []model.DocumentPathRewriter{revisionContext.DocumentRewriter}
 		}
 		// Preserve the oldest entry as a sentinel when there is no prior version.
 		// The legacy commands keep only revisions with libopenapi changes, while

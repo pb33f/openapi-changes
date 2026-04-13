@@ -283,6 +283,45 @@ func TestRunLeftRightReport_ComposedSchemaTitleRemovalDoesNotMislabelAsAnyOf(t *
 	assert.NotContains(t, string(encoded), `"property":"anyOf"`)
 }
 
+func TestRunLeftRightReport_GitRefBasePathUsesRevisionScopedSiblingRefs(t *testing.T) {
+	repoDir, fileName := createMovedRefGitSpecRepo(t)
+	chdirForTest(t, repoDir)
+
+	report, err := runLeftRightReport(
+		"HEAD~1:"+fileName,
+		"HEAD:"+fileName,
+		summaryOpts{base: repoDir, noColor: true, limitTime: -1},
+		nil,
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	assert.NotEmpty(t, report.Changes)
+
+	encoded, err := json.Marshal(report)
+	require.NoError(t, err)
+	content := string(encoded)
+	assert.Contains(t, content, `"property":"$ref"`)
+	assert.Contains(t, content, `"path":"$.paths['/thing'].get.responses['200'].content['application/json'].schema"`)
+}
+
+func TestRunGitHistoryReport_BasePathUsesRevisionScopedSiblingRefs(t *testing.T) {
+	repoDir, fileName := createMovedRefGitSpecRepo(t)
+
+	report, err := runGitHistoryReport(repoDir, fileName, summaryOpts{base: repoDir, noColor: true, limitTime: -1}, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	require.Len(t, report.Reports, 1)
+	assert.NotEmpty(t, report.Reports[0].Changes)
+
+	encoded, err := json.Marshal(report)
+	require.NoError(t, err)
+	content := string(encoded)
+	assert.Contains(t, content, `"property":"$ref"`)
+	assert.Contains(t, content, `"path":"$.paths['/thing'].get.responses['200'].content['application/json'].schema"`)
+}
+
 func TestReportCommand_GitRefUsesLeftRightMode(t *testing.T) {
 	wd, err := os.Getwd()
 	require.NoError(t, err)

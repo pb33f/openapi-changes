@@ -78,6 +78,24 @@ func TestGenerateHTMLReport_LeftRightPreservesGitRefPaths(t *testing.T) {
 	assert.Contains(t, content, `"modifiedPath":"HEAD:openapi.yaml"`)
 }
 
+func TestGenerateHTMLReport_GitHistoryBasePathUsesRevisionScopedSiblingRefs(t *testing.T) {
+	repoDir, fileName := createMovedRefGitSpecRepo(t)
+
+	commits, err := loadGitHistoryCommits(repoDir, fileName, summaryOpts{base: repoDir, noColor: true, limitTime: -1}, nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, commits)
+
+	report, err := generateHTMLReport(commits, nil, true, repoDir, fileName)
+	require.NoError(t, err)
+	require.NotNil(t, report)
+
+	content := string(report)
+	assert.Contains(t, content, "<!DOCTYPE html")
+	assert.Contains(t, content, `"property":"$ref"`)
+	assert.Contains(t, content, `"path":"$.paths['/thing'].get.responses['200'].content['application/json'].schema"`)
+	assert.NotContains(t, content, `"origin":"`+repoDir)
+}
+
 func TestGenerateHTMLReport_LeftRightSanitizesURLPaths(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/left.yaml" {
@@ -272,6 +290,35 @@ func TestBuildHTMLReportItems_SplitsStandardAndChangeExplorerGraphs(t *testing.T
 	require.NotNil(t, explorerNodeWithChildChanges)
 	assert.Contains(t, standardNodeWithInstance, "instance", "standard graph nodes render semantic bodies")
 	assert.Contains(t, explorerNodeWithChildChanges, "childChanges", "change explorer nodes render change summaries")
+}
+
+func TestBuildHTMLReportItems_GitHistoryRewritesGraphOriginsToRepoRelativePaths(t *testing.T) {
+	repoDir, fileName := createMovedRefGitSpecRepo(t)
+
+	commits, err := loadGitHistoryCommits(repoDir, fileName, summaryOpts{base: repoDir, noColor: true, limitTime: -1}, nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, commits)
+
+	items, err := buildHTMLReportItems(commits, nil)
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+
+	var graphNodes []map[string]any
+	require.NoError(t, json.Unmarshal(items[0].Graph.Nodes, &graphNodes))
+
+	var origins []string
+	for _, node := range graphNodes {
+		origin, _ := node["origin"].(string)
+		if origin != "" {
+			origins = append(origins, origin)
+		}
+	}
+
+	require.NotEmpty(t, origins)
+	for _, origin := range origins {
+		assert.NotContains(t, origin, repoDir)
+		assert.False(t, filepath.IsAbs(filepath.FromSlash(origin)), "origin should be repo-relative: %s", origin)
+	}
 }
 
 func TestBuildHTMLReportItems_ComposedSchemaTitleRemovalPreservesPropertyLabel(t *testing.T) {

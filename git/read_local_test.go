@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pb33f/openapi-changes/internal/testutil"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -184,6 +185,26 @@ func TestBuildChangelog_IdenticalLeftRightPreservesComparableRevision(t *testing
 	assert.NotNil(t, cleaned[0].Document)
 	assert.NotNil(t, cleaned[0].OldDocument)
 	assert.Nil(t, cleaned[0].Changes)
+}
+
+func TestPopulateHistory_UsesRevisionScopedSiblingRefs(t *testing.T) {
+	repoDir, fileName := testutil.CreateMovedRefGitSpecRepo(t)
+	progressChan := make(chan *model.ProgressUpdate, 32)
+	errorChan := make(chan model.ProgressError, 32)
+
+	history, errs := ExtractHistoryFromFile(repoDir, fileName, progressChan, errorChan, HistoryOptions{Limit: 0, LimitTime: -1})
+	require.Empty(t, errs)
+	require.Len(t, history, 2)
+
+	cleaned, errs := PopulateHistory(history, progressChan, errorChan, HistoryOptions{
+		Base:           repoDir,
+		KeepComparable: true,
+	}, nil)
+	require.Empty(t, errs)
+	require.Len(t, cleaned, 2)
+	require.NotNil(t, cleaned[0].Document)
+	require.NotNil(t, cleaned[0].OldDocument)
+	require.NotEmpty(t, cleaned[0].DocumentRewriters)
 }
 
 func runGit(t *testing.T, dir string, args ...string) {

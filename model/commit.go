@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+type DocumentPathRewriter func(string) string
+
 type Commit struct {
 	CreatedAt         time.Time              `json:"-"`
 	UpdatedAt         time.Time              `json:"-"`
@@ -27,4 +29,5 @@ type Commit struct {
 	RepoDirectory     string                 `gorm:"-" json:"-"`
 	FilePath          string                 `gorm:"-" json:"-"`
 	Synthetic         bool                   `gorm:"-" json:"-"`
+	DocumentRewriters []DocumentPathRewriter `gorm:"-" json:"-"`
 }

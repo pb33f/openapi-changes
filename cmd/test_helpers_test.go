@@ -13,6 +13,7 @@ import (
 
 	"github.com/pb33f/libopenapi"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
+	"github.com/pb33f/openapi-changes/internal/testutil"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/require"
 )
@@ -266,6 +267,11 @@ components:
 	require.NoError(t, os.WriteFile(leftPath, []byte(left), 0o644))
 	require.NoError(t, os.WriteFile(rightPath, []byte(right), 0o644))
 	return leftPath, rightPath
+}
+
+func createMovedRefGitSpecRepo(t *testing.T) (string, string) {
+	t.Helper()
+	return testutil.CreateMovedRefGitSpecRepo(t)
 }
 
 func runGitInDir(t *testing.T, dir string, args ...string) {

@@ -24,13 +24,12 @@ import (
 var revisionFSReadFileAtRevision = ReadFileAtRevision
 
 type GitRevisionFS struct {
-	repoRoot       string
-	actualBaseDir  string
-	virtualBaseDir string
-	revision       string
-	indexConfig    *index.SpecIndexConfig
-	logger         *slog.Logger
-	rolodex        *index.Rolodex
+	repoRoot    string
+	baseDir     string
+	revision    string
+	indexConfig *index.SpecIndexConfig
+	logger      *slog.Logger
+	rolodex     *index.Rolodex
 
 	files      sync.Map
 	processing sync.Map
@@ -60,25 +59,21 @@ type gitRevisionWaiter struct {
 	cond *sync.Cond
 }
 
-func NewGitRevisionFS(repoRoot, actualBaseDir, virtualBaseDir, revision string, docConfig *datamodel.DocumentConfiguration) (*GitRevisionFS, error) {
+func NewGitRevisionFS(repoRoot, baseDir, revision string, docConfig *datamodel.DocumentConfiguration) (*GitRevisionFS, error) {
 	absRepoRoot, err := filepath.Abs(repoRoot)
 	if err != nil {
 		return nil, fmt.Errorf("cannot resolve repository root '%s': %w", repoRoot, err)
 	}
-	absActualBaseDir, err := filepath.Abs(actualBaseDir)
+	absBaseDir, err := filepath.Abs(baseDir)
 	if err != nil {
-		return nil, fmt.Errorf("cannot resolve base directory '%s': %w", actualBaseDir, err)
+		return nil, fmt.Errorf("cannot resolve base directory '%s': %w", baseDir, err)
 	}
-	absVirtualBaseDir, err := filepath.Abs(virtualBaseDir)
+	relBaseDir, err := filepath.Rel(absRepoRoot, absBaseDir)
 	if err != nil {
-		return nil, fmt.Errorf("cannot resolve virtual base directory '%s': %w", virtualBaseDir, err)
-	}
-	relBaseDir, err := filepath.Rel(absRepoRoot, absActualBaseDir)
-	if err != nil {
-		return nil, fmt.Errorf("cannot relate base directory '%s' to repository root '%s': %w", absActualBaseDir, absRepoRoot, err)
+		return nil, fmt.Errorf("cannot relate base directory '%s' to repository root '%s': %w", absBaseDir, absRepoRoot, err)
 	}
 	if relBaseDir == ".." || strings.HasPrefix(relBaseDir, ".."+string(filepath.Separator)) {
-		return nil, fmt.Errorf("base directory '%s' resolves outside repository root '%s'", absActualBaseDir, absRepoRoot)
+		return nil, fmt.Errorf("base directory '%s' resolves outside repository root '%s'", absBaseDir, absRepoRoot)
 	}
 	var logger *slog.Logger
 	var indexConfig *index.SpecIndexConfig
@@ -86,7 +81,8 @@ func NewGitRevisionFS(repoRoot, actualBaseDir, virtualBaseDir, revision string, 
 		logger = docConfig.Logger
 		indexConfig = &index.SpecIndexConfig{
 			BaseURL:                             docConfig.BaseURL,
-			BasePath:                            absVirtualBaseDir,
+			BasePath:                            absBaseDir,
+			SpecFilePath:                        docConfig.SpecFilePath,
 			AllowRemoteLookup:                   docConfig.AllowRemoteReferences,
 			AllowFileLookup:                     true,
 			IgnorePolymorphicCircularReferences: docConfig.IgnorePolymorphicCircularReferences,
@@ -98,12 +94,11 @@ func NewGitRevisionFS(repoRoot, actualBaseDir, virtualBaseDir, revision string, 
 		}
 	}
 	return &GitRevisionFS{
-		repoRoot:       filepath.Clean(absRepoRoot),
-		actualBaseDir:  filepath.Clean(absActualBaseDir),
-		virtualBaseDir: filepath.Clean(absVirtualBaseDir),
-		revision:       revision,
-		logger:         logger,
-		indexConfig:    indexConfig,
+		repoRoot:    filepath.Clean(absRepoRoot),
+		baseDir:     filepath.Clean(absBaseDir),
+		revision:    revision,
+		logger:      logger,
+		indexConfig: indexConfig,
 	}, nil
 }
 
@@ -202,31 +197,30 @@ func (g *GitRevisionFS) Open(name string) (fs.File, error) {
 func (g *GitRevisionFS) resolveName(name string) (string, string, error) {
 	path := filepath.FromSlash(name)
 	if !filepath.IsAbs(path) {
-		path = filepath.Join(g.virtualBaseDir, path)
+		path = filepath.Join(g.baseDir, path)
 	}
-	virtualPath, err := filepath.Abs(filepath.Clean(path))
+	fullPath, err := filepath.Abs(filepath.Clean(path))
 	if err != nil {
 		return "", "", fmt.Errorf("cannot resolve git revision path '%s': %w", name, err)
 	}
-	virtualRelPath, err := filepath.Rel(g.virtualBaseDir, virtualPath)
+	baseRelPath, err := filepath.Rel(g.baseDir, fullPath)
 	if err != nil {
 		return "", "", fmt.Errorf("cannot normalize git revision path '%s': %w", name, err)
 	}
-	if virtualRelPath == "." || virtualRelPath == "" {
+	if baseRelPath == "." || baseRelPath == "" {
 		return "", "", fmt.Errorf("git revision path '%s' must point to a file", name)
 	}
-	if virtualRelPath == ".." || strings.HasPrefix(virtualRelPath, ".."+string(filepath.Separator)) {
+	if baseRelPath == ".." || strings.HasPrefix(baseRelPath, ".."+string(filepath.Separator)) {
 		return "", "", fmt.Errorf("git revision path '%s' resolves outside repository root", name)
 	}
-	actualPath := filepath.Join(g.actualBaseDir, virtualRelPath)
-	repoRelPath, err := filepath.Rel(g.repoRoot, actualPath)
+	repoRelPath, err := filepath.Rel(g.repoRoot, fullPath)
 	if err != nil {
 		return "", "", fmt.Errorf("cannot normalize git revision path '%s': %w", name, err)
 	}
 	if repoRelPath == ".." || strings.HasPrefix(repoRelPath, ".."+string(filepath.Separator)) {
 		return "", "", fmt.Errorf("git revision path '%s' resolves outside repository root", name)
 	}
-	return virtualPath, filepath.ToSlash(repoRelPath), nil
+	return fullPath, filepath.ToSlash(repoRelPath), nil
 }
 
 func (g *GitRevisionFS) indexFile(file *gitRevisionFile) error {

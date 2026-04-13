@@ -9,11 +9,11 @@ import (
 
 	"github.com/pb33f/doctor/changerator"
 	drModel "github.com/pb33f/doctor/model"
+	v3 "github.com/pb33f/doctor/model/high/v3"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/internal/breakingrules"
 	"github.com/pb33f/openapi-changes/model"
 )
-
 
 // changeratorResult owns the doctor-side resources created for a single comparison.
 //
@@ -82,6 +82,7 @@ func runChangerator(commit *model.Commit, breakingConfig *whatChangedModel.Break
 		leftDrDoc.Release()
 		return nil, nil
 	}
+	rewriteOutputLocations(ctr, docChanges, commit.DocumentRewriters)
 
 	return &changeratorResult{
 		Changerator: ctr,
@@ -89,6 +90,94 @@ func runChangerator(commit *model.Commit, breakingConfig *whatChangedModel.Break
 		RightDrDoc:  rightDrDoc,
 		LeftDrDoc:   leftDrDoc,
 	}, nil
+}
+
+func rewriteOutputLocations(ctr *changerator.Changerator, docChanges *whatChangedModel.DocumentChanges, rewriters []model.DocumentPathRewriter) {
+	if len(rewriters) == 0 {
+		return
+	}
+	rewriteDocumentChangeLocations(docChanges, rewriters)
+	if ctr != nil {
+		rewriteChangedNodeLocations(ctr.ChangedNodes, rewriters)
+	}
+}
+
+func rewriteDocumentChangeLocations(docChanges *whatChangedModel.DocumentChanges, rewriters []model.DocumentPathRewriter) {
+	if docChanges == nil {
+		return
+	}
+	for _, change := range docChanges.GetAllChanges() {
+		if change == nil || change.Context == nil || change.Context.DocumentLocation == "" {
+			continue
+		}
+		change.Context.DocumentLocation = rewriteDocumentLocation(change.Context.DocumentLocation, rewriters)
+	}
+}
+
+func rewriteChangedNodeLocations(nodes []*v3.Node, rewriters []model.DocumentPathRewriter) {
+	if len(nodes) == 0 {
+		return
+	}
+	seen := make(map[*v3.Node]struct{}, len(nodes))
+	var walk func(*v3.Node)
+	walk = func(node *v3.Node) {
+		if node == nil {
+			return
+		}
+		if _, ok := seen[node]; ok {
+			return
+		}
+		seen[node] = struct{}{}
+
+		if node.Origin != nil {
+			node.Origin.AbsoluteLocation = rewriteDocumentLocation(node.Origin.AbsoluteLocation, rewriters)
+			node.Origin.AbsoluteLocationValue = rewriteDocumentLocation(node.Origin.AbsoluteLocationValue, rewriters)
+		}
+		node.OriginLocation = rewriteDocumentLocation(node.OriginLocation, rewriters)
+		for _, changed := range node.GetChanges() {
+			for _, change := range changed.GetAllChanges() {
+				if change == nil || change.Context == nil {
+					continue
+				}
+				change.Context.DocumentLocation = rewriteDocumentLocation(change.Context.DocumentLocation, rewriters)
+			}
+		}
+		for _, change := range node.RenderedChanges {
+			if change == nil || change.Context == nil {
+				continue
+			}
+			change.Context.DocumentLocation = rewriteDocumentLocation(change.Context.DocumentLocation, rewriters)
+		}
+		for _, change := range node.CleanedChanged {
+			if change == nil || change.Context == nil {
+				continue
+			}
+			change.Context.DocumentLocation = rewriteDocumentLocation(change.Context.DocumentLocation, rewriters)
+		}
+
+		for _, child := range node.Children {
+			walk(child)
+		}
+	}
+	for _, node := range nodes {
+		walk(node)
+	}
+}
+
+func rewriteDocumentLocation(raw string, rewriters []model.DocumentPathRewriter) string {
+	if raw == "" {
+		return raw
+	}
+	for _, rewrite := range rewriters {
+		if rewrite == nil {
+			continue
+		}
+		rewritten := rewrite(raw)
+		if rewritten != raw {
+			return rewritten
+		}
+	}
+	return raw
 }
 
 func emitCommitWarning(commitHash string, err error) {

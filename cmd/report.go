@@ -53,7 +53,7 @@ func changerateAndFlatten(commits []*model.Commit, breakingConfig *whatChangedMo
 }
 
 func runLeftRightReport(left, right string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatReport, error) {
-	commit, documentPathRewriters, err := buildLeftRightCommitAndSources(left, right, opts)
+	commit, err := buildLeftRightCommitAndSources(left, right, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,6 @@ func runLeftRightReport(left, right string, opts summaryOpts, breakingConfig *wh
 	}
 	defer result.Release()
 	flat := FlattenReportWithParameterNames(createReport(commit), result.Changerator.ParameterNames)
-	rewriteFlatReportDocumentPaths(flat, documentPathRewriters)
 	flat.Commit = nil
 	flat.OriginalPath = sourceLabelForReport(left)
 	flat.ModifiedPath = sourceLabelForReport(right)
@@ -251,25 +250,4 @@ func makeFlatReportReproducible(report *model.FlatReport) {
 		return
 	}
 	report.DateGenerated = ""
-}
-
-func rewriteFlatReportDocumentPaths(report *model.FlatReport, rewriters []documentPathRewriter) {
-	if report == nil || len(rewriters) == 0 {
-		return
-	}
-	for _, change := range report.Changes {
-		if change == nil || change.Context == nil || change.Context.DocumentLocation == "" {
-			continue
-		}
-		for _, rewrite := range rewriters {
-			if rewrite == nil {
-				continue
-			}
-			rewritten := rewrite(change.Context.DocumentLocation)
-			if rewritten != change.Context.DocumentLocation {
-				change.Context.DocumentLocation = rewritten
-				break
-			}
-		}
-	}
 }

@@ -22,9 +22,9 @@ func TestGitRevisionFS_OpenLoadsRevisionScopedFiles(t *testing.T) {
 	docConfig.BasePath = repoDir
 	docConfig.AllowFileReferences = true
 
-	beforeFS, err := NewGitRevisionFS(repoDir, repoDir, filepath.Join(repoDir, ".virtual-before"), "HEAD~1", docConfig)
+	beforeFS, err := NewGitRevisionFS(repoDir, repoDir, "HEAD~1", docConfig)
 	require.NoError(t, err)
-	afterFS, err := NewGitRevisionFS(repoDir, repoDir, filepath.Join(repoDir, ".virtual-after"), "HEAD", docConfig)
+	afterFS, err := NewGitRevisionFS(repoDir, repoDir, "HEAD", docConfig)
 	require.NoError(t, err)
 
 	beforeFile, err := beforeFS.Open(filepath.ToSlash(filepath.Join("apis", "components", "pet.yaml")))
@@ -44,7 +44,7 @@ func TestGitRevisionFS_OpenLoadsRevisionScopedFiles(t *testing.T) {
 	rootBits := mustReadAllFS(t, rootFile)
 	assert.Contains(t, string(rootBits), "./components/pet.yaml")
 
-	relativeFS, err := NewGitRevisionFS(repoDir, specDir, filepath.Join(repoDir, ".virtual-relative"), "HEAD", docConfig)
+	relativeFS, err := NewGitRevisionFS(repoDir, specDir, "HEAD", docConfig)
 	require.NoError(t, err)
 	relativeFile, err := relativeFS.Open(filepath.ToSlash(filepath.Join("components", "pet.yaml")))
 	require.NoError(t, err)
@@ -57,7 +57,7 @@ func TestGitRevisionFS_CachesRepeatedOpens(t *testing.T) {
 	docConfig.BasePath = repoDir
 	docConfig.AllowFileReferences = true
 
-	revisionFS, err := NewGitRevisionFS(repoDir, repoDir, filepath.Join(repoDir, ".virtual-cache"), "HEAD", docConfig)
+	revisionFS, err := NewGitRevisionFS(repoDir, repoDir, "HEAD", docConfig)
 	require.NoError(t, err)
 
 	first, err := revisionFS.Open(filepath.ToSlash(filepath.Join("apis", "components", "pet.yaml")))
@@ -74,7 +74,7 @@ func TestGitRevisionFS_RejectsOutsideRepo(t *testing.T) {
 	docConfig.BasePath = repoDir
 	docConfig.AllowFileReferences = true
 
-	revisionFS, err := NewGitRevisionFS(repoDir, repoDir, filepath.Join(repoDir, ".virtual-outside"), "HEAD", docConfig)
+	revisionFS, err := NewGitRevisionFS(repoDir, repoDir, "HEAD", docConfig)
 	require.NoError(t, err)
 
 	_, err = revisionFS.Open("../outside.yaml")
@@ -88,7 +88,7 @@ func TestGitRevisionFS_RetriesAfterReadError(t *testing.T) {
 	docConfig.BasePath = repoDir
 	docConfig.AllowFileReferences = true
 
-	revisionFS, err := NewGitRevisionFS(repoDir, repoDir, filepath.Join(repoDir, ".virtual-retry"), "HEAD", docConfig)
+	revisionFS, err := NewGitRevisionFS(repoDir, repoDir, "HEAD", docConfig)
 	require.NoError(t, err)
 
 	originalRead := revisionFSReadFileAtRevision

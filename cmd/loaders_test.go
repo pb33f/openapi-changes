@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pb33f/openapi-changes/git"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -64,7 +65,7 @@ func TestNormalizeGitRefPath_FromRepoRoot(t *testing.T) {
 	require.NoError(t, err)
 	repoRoot := filepath.Clean(filepath.Join(wd, ".."))
 
-	got, err := normalizeGitRefPath(repoRoot, repoRoot, "sample-specs/petstorev3.json")
+	got, err := normalizeGitRefPath(repoRoot, "sample-specs/petstorev3.json")
 	require.NoError(t, err)
 	assert.Equal(t, "sample-specs/petstorev3.json", got)
 }
@@ -74,7 +75,7 @@ func TestNormalizeGitRefPath_FromSubdirectory(t *testing.T) {
 	require.NoError(t, err)
 	repoRoot := filepath.Clean(filepath.Join(wd, ".."))
 
-	got, err := normalizeGitRefPath(wd, repoRoot, "sample-specs/petstorev3.json")
+	got, err := normalizeGitRefPath(repoRoot, "sample-specs/petstorev3.json")
 	require.NoError(t, err)
 	assert.Equal(t, "sample-specs/petstorev3.json", got)
 }
@@ -85,7 +86,7 @@ func TestNormalizeGitRefPath_AbsolutePathInsideRepo(t *testing.T) {
 	repoRoot := filepath.Clean(filepath.Join(wd, ".."))
 	absPath := filepath.Join(repoRoot, "sample-specs", "petstorev3.json")
 
-	got, err := normalizeGitRefPath(wd, repoRoot, absPath)
+	got, err := normalizeGitRefPath(repoRoot, absPath)
 	require.NoError(t, err)
 	assert.Equal(t, "sample-specs/petstorev3.json", got)
 }
@@ -102,7 +103,7 @@ func TestNormalizeGitRefPath_SymlinkedWorkingTreeAlias(t *testing.T) {
 		t.Skipf("symlink not supported: %v", err)
 	}
 
-	got, err := normalizeGitRefPath(linkPath, repoRoot, filepath.Join(linkPath, "openapi.yaml"))
+	got, err := normalizeGitRefPath(repoRoot, filepath.Join(linkPath, "openapi.yaml"))
 	require.NoError(t, err)
 	assert.Equal(t, "openapi.yaml", got)
 }
@@ -119,7 +120,7 @@ func TestNormalizeGitRefPath_MissingPathUnderSymlinkedAliasStaysInsideRepo(t *te
 		t.Skipf("symlink not supported: %v", err)
 	}
 
-	got, err := normalizeGitRefPath(linkPath, repoRoot, filepath.Join(linkPath, "nested", "missing.yaml"))
+	got, err := normalizeGitRefPath(repoRoot, filepath.Join(linkPath, "nested", "missing.yaml"))
 	require.NoError(t, err)
 	assert.Equal(t, "nested/missing.yaml", got)
 }
@@ -129,7 +130,7 @@ func TestNormalizeGitRefPath_RejectsOutsideRepo(t *testing.T) {
 	require.NoError(t, err)
 	repoRoot := filepath.Clean(filepath.Join(wd, ".."))
 
-	_, err = normalizeGitRefPath(wd, repoRoot, "../../outside.yaml")
+	_, err = normalizeGitRefPath(repoRoot, "../../outside.yaml")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "resolves outside the current repository")
 }
@@ -173,7 +174,9 @@ func TestResolveGitRefSource_AbsolutePathInsideCurrentRepo(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, raw, source.Display)
 	assert.NotEmpty(t, source.RootBytes)
-	assert.Contains(t, filepath.ToSlash(source.DocConfig.SpecFilePath), "/.openapi-changes-gitref/")
+	expectedSpecPath, err := git.CanonicalizePath(absSpecPath)
+	require.NoError(t, err)
+	assert.Equal(t, expectedSpecPath, source.DocConfig.SpecFilePath)
 	assert.True(t, strings.HasSuffix(source.DocConfig.SpecFilePath, string(filepath.Separator)+"openapi.yaml"))
 }
 
