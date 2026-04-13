@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -81,15 +82,15 @@ func isSyntheticLeftRightCommit(commit *model.Commit) bool {
 func generateMarkdownReport(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, includeDiff bool) ([]byte, error) {
 	var sb strings.Builder
 	successCount := 0
-	errorCount := 0
+	var renderErrors []error
 	headerWritten := false
 	includeCommitMetadata := true
 
 	for i, commit := range commits {
 		markdown, err := renderCommitMarkdown(commit, breakingConfig)
 		if err != nil {
-			emitCommitWarning(commit.Hash, err)
-			errorCount++
+			emitCommitWarning(commit, err)
+			renderErrors = append(renderErrors, wrapCommitError(commit, err))
 			continue
 		}
 		if markdown == "" {
@@ -138,13 +139,13 @@ func generateMarkdownReport(commits []*model.Commit, breakingConfig *whatChanged
 		sb.WriteString("---\n\n")
 	}
 
-	if successCount == 0 && errorCount > 0 {
-		return nil, fmt.Errorf("all %d commits failed to render", errorCount)
+	if successCount == 0 && len(renderErrors) > 0 {
+		return nil, fmt.Errorf("all %d commits failed to render: %w", len(renderErrors), errors.Join(renderErrors...))
 	}
-	if errorCount > 0 {
-		fmt.Fprintf(os.Stderr, "warning: %d commits failed to render\n", errorCount)
+	if len(renderErrors) > 0 {
+		fmt.Fprintf(os.Stderr, "warning: %d commits failed to render\n", len(renderErrors))
 	}
-	if successCount == 0 && errorCount == 0 {
+	if successCount == 0 && len(renderErrors) == 0 {
 		return nil, nil
 	}
 	return []byte(sb.String()), nil

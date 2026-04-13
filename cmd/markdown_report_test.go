@@ -56,6 +56,26 @@ paths: {}`
 	assert.Contains(t, err.Error(), "all 1 commits failed to render")
 }
 
+func TestMarkdownReport_LeftRightModelBuildErrorNamesFiles(t *testing.T) {
+	leftPath, rightPath := createBrokenReferenceSpecPair(t)
+
+	commits, err := loadLeftRightCommits(leftPath, rightPath, summaryOpts{noColor: true})
+	require.NoError(t, err)
+
+	var report []byte
+	stderr := captureStderr(t, func() {
+		report, err = generateMarkdownReport(commits, nil, false)
+	})
+
+	require.Error(t, err)
+	assert.Nil(t, report)
+	assert.Contains(t, err.Error(), "all 1 commits failed to render")
+	assert.Contains(t, err.Error(), rightPath)
+	assert.Contains(t, err.Error(), "building modified model")
+	assert.Contains(t, stderr, leftPath)
+	assert.Contains(t, stderr, rightPath)
+}
+
 func TestMarkdownReport_HeadingStripping(t *testing.T) {
 	opts := summaryOpts{noColor: true}
 	commits, err := loadLeftRightCommits(
@@ -197,7 +217,7 @@ paths: {}`
 	})
 	assert.NoError(t, reportErr)
 	assert.NotNil(t, report, "should return partial report with successfully rendered commits")
-	assert.Contains(t, stderr, "warning: commit bad123: building right model")
+	assert.Contains(t, stderr, "warning: commit bad123: building modified model")
 	assert.Contains(t, stderr, "warning: 1 commits failed to render")
 }
 

@@ -37,8 +37,8 @@ func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedMo
 	for i, commit := range commits {
 		result, err := runChangerator(commit, breakingConfig)
 		if err != nil {
-			emitCommitWarning(commit.Hash, err)
-			buildErrors = append(buildErrors, err)
+			emitCommitWarning(commit, err)
+			buildErrors = append(buildErrors, wrapCommitError(commit, err))
 			continue
 		}
 		if result == nil {
@@ -56,8 +56,9 @@ func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedMo
 		result.Release()
 
 		if err != nil {
-			emitCommitWarning(commit.Hash, fmt.Errorf("building report item: %w", err))
-			buildErrors = append(buildErrors, err)
+			wrappedErr := fmt.Errorf("building report item: %w", err)
+			emitCommitWarning(commit, wrappedErr)
+			buildErrors = append(buildErrors, wrapCommitError(commit, wrappedErr))
 			continue
 		}
 

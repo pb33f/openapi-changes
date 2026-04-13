@@ -279,6 +279,8 @@ func buildLeftRightCommit(left, right comparisonSource) (*model.Commit, error) {
 		Data:              right.RootBytes,
 		OldDocument:       leftDoc,
 		Document:          rightDoc,
+		OriginalSource:    left.Display,
+		ModifiedSource:    right.Display,
 		Synthetic:         true,
 		DocumentRewriters: rewriters,
 	}, nil

@@ -26,7 +26,7 @@ var newGitHubService = func() githubHistoryService {
 	return doctorgithub.NewGitHubService()
 }
 
-func convertGitHubRevisionsIntoModel(revisions []*doctorgithub.FileRevision,
+func convertGitHubRevisionsIntoModel(revisions []*doctorgithub.FileRevision, filePath string,
 	progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError,
 	opts HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
 ) ([]*model.Commit, []error) {
@@ -50,6 +50,7 @@ func convertGitHubRevisionsIntoModel(revisions []*doctorgithub.FileRevision,
 			AuthorEmail: revision.Commit.Author.Email,
 			CommitDate:  revision.Commit.Author.Date,
 			Data:        revision.FileBytes,
+			FilePath:    filePath,
 		}
 		model.SendProgressUpdate("converting commits",
 			fmt.Sprintf("Converted commit %s into data model", commit.Hash), false, progressChan)
@@ -124,7 +125,7 @@ func ProcessGithubRepo(username, repo, filePath string,
 	model.SendProgressUpdate("git",
 		fmt.Sprintf("fetched %d github revisions", len(revisions)), true, progressChan)
 
-	commitHistory, errs := convertGitHubRevisionsIntoModel(revisions, progressChan, errorChan, opts, breakingConfig)
+	commitHistory, errs := convertGitHubRevisionsIntoModel(revisions, filePath, progressChan, errorChan, opts, breakingConfig)
 	if errs != nil {
 		for _, err := range errs {
 			model.SendProgressError("git", err.Error(), errorChan)

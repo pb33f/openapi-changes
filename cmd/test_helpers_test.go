@@ -269,6 +269,42 @@ components:
 	return leftPath, rightPath
 }
 
+func createBrokenReferenceSpecPair(t *testing.T) (string, string) {
+	t.Helper()
+
+	left := `openapi: 3.0.3
+info:
+  title: Valid
+  version: "1.0"
+paths: {}
+`
+
+	right := `openapi: 3.0.3
+info:
+  title: Broken
+  version: "1.0"
+paths:
+  /pets:
+    get:
+      responses:
+        "403":
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/403-Forbidden'
+components:
+  schemas: {}
+`
+
+	baseDir := t.TempDir()
+	leftPath := filepath.Join(baseDir, "left.yaml")
+	rightPath := filepath.Join(baseDir, "right.yaml")
+	require.NoError(t, os.WriteFile(leftPath, []byte(left), 0o644))
+	require.NoError(t, os.WriteFile(rightPath, []byte(right), 0o644))
+	return leftPath, rightPath
+}
+
 func createMovedRefGitSpecRepo(t *testing.T) (string, string) {
 	t.Helper()
 	return testutil.CreateMovedRefGitSpecRepo(t)

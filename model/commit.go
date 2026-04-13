@@ -28,6 +28,8 @@ type Commit struct {
 	OldDocument       libopenapi.Document    `gorm:"-" json:"-"`
 	RepoDirectory     string                 `gorm:"-" json:"-"`
 	FilePath          string                 `gorm:"-" json:"-"`
+	OriginalSource    string                 `gorm:"-" json:"-"`
+	ModifiedSource    string                 `gorm:"-" json:"-"`
 	Synthetic         bool                   `gorm:"-" json:"-"`
 	DocumentRewriters []DocumentPathRewriter `gorm:"-" json:"-"`
 }

@@ -183,7 +183,7 @@ func TestRenderSummary_ReturnsErrorWhenAllCommitsFailToRender(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "all 1 commits failed to render")
-	assert.Contains(t, stderr, "warning: commit abc123: building right model")
+	assert.Contains(t, stderr, "warning: commit abc123: building modified model")
 	assert.Empty(t, output)
 	assert.False(t, hasBreaking)
 	assert.False(t, hasChanges)
@@ -221,7 +221,7 @@ paths: {}
 	require.NoError(t, err)
 	assert.Contains(t, output, "Date:")
 	assert.NotContains(t, output, "Error:")
-	assert.Contains(t, stderr, "warning: commit abc123: building right model")
+	assert.Contains(t, stderr, "warning: commit abc123: building modified model")
 	assert.Contains(t, stderr, "warning: 1 commits failed to render")
 	assert.False(t, hasBreaking)
 	assert.True(t, hasChanges)
@@ -241,6 +241,33 @@ func TestLoadLeftRightCommits_IdenticalSpecsPreserveComparableRevision(t *testin
 	assert.NotNil(t, commits[0].Document)
 	assert.NotNil(t, commits[0].OldDocument)
 	assert.Nil(t, commits[0].Changes)
+}
+
+func TestRenderSummary_LeftRightModelBuildErrorNamesModifiedFile(t *testing.T) {
+	leftPath, rightPath := createBrokenReferenceSpecPair(t)
+
+	commits, err := loadLeftRightCommits(leftPath, rightPath, summaryOpts{noColor: true})
+	require.NoError(t, err)
+	require.Len(t, commits, 1)
+
+	var renderErr error
+	stderr := captureStderr(t, func() {
+		_, _, _, renderErr = renderSummary(
+			commits,
+			nil,
+			false,
+			true,
+			false,
+			summaryStyles{},
+		)
+	})
+
+	require.Error(t, renderErr)
+	assert.Contains(t, renderErr.Error(), "all 1 commits failed to render")
+	assert.Contains(t, renderErr.Error(), rightPath)
+	assert.Contains(t, renderErr.Error(), "building modified model")
+	assert.Contains(t, stderr, leftPath)
+	assert.Contains(t, stderr, rightPath)
 }
 
 func TestRenderSummary_DirectComparisonNoChangesUsesGenericMessage(t *testing.T) {

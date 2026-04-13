@@ -45,11 +45,11 @@ func runChangerator(commit *model.Commit, breakingConfig *whatChangedModel.Break
 
 	rightModel, err := commit.Document.BuildV3Model()
 	if err != nil {
-		return nil, fmt.Errorf("building right model: %w", err)
+		return nil, modelBuildError("modified", commitSourceLabel(commit, true), err)
 	}
 	leftModel, err := commit.OldDocument.BuildV3Model()
 	if err != nil {
-		return nil, fmt.Errorf("building left model: %w", err)
+		return nil, modelBuildError("original", commitSourceLabel(commit, false), err)
 	}
 
 	rightDrDoc := drModel.NewDrDocumentAndGraph(rightModel)
@@ -180,6 +180,73 @@ func rewriteDocumentLocation(raw string, rewriters []model.DocumentPathRewriter)
 	return raw
 }
 
-func emitCommitWarning(commitHash string, err error) {
-	fmt.Fprintf(os.Stderr, "warning: commit %s: %s\n", commitHash, err)
+func modelBuildError(side, label string, err error) error {
+	if label == "" {
+		return fmt.Errorf("building %s model: %w", side, err)
+	}
+	return fmt.Errorf("building %s model '%s': %w", side, label, err)
+}
+
+func commitSourceLabel(commit *model.Commit, modified bool) string {
+	if commit == nil {
+		return ""
+	}
+	if modified {
+		if commit.ModifiedSource != "" {
+			return commit.ModifiedSource
+		}
+		if commit.FilePath != "" {
+			return commit.FilePath
+		}
+		return ""
+	}
+	if commit.OriginalSource != "" {
+		return commit.OriginalSource
+	}
+	if commit.FilePath != "" {
+		return commit.FilePath
+	}
+	return ""
+}
+
+func commitContextLabel(commit *model.Commit) string {
+	if commit == nil {
+		return ""
+	}
+	if commit.Synthetic {
+		switch {
+		case commit.OriginalSource != "" && commit.ModifiedSource != "":
+			return fmt.Sprintf("comparison '%s' -> '%s'", commit.OriginalSource, commit.ModifiedSource)
+		case commit.ModifiedSource != "":
+			return fmt.Sprintf("comparison '%s'", commit.ModifiedSource)
+		case commit.OriginalSource != "":
+			return fmt.Sprintf("comparison '%s'", commit.OriginalSource)
+		}
+	}
+	if commit.Hash != "" && commit.FilePath != "" {
+		return fmt.Sprintf("commit %s (%s)", commit.Hash, commit.FilePath)
+	}
+	if commit.Hash != "" {
+		return fmt.Sprintf("commit %s", commit.Hash)
+	}
+	if commit.FilePath != "" {
+		return fmt.Sprintf("file '%s'", commit.FilePath)
+	}
+	return ""
+}
+
+func wrapCommitError(commit *model.Commit, err error) error {
+	if err == nil {
+		return nil
+	}
+	if label := commitContextLabel(commit); label != "" {
+		return fmt.Errorf("%s: %w", label, err)
+	}
+	return err
+}
+
+func emitCommitWarning(commit *model.Commit, err error) {
+	if wrapped := wrapCommitError(commit, err); wrapped != nil {
+		fmt.Fprintf(os.Stderr, "warning: %s\n", wrapped)
+	}
 }

@@ -301,8 +301,8 @@ func renderSummaryWithTheme(
 
 		result, err := runChangerator(commit, breakingConfig)
 		if err != nil {
-			emitCommitWarning(commit.Hash, err)
-			renderErrors = append(renderErrors, fmt.Errorf("commit %s: %w", commit.Hash, err))
+			emitCommitWarning(commit, err)
+			renderErrors = append(renderErrors, wrapCommitError(commit, err))
 			continue
 		}
 		if result == nil {

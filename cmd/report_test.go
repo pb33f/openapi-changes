@@ -20,34 +20,15 @@ import (
 )
 
 func TestRunLeftRightReport_PropagatesChangeratorErrors(t *testing.T) {
-	dir := t.TempDir()
-
-	left := `swagger: "2.0"
-info:
-  title: test
-  version: "1.0"
-paths: {}`
-	right := `swagger: "2.0"
-info:
-  title: test updated
-  version: "1.1"
-paths:
-  /pets:
-    get:
-      responses:
-        "200":
-          description: ok`
-
-	leftPath := filepath.Join(dir, "left.yaml")
-	rightPath := filepath.Join(dir, "right.yaml")
-	require.NoError(t, os.WriteFile(leftPath, []byte(left), 0644))
-	require.NoError(t, os.WriteFile(rightPath, []byte(right), 0644))
+	leftPath, rightPath := createBrokenReferenceSpecPair(t)
 
 	report, err := runLeftRightReport(leftPath, rightPath, summaryOpts{}, nil)
 
 	require.Error(t, err)
 	assert.Nil(t, report)
-	assert.Contains(t, err.Error(), "building right model")
+	assert.Contains(t, err.Error(), leftPath)
+	assert.Contains(t, err.Error(), rightPath)
+	assert.Contains(t, err.Error(), "building modified model")
 }
 
 func TestRunGithubHistoryReport_PropagatesChangeratorErrors(t *testing.T) {

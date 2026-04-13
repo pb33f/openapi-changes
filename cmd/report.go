@@ -22,7 +22,7 @@ import (
 func changerateCommit(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*changeratorResult, error) {
 	result, err := runChangerator(commit, breakingConfig)
 	if err != nil {
-		return nil, fmt.Errorf("commit %s: %w", commit.Hash, err)
+		return nil, wrapCommitError(commit, err)
 	}
 	if result == nil {
 		return nil, nil

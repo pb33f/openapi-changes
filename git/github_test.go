@@ -144,11 +144,12 @@ func TestConvertGitHubRevisionsIntoModel_BuildsCommitHistory(t *testing.T) {
 		makeDoctorRevision("bbb222", "old", time.Now().Add(-time.Hour), older),
 	}
 
-	result, errs := convertGitHubRevisionsIntoModel(revisions, progressChan, errorChan, HistoryOptions{}, nil)
+	result, errs := convertGitHubRevisionsIntoModel(revisions, "spec.yaml", progressChan, errorChan, HistoryOptions{}, nil)
 
 	require.Nil(t, errs)
 	require.NotEmpty(t, result)
 	assert.Equal(t, "aaa111", result[0].Hash)
+	assert.Equal(t, "spec.yaml", result[0].FilePath)
 	assert.NotNil(t, result[0].Document)
 }
 
@@ -160,7 +161,7 @@ func TestConvertGitHubRevisionsIntoModel_ReturnsBuildErrors(t *testing.T) {
 		makeDoctorRevision("bbb222", "old", time.Now().Add(-time.Hour), []byte("openapi: 3.0.0\ninfo:\n  title: ok\n  version: 1.0.0\npaths: {}\n")),
 	}
 
-	result, errs := convertGitHubRevisionsIntoModel(revisions, progressChan, errorChan, HistoryOptions{}, &whatChangedModel.BreakingRulesConfig{})
+	result, errs := convertGitHubRevisionsIntoModel(revisions, "spec.yaml", progressChan, errorChan, HistoryOptions{}, &whatChangedModel.BreakingRulesConfig{})
 
 	assert.NotNil(t, result)
 	require.NotEmpty(t, errs)

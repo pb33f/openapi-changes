@@ -130,6 +130,25 @@ func TestBuildHTMLReportItems_AllCommitsFail(t *testing.T) {
 	assert.Contains(t, err.Error(), "all 1 commits failed to build report items")
 }
 
+func TestBuildHTMLReportItems_LeftRightModelBuildErrorNamesFiles(t *testing.T) {
+	leftPath, rightPath := createBrokenReferenceSpecPair(t)
+
+	commits, err := loadLeftRightCommits(leftPath, rightPath, summaryOpts{noColor: true})
+	require.NoError(t, err)
+
+	var buildErr error
+	stderr := captureStderr(t, func() {
+		_, buildErr = buildHTMLReportItems(commits, nil)
+	})
+
+	require.Error(t, buildErr)
+	assert.Contains(t, buildErr.Error(), "all 1 commits failed to build report items")
+	assert.Contains(t, buildErr.Error(), rightPath)
+	assert.Contains(t, buildErr.Error(), "building modified model")
+	assert.Contains(t, stderr, leftPath)
+	assert.Contains(t, stderr, rightPath)
+}
+
 func TestBuildHTMLReportItems_PartialFailureReturnsPartialResults(t *testing.T) {
 	commits, err := loadLeftRightCommits(
 		"../sample-specs/petstorev3-original.json",
@@ -147,7 +166,7 @@ func TestBuildHTMLReportItems_PartialFailureReturnsPartialResults(t *testing.T) 
 	})
 	require.NoError(t, err)
 	assert.NotEmpty(t, items, "should return successfully built items despite partial failure")
-	assert.Contains(t, stderr, "warning: commit abc123: building right model")
+	assert.Contains(t, stderr, "warning: commit abc123: building modified model")
 	assert.Contains(t, stderr, "warning: 1 commits failed to build report items")
 }
 
