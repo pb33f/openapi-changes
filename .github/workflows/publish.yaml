@@ -126,6 +126,13 @@ jobs:
             type=raw,value=${{ github.event.client_payload.new-tag }}
             type=raw,value=latest
 
+      - name: Capture Docker build metadata
+        id: docker_build_meta
+        run: |
+          echo "version=${{ github.event.client_payload.new-tag }}" >> "$GITHUB_OUTPUT"
+          echo "commit=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - name: Build and push Docker images
         uses: docker/build-push-action@v6
         with:
@@ -134,5 +141,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.docker_build_meta.outputs.version }}
+            APP_COMMIT=${{ steps.docker_build_meta.outputs.commit }}
+            APP_DATE=${{ steps.docker_build_meta.outputs.date }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
