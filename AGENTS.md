@@ -16,7 +16,7 @@ Public documentation:
 - local git history for a file in a repository
 - GitHub-hosted file history via file URL
 
-The public command surface is:
+The public comparison/report surface is:
 
 - `console`
 - `summary`
@@ -24,9 +24,14 @@ The public command surface is:
 - `markdown-report`
 - `html-report`
 
-All five commands use the current engine built on `doctor`, the open source Apache 2.0 library from pb33f:
+These five commands use the current engine built on `doctor`, the open source Apache 2.0 library from pb33f:
 
 - https://github.com/pb33f/doctor
+
+Utility commands:
+
+- `completion`
+- `version`
 
 ## Source Of Truth
 
@@ -90,6 +95,7 @@ All `cmd/` implementation files use their canonical names (e.g., `cmd/summary.go
 ## Files That Matter Most
 
 - `cmd/root.go` — root Cobra command, CLI entry point, subcommand registration
+- `cmd/version.go` — prints the raw build version string
 - `cmd/common.go` — shared option flags and Lip Gloss styling for all doctor-based commands
 - `cmd/loaders.go` — loads specs from files, URLs, and git history; progress tracking and error aggregation
 - `cmd/engine.go` — wraps doctor changerator for API comparison; manages document resource cleanup and mutex-guarded breaking config

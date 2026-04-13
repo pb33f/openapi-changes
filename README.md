@@ -75,6 +75,13 @@ To run the interactive `console` through Docker, allocate a TTY with `-it`:
 docker run --rm -it -v $PWD:/work:rw pb33f/openapi-changes console . path/to/openapi.yaml
 ```
 
+## Verify the install
+
+Print the installed version:
+
+```bash
+openapi-changes version
+```
 
 ---
 
@@ -159,6 +166,7 @@ Full docs: https://pb33f.io/openapi-changes/
   - [`markdown-report`](https://pb33f.io/openapi-changes/markdown-report/)
   - [`html-report`](https://pb33f.io/openapi-changes/html-report/)
   - [`completion`](https://pb33f.io/openapi-changes/completion/)
+  - [`version`](https://pb33f.io/openapi-changes/version/)
 - [About openapi-changes](https://pb33f.io/openapi-changes/about/)
 
 ---
@@ -191,6 +199,7 @@ The current command surface is:
 - `markdown-report` for shareable markdown output
 - `html-report` for the interactive offline browser report
 - `completion` for shell completion scripts
+- `version` for raw build version output
 
 Run `openapi-changes --help` or `openapi-changes <command> --help` for the live CLI surface.
 

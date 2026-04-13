@@ -21,6 +21,8 @@ func TestRootCommand_ZeroArgsHonorsNoLogo(t *testing.T) {
 	})
 
 	assert.Contains(t, output, "Current commands")
+	assert.Contains(t, output, "completion")
+	assert.Contains(t, output, "version")
 	assert.NotContains(t, output, "https://pb33f.io/openapi-changes/")
 	assert.NotContains(t, output, "@@@@@@@")
 }

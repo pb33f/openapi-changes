@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/spf13/cobra"
 )
@@ -20,9 +21,9 @@ var (
 		Use:          "openapi-changes",
 		Short:        "Detect and explore changes between OpenAPI / Swagger specifications.",
 		Long: `openapi-changes can detect every change found in an OpenAPI specification.
-it can compare between two files, or a single file, over time.
+	it can compare between two files, or a single file, over time.
 
-All commands use the current doctor-based engine.`,
+	The comparison and reporting commands use the current doctor-based engine.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, _, err := readCommonFlags(cmd)
 			if err != nil {
@@ -32,7 +33,7 @@ All commands use the current doctor-based engine.`,
 
 			fmt.Println("Current commands")
 			fmt.Println()
-			for _, name := range []string{"console", "summary", "report", "markdown-report", "html-report"} {
+			for _, name := range visibleRootCommandNames(cmd) {
 				fmt.Printf("  > %s\n", name)
 			}
 			fmt.Println()
@@ -53,6 +54,18 @@ func Execute(version, commit, date string) {
 	}
 }
 
+func visibleRootCommandNames(root *cobra.Command) []string {
+	var names []string
+	for _, command := range root.Commands() {
+		if command == nil || command.Hidden || command.Name() == "help" {
+			continue
+		}
+		names = append(names, command.Name())
+	}
+	sort.Strings(names)
+	return names
+}
+
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.AddCommand(GetConsoleCommand())
@@ -60,6 +73,7 @@ func init() {
 	rootCmd.AddCommand(GetMarkdownReportCommand())
 	rootCmd.AddCommand(GetReportCommand())
 	rootCmd.AddCommand(GetSummaryCommand())
+	rootCmd.AddCommand(GetVersionCommand())
 	rootCmd.PersistentFlags().BoolP("top", "t", false, "Only show latest changes (last git revision against HEAD)")
 	rootCmd.PersistentFlags().IntP("limit", "l", 5, "Limit history to number of revisions (default is 5)")
 	rootCmd.PersistentFlags().BoolP("global-revisions", "R", false, "Consider all revisions in limit, not just the ones for the file")

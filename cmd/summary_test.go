@@ -427,6 +427,51 @@ func TestRenderSummary_ComposedSchemaTitleRemovalDoesNotMislabelAsAnyOf(t *testi
 	assert.NotContains(t, output, "anyOf")
 }
 
+func TestRenderSummary_RendersRemovedRequiredMemberName(t *testing.T) {
+	commit := mustMakeDoctorOnlyCommitFromSpecs(t, "required-label", `openapi: 3.0.3
+info:
+  title: Test API
+  version: "1.0"
+paths: {}
+components:
+  schemas:
+    ReminderRequest:
+      type: object
+      required:
+        - result
+      properties:
+        result:
+          type: string
+`, `openapi: 3.0.3
+info:
+  title: Test API
+  version: "1.0"
+paths: {}
+components:
+  schemas:
+    ReminderRequest:
+      type: object
+      properties:
+        result:
+          type: string
+`)
+
+	output, hasBreaking, hasChanges, err := renderSummary(
+		[]*model.Commit{commit},
+		nil,
+		true,
+		true,
+		true,
+		summaryStyles{},
+	)
+
+	require.NoError(t, err)
+	assert.True(t, hasChanges)
+	assert.True(t, hasBreaking)
+	assert.Contains(t, output, "Removed ReminderRequest required/result")
+	assert.Contains(t, output, "required/result (")
+}
+
 func TestLoadLeftRightCommits_ReturnsHTTPStatusErrors(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing", http.StatusNotFound)

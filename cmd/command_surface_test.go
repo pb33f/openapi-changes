@@ -15,4 +15,5 @@ func TestCommandSurface_UsesCanonicalNames(t *testing.T) {
 	assert.Equal(t, "markdown-report", GetMarkdownReportCommand().Use)
 	assert.Equal(t, "html-report", GetHTMLReportCommand().Use)
 	assert.Equal(t, "console", GetConsoleCommand().Use)
+	assert.Equal(t, "version", GetVersionCommand().Use)
 }
