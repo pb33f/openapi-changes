@@ -29,7 +29,10 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
     -v -o /openapi-changes openapi-changes.go
 
 FROM --platform=$TARGETPLATFORM debian:bookworm-slim
-RUN apt-get update && apt-get --yes install git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && apt-get --yes install git \
+    && git config --system --add safe.directory '*' \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /work
 COPY --from=builder /openapi-changes /
 

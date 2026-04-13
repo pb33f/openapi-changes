@@ -63,6 +63,8 @@ docker pull pb33f/openapi-changes
 
 Docker images are available for both `linux/amd64` and `linux/arm64`.
 
+The published image configures Git to trust mounted repositories, so local git-history commands work without requiring extra `safe.directory` setup inside the container.
+
 To run a command, mount the current working directory into the container:
 
 ```bash
