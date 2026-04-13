@@ -89,6 +89,36 @@ func makeTestTree() *v3.Node {
 	return root
 }
 
+func makeRootChangeTree() *v3.Node {
+	openapiChange := &whatChangedModel.Change{
+		ChangeType: whatChangedModel.Modified,
+		Property:   "openapi",
+		Original:   "3.0.0",
+		New:        "3.1.0",
+		Breaking:   true,
+	}
+	infoChange := &whatChangedModel.Change{
+		ChangeType: whatChangedModel.Modified,
+		Property:   "version",
+		Original:   "1.0",
+		New:        "2.0",
+	}
+
+	infoNode := &v3.Node{
+		Label: "Info",
+		Type:  "Info",
+	}
+	infoNode.AppendChange(&mockChanged{changes: []*whatChangedModel.Change{infoChange}})
+
+	root := &v3.Node{
+		Label:    "Document",
+		Type:     "Document",
+		Children: []*v3.Node{infoNode},
+	}
+	root.AppendChange(&mockChanged{changes: []*whatChangedModel.Change{openapiChange}})
+	return root
+}
+
 func TestFlattenNodeTree_AllExpanded(t *testing.T) {
 	root := makeTestTree()
 	tm := newTreeModel(root, 20)
@@ -128,6 +158,29 @@ func TestCursorStartsOnFirstLeaf(t *testing.T) {
 	require.NotNil(t, entry)
 	assert.NotNil(t, entry.change)
 	assert.Equal(t, "deprecated", entry.change.Property)
+}
+
+func TestFlattenNodeTree_IncludesRootOwnedLeaves(t *testing.T) {
+	root := makeRootChangeTree()
+	tm := newTreeModel(root, 20)
+
+	require.Len(t, tm.entries, 3)
+	require.NotNil(t, tm.entries[0].change)
+	assert.Equal(t, "openapi", tm.entries[0].change.Property)
+	assert.Equal(t, "Info", tm.entries[1].node.Label)
+	require.NotNil(t, tm.entries[2].change)
+	assert.Equal(t, "version", tm.entries[2].change.Property)
+}
+
+func TestCursorStartsOnRootOwnedLeaf(t *testing.T) {
+	root := makeRootChangeTree()
+	tm := newTreeModel(root, 20)
+
+	require.Equal(t, 0, tm.cursor)
+	entry := tm.selectedEntry()
+	require.NotNil(t, entry)
+	require.NotNil(t, entry.change)
+	assert.Equal(t, "openapi", entry.change.Property)
 }
 
 func TestMoveDown_SkipsBranchNodes(t *testing.T) {

@@ -69,10 +69,24 @@ func (t *treeModel) rebuild() {
 		return
 	}
 	t.entries = make([]treeEntry, 0, 64)
+	rootChanges := getNodeChanges(t.root)
 	children := t.root.Children
-	for i, child := range children {
-		isLast := i == len(children)-1
-		t.flattenNode(child, 0, isLast, nil)
+	totalItems := len(rootChanges) + len(children)
+	idx := 0
+
+	for _, change := range rootChanges {
+		idx++
+		t.entries = append(t.entries, treeEntry{
+			node:   t.root,
+			change: change,
+			depth:  0,
+			isLast: idx == totalItems,
+		})
+	}
+
+	for _, child := range children {
+		idx++
+		t.flattenNode(child, 0, idx == totalItems, nil)
 	}
 	// Clamp cursor
 	if t.cursor >= len(t.entries) {
