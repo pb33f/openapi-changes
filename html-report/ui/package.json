@@ -10,7 +10,7 @@
     "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
-    "@pb33f/cowboy-components": "^0.13.0",
+    "@pb33f/cowboy-components": "^0.13.1",
     "@shoelace-style/shoelace": "^2.20.1",
     "chart.js": "^4.5.1",
     "lit": "^3.3.2"
