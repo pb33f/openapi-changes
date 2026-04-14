@@ -83,10 +83,16 @@ type FlatReport struct {
 	Commit        *Commit                     `gorm:"foreignKey:ID" json:"commitDetails,omitempty"`
 }
 
+type HistoricalReportMetaData struct {
+	Partial        bool     `json:"partial,omitempty"`
+	SkippedCommits []string `json:"skippedCommits,omitempty"`
+}
+
 type FlatHistoricalReport struct {
-	GitRepoPath   string        `json:"gitRepoPath"`
-	GitFilePath   string        `json:"gitFilePath"`
-	Filename      string        `json:"filename"`
-	DateGenerated string        `json:"dateGenerated,omitempty"`
-	Reports       []*FlatReport `json:"reports" `
+	GitRepoPath   string                    `json:"gitRepoPath"`
+	GitFilePath   string                    `json:"gitFilePath"`
+	Filename      string                    `json:"filename"`
+	DateGenerated string                    `json:"dateGenerated,omitempty"`
+	MetaData      *HistoricalReportMetaData `json:"metaData,omitempty"`
+	Reports       []*FlatReport             `json:"reports" `
 }

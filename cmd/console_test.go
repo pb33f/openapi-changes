@@ -94,9 +94,11 @@ func TestWrapConsoleStartError(t *testing.T) {
 func TestConsoleCommand_NoPriorVersionText(t *testing.T) {
 	originalExtract := extractHistoryFromFile
 	originalPopulate := populateHistory
+	originalPopulateDetailed := populateHistoryDetailed
 	t.Cleanup(func() {
 		extractHistoryFromFile = originalExtract
 		populateHistory = originalPopulate
+		populateHistoryDetailed = originalPopulateDetailed
 	})
 
 	extractHistoryFromFile = func(repoDirectory, filePath string,
@@ -109,6 +111,12 @@ func TestConsoleCommand_NoPriorVersionText(t *testing.T) {
 		breakingConfig *whatChangedModel.BreakingRulesConfig,
 	) ([]*model.Commit, []error) {
 		return []*model.Commit{}, nil
+	}
+	populateHistoryDetailed = func(commitHistory []*model.Commit,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, opts git.HistoryOptions,
+		breakingConfig *whatChangedModel.BreakingRulesConfig,
+	) (*git.HistoryBuildResult, []error) {
+		return &git.HistoryBuildResult{}, nil
 	}
 
 	cmd := testRootCmd(GetConsoleCommand(), "--no-logo", "--no-color", "..", "sample-specs/petstorev3.json")

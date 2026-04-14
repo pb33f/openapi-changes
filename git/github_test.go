@@ -166,3 +166,30 @@ func TestConvertGitHubRevisionsIntoModel_ReturnsBuildErrors(t *testing.T) {
 	assert.NotNil(t, result)
 	require.NotEmpty(t, errs)
 }
+
+func TestConvertGitHubRevisionsIntoModelDetailed_SkipsInvalidCommitAndUsesNearestPriorValid(t *testing.T) {
+	progressChan, errorChan := progressChans()
+
+	older := []byte("openapi: 3.0.3\ninfo:\n  title: test\n  version: \"1.0.0\"\npaths: {}\n")
+	invalid := []byte("swagger: \"2.0\"\ninfo:\n  title: broken\n  version: \"1.1.0\"\npaths: {}\n")
+	newer := []byte("openapi: 3.0.3\ninfo:\n  title: test\n  version: \"1.2.0\"\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: ok\n")
+
+	revisions := []*doctorgithub.FileRevision{
+		makeDoctorRevision("ccc333", "new", time.Now(), newer),
+		makeDoctorRevision("bbb222", "bad", time.Now().Add(-time.Hour), invalid),
+		makeDoctorRevision("aaa111", "old", time.Now().Add(-2*time.Hour), older),
+	}
+
+	result, errs := convertGitHubRevisionsIntoModelDetailed(revisions, "spec.yaml", progressChan, errorChan, HistoryOptions{
+		KeepComparable: true,
+	}, nil)
+
+	require.Empty(t, errs)
+	require.NotNil(t, result)
+	require.Len(t, result.SkippedCommits, 1)
+	assert.Equal(t, "bbb222", result.SkippedCommits[0])
+	require.Len(t, result.Commits, 2)
+	assert.Equal(t, "ccc333", result.Commits[0].Hash)
+	assert.Equal(t, "aaa111", result.Commits[1].Hash)
+	assert.Equal(t, string(result.Commits[1].Data), string(result.Commits[0].OldData))
+}

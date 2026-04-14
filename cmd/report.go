@@ -31,25 +31,50 @@ func changerateCommit(commit *model.Commit, breakingConfig *whatChangedModel.Bre
 	return result, nil
 }
 
-func changerateAndFlatten(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.FlatReport, error) {
+type historicalFlattenResult struct {
+	Reports        []*model.FlatReport
+	SkippedCommits []string
+}
+
+func changerateAndFlattenHistory(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*historicalFlattenResult, error) {
 	reports := make([]*model.FlatReport, 0, len(commits))
-	var errs []error
+	var renderErrors []error
+	var skippedCommits []string
+	skippedSeen := make(map[string]struct{})
+	processedComparables := 0
+
 	for _, commit := range commits {
-		result, err := changerateCommit(commit, breakingConfig)
-		if err != nil {
-			errs = append(errs, err)
+		if commit == nil {
 			continue
+		}
+		comparable := commit.Document != nil && commit.OldDocument != nil
+		result, err := runChangerator(commit, breakingConfig)
+		if err != nil {
+			emitCommitWarning(commit, err)
+			renderErrors = append(renderErrors, wrapCommitError(commit, err))
+			addSkippedCommitHash(&skippedCommits, skippedSeen, commit.Hash)
+			continue
+		}
+		if comparable {
+			processedComparables++
 		}
 		if result == nil {
 			continue
 		}
+		commit.Changes = result.DocChanges
 		reports = append(reports, FlattenReportWithParameterNames(createReport(commit), result.Changerator.ParameterNames))
 		result.Release()
 	}
-	if len(errs) > 0 {
-		return nil, errors.Join(errs...)
+	if len(renderErrors) > 0 {
+		if len(reports) == 0 && processedComparables == 0 {
+			return nil, fmt.Errorf("all %d commits failed to render report data: %w", len(renderErrors), errors.Join(renderErrors...))
+		}
+		fmt.Fprintf(os.Stderr, "warning: %d commits failed to render report data\n", len(renderErrors))
 	}
-	return reports, nil
+	return &historicalFlattenResult{
+		Reports:        reports,
+		SkippedCommits: skippedCommits,
+	}, nil
 }
 
 func runLeftRightReport(left, right string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatReport, error) {
@@ -73,25 +98,39 @@ func runLeftRightReport(left, right string, opts summaryOpts, breakingConfig *wh
 }
 
 func runGitHistoryReport(gitPath, filePath string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatHistoricalReport, error) {
-	commits, err := loadGitHistoryCommits(gitPath, filePath, opts, breakingConfig)
+	loaded, err := loadGitHistoryCommitsDetailed(gitPath, filePath, opts, breakingConfig)
 	if err != nil {
 		return nil, err
 	}
-	if commits == nil {
+	if loaded == nil {
 		return nil, nil
 	}
-	reports, err := changerateAndFlatten(commits, breakingConfig)
+	if len(loaded.Commits) == 0 && len(loaded.SkippedCommits) == 0 {
+		return nil, nil
+	}
+	history, err := changerateAndFlattenHistory(loaded.Commits, breakingConfig)
 	if err != nil {
 		return nil, err
 	}
+	skippedCommits := mergeSkippedCommitHashes(loaded.SkippedCommits, history.SkippedCommits)
+	if len(history.Reports) == 0 && len(skippedCommits) > 0 {
+		return nil, fmt.Errorf("all %d candidate commits were skipped or failed to render", len(skippedCommits))
+	}
 
-	return &model.FlatHistoricalReport{
+	report := &model.FlatHistoricalReport{
 		GitRepoPath:   gitPath,
 		GitFilePath:   filePath,
 		Filename:      path.Base(filePath),
 		DateGenerated: time.Now().Format(time.RFC3339),
-		Reports:       reports,
-	}, nil
+		Reports:       history.Reports,
+	}
+	if len(skippedCommits) > 0 {
+		report.MetaData = &model.HistoricalReportMetaData{
+			Partial:        true,
+			SkippedCommits: skippedCommits,
+		}
+	}
+	return report, nil
 }
 
 func runGithubHistoryReport(rawURL string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*model.FlatHistoricalReport, error) {
@@ -104,22 +143,61 @@ func runGithubHistoryReport(rawURL string, opts summaryOpts, breakingConfig *wha
 		return nil, fmt.Errorf("error extracting github details: %w", err)
 	}
 
-	commits, err := loadGitHubCommits(rawURL, opts, breakingConfig)
+	loaded, err := loadGitHubCommitsDetailed(rawURL, opts, breakingConfig)
 	if err != nil {
 		return nil, err
 	}
-	reports, err := changerateAndFlatten(commits, breakingConfig)
+	if loaded == nil {
+		return nil, nil
+	}
+	if len(loaded.Commits) == 0 && len(loaded.SkippedCommits) == 0 {
+		return nil, nil
+	}
+	history, err := changerateAndFlattenHistory(loaded.Commits, breakingConfig)
 	if err != nil {
 		return nil, err
+	}
+	skippedCommits := mergeSkippedCommitHashes(loaded.SkippedCommits, history.SkippedCommits)
+	if len(history.Reports) == 0 && len(skippedCommits) > 0 {
+		return nil, fmt.Errorf("all %d candidate commits were skipped or failed to render", len(skippedCommits))
 	}
 
-	return &model.FlatHistoricalReport{
+	report := &model.FlatHistoricalReport{
 		GitRepoPath:   fmt.Sprintf("%s/%s", user, repo),
 		GitFilePath:   filePath,
 		Filename:      path.Base(filePath),
 		DateGenerated: time.Now().Format(time.RFC3339),
-		Reports:       reports,
-	}, nil
+		Reports:       history.Reports,
+	}
+	if len(skippedCommits) > 0 {
+		report.MetaData = &model.HistoricalReportMetaData{
+			Partial:        true,
+			SkippedCommits: skippedCommits,
+		}
+	}
+	return report, nil
+}
+
+func addSkippedCommitHash(skippedCommits *[]string, seen map[string]struct{}, hash string) {
+	if hash == "" {
+		return
+	}
+	if _, ok := seen[hash]; ok {
+		return
+	}
+	seen[hash] = struct{}{}
+	*skippedCommits = append(*skippedCommits, hash)
+}
+
+func mergeSkippedCommitHashes(groups ...[]string) []string {
+	var merged []string
+	seen := make(map[string]struct{})
+	for _, group := range groups {
+		for _, hash := range group {
+			addSkippedCommitHash(&merged, seen, hash)
+		}
+	}
+	return merged
 }
 
 func printReportJSON(v any) error {

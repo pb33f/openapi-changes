@@ -65,6 +65,8 @@ All `cmd/` implementation files use their canonical names (e.g., `cmd/summary.go
 - `report` should emit semantic `path` values whenever possible.
 - If semantic normalization rewrites an engine path, preserve the original path in `rawPath`.
 - Parameter identity must not depend on array index positions when a stable semantic name exists.
+- Historical `report` output must surface partial-success state in `metaData` instead of relying on stderr warnings alone.
+- `metaData.skippedCommits` is the machine-readable list of git/GitHub history revisions that were skipped because they failed to normalize or render.
 
 ### Left/right behavior
 
@@ -76,6 +78,7 @@ All `cmd/` implementation files use their canonical names (e.g., `cmd/summary.go
 
 - Mixed-success histories should limp on with warnings when at least one comparable commit renders successfully.
 - `summary`, `markdown-report`, and `html-report` should fail only when every candidate commit fails to render/build.
+- Historical `report` output should limp on when at least one history item renders, and must set `metaData.partial = true` when any commits were skipped.
 - “No prior comparable version” and “no changes found” are distinct states.
 
 ### HTML payload integrity

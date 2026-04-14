@@ -140,10 +140,10 @@ func ExtractHistoryFromFile(repoDirectory, filePath string,
 // PopulateHistory reads file data from git for each commit, then builds the
 // changelog. Set opts.KeepComparable to preserve revisions even when the legacy
 // libopenapi diff is empty (used by the doctor/changerator-based commands).
-func PopulateHistory(commitHistory []*model.Commit,
+func PopulateHistoryDetailed(commitHistory []*model.Commit,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
 	opts HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
-) ([]*model.Commit, []error) {
+) (*HistoryBuildResult, []error) {
 	for c := range commitHistory {
 		var err error
 		commitHistory[c].Data, err = readFile(commitHistory[c].RepoDirectory, commitHistory[c].Hash, commitHistory[c].FilePath)
@@ -160,16 +160,27 @@ func PopulateHistory(commitHistory []*model.Commit,
 		commitHistory = commitHistory[0 : opts.Limit+1]
 	}
 
-	cleaned, errs := buildCommitChangelog(commitHistory, progressChan, errorChan, opts, breakingConfig)
+	result, errs := buildCommitChangelogDetailed(commitHistory, progressChan, errorChan, opts, breakingConfig)
 	if len(errs) > 0 {
 		model.SendProgressError("git",
 			fmt.Sprintf("%d error(s) found building commit change log", len(errs)), errorChan)
 
-		return cleaned, errs
+		return result, errs
 	}
 	model.SendProgressUpdate("populated",
-		fmt.Sprintf("%d commits processed and populated", len(cleaned)), true, progressChan)
-	return cleaned, nil
+		fmt.Sprintf("%d commits processed and populated", len(result.Commits)), true, progressChan)
+	return result, nil
+}
+
+func PopulateHistory(commitHistory []*model.Commit,
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
+	opts HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
+) ([]*model.Commit, []error) {
+	result, errs := PopulateHistoryDetailed(commitHistory, progressChan, errorChan, opts, breakingConfig)
+	if result == nil {
+		return nil, errs
+	}
+	return result.Commits, errs
 }
 
 // BuildChangelog compares consecutive commits and populates each with parsed
@@ -179,15 +190,22 @@ func BuildChangelog(commitHistory []*model.Commit,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
 	opts HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
 ) ([]*model.Commit, []error) {
-	return buildCommitChangelog(commitHistory, progressChan, errorChan, opts, breakingConfig)
+	result, errs := buildCommitChangelogDetailed(commitHistory, progressChan, errorChan, opts, breakingConfig)
+	if result == nil {
+		return nil, errs
+	}
+	return result.Commits, errs
 }
 
-func buildCommitChangelog(commitHistory []*model.Commit,
+func buildCommitChangelogDetailed(commitHistory []*model.Commit,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
 	opts HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
-) ([]*model.Commit, []error) {
+) (*HistoryBuildResult, []error) {
 	var changeErrors []error
 	var cleaned []*model.Commit
+	var skippedCommits []string
+	skippedSeen := make(map[string]struct{})
+	comparableCount := 0
 
 	// apply breaking rules configuration before comparisons
 	if breakingConfig != nil {
@@ -239,109 +257,95 @@ func buildCommitChangelog(commitHistory []*model.Commit,
 		}
 	}
 
+	var previousComparable *model.Commit
 	for c := len(commitHistory) - 1; c > -1; c-- {
-		var oldBits, newBits []byte
-		var oldRevision, newRevision string
-		if len(commitHistory) == c+1 {
-			newBits = commitHistory[c].Data
-			newRevision = commitHistory[c].Hash
-
-			// Obtain data from the previous commit and fail gracefully, if git
-			// errors. This might happen when the file does not exist in the git
-			// history.
-			oldRevision = fmt.Sprintf("%s~1", commitHistory[c].Hash)
-			oldBits, _ = readFile(commitHistory[c].RepoDirectory, oldRevision, commitHistory[c].FilePath)
-		} else {
-			oldBits = commitHistory[c+1].Data
-			oldRevision = commitHistory[c+1].Hash
-			commitHistory[c].OldData = oldBits
-			newBits = commitHistory[c].Data
-			newRevision = commitHistory[c].Hash
+		commit := commitHistory[c]
+		newRevision := commit.Hash
+		newBits := commit.Data
+		newDocConfig, configErr := BuildRevisionDocumentConfiguration(revisionContext, newRevision, docConfig)
+		if configErr != nil {
+			model.SendFatalError("building models", fmt.Sprintf("unable to configure modified document '%s': %s", commit.FilePath, configErr.Error()), errorChan)
+			changeErrors = append(changeErrors, configErr)
+			return nil, changeErrors
+		}
+		newDoc, buildErr := libopenapi.NewDocumentWithConfiguration(newBits, newDocConfig)
+		if buildErr != nil {
+			warnSkippedCommit(commit, fmt.Sprintf("unable to parse modified document '%s': %s", commit.FilePath, buildErr.Error()), progressChan, &skippedCommits, skippedSeen)
+			continue
 		}
 
-		var oldDoc, newDoc libopenapi.Document
-
-		if len(oldBits) > 0 && len(newBits) > 0 {
-			oldDocConfig, configErr := BuildRevisionDocumentConfiguration(revisionContext, oldRevision, docConfig)
-			if configErr != nil {
-				model.SendFatalError("building models", fmt.Sprintf("unable to configure original document '%s': %s", commitHistory[c].FilePath, configErr.Error()), errorChan)
-				changeErrors = append(changeErrors, configErr)
-				return nil, changeErrors
-			}
-			oldDoc, err = libopenapi.NewDocumentWithConfiguration(oldBits, oldDocConfig)
-
-			if err != nil {
-				model.SendFatalError("building models", fmt.Sprintf("unable to parse original document '%s': %s", commitHistory[c].FilePath, err.Error()), errorChan)
-				changeErrors = append(changeErrors, err)
-				return nil, changeErrors
-			} else {
-				model.SendProgressUpdate("building models",
-					fmt.Sprintf("Building original model for commit %s", commitHistory[c].Hash[0:6]), false, progressChan)
-			}
-			newDocConfig, configErr := BuildRevisionDocumentConfiguration(revisionContext, newRevision, docConfig)
-			if configErr != nil {
-				model.SendFatalError("building models", fmt.Sprintf("unable to configure modified document '%s': %s", commitHistory[c].FilePath, configErr.Error()), errorChan)
-				changeErrors = append(changeErrors, configErr)
-				return nil, changeErrors
-			}
-			newDoc, err = libopenapi.NewDocumentWithConfiguration(newBits, newDocConfig)
-			if err != nil {
-				model.SendProgressError("building models", fmt.Sprintf("unable to parse modified document '%s': %s", commitHistory[c].FilePath, err.Error()), errorChan)
-				changeErrors = append(changeErrors, err)
-			}
-
-			if oldDoc != nil && newDoc != nil {
-				changes, errs := libopenapi.CompareDocuments(oldDoc, newDoc)
-
-				if errs != nil {
-					model.SendProgressError("building models", fmt.Sprintf("Error thrown when comparing: %s", errs.Error()), errorChan)
-					changeErrors = append(changeErrors, errs)
-				}
-				commitHistory[c].Changes = changes
-			} else {
-				model.SendProgressError("building models", "No OpenAPI documents can be compared!", errorChan)
-				changeErrors = append(changeErrors, errors.New("no OpenAPI documents can be compared"))
-			}
+		commit.Document = newDoc
+		if revisionContext != nil && revisionContext.DocumentRewriter != nil {
+			commit.DocumentRewriters = []model.DocumentPathRewriter{revisionContext.DocumentRewriter}
 		}
-		if len(oldBits) == 0 && len(newBits) > 0 {
-			if commitHistory[c].RepoDirectory != "" {
+
+		if previousComparable == nil {
+			if c == len(commitHistory)-1 && commit.RepoDirectory != "" {
 				model.SendProgressWarning("building models",
 					fmt.Sprintf("Commit %s is the first version of '%s' — no prior version to compare against, skipping",
-						commitHistory[c].Hash, commitHistory[c].FilePath), progressChan)
+						commit.Hash, commit.FilePath), progressChan)
 			}
-			newDocConfig, configErr := BuildRevisionDocumentConfiguration(revisionContext, newRevision, docConfig)
-			if configErr != nil {
-				model.SendFatalError("building models", fmt.Sprintf("unable to configure modified document '%s': %s", commitHistory[c].FilePath, configErr.Error()), errorChan)
-				changeErrors = append(changeErrors, configErr)
-				return nil, changeErrors
-			}
-			newDoc, err = libopenapi.NewDocumentWithConfiguration(newBits, newDocConfig)
-			if err != nil {
-				model.SendFatalError("building models", fmt.Sprintf("unable to create OpenAPI modified document: %s", err.Error()), errorChan)
-				changeErrors = append(changeErrors, err)
-				return nil, changeErrors
-			}
+			cleaned = append(cleaned, commit)
+			previousComparable = commit
+			continue
 		}
-		if newDoc != nil {
-			commitHistory[c].Document = newDoc
+
+		commit.OldData = previousComparable.Data
+		commit.OldDocument = previousComparable.Document
+		changes, compareErr := libopenapi.CompareDocuments(previousComparable.Document, newDoc)
+		if compareErr != nil {
+			commit.OldData = nil
+			commit.OldDocument = nil
+			warnSkippedCommit(commit, fmt.Sprintf("error comparing against prior comparable commit %s: %s", previousComparable.Hash, compareErr.Error()), progressChan, &skippedCommits, skippedSeen)
+			continue
 		}
-		if oldDoc != nil {
-			commitHistory[c].OldDocument = oldDoc
+
+		comparableCount++
+		commit.Changes = changes
+
+		// Preserve the oldest comparable entry as a sentinel when there is no
+		// prior version. The legacy commands keep only revisions with libopenapi
+		// changes, while the new doctor-based commands keep every comparable
+		// revision with documents.
+		if commit.Changes != nil || opts.KeepComparable {
+			cleaned = append(cleaned, commit)
 		}
-		if revisionContext != nil && revisionContext.DocumentRewriter != nil {
-			commitHistory[c].DocumentRewriters = []model.DocumentPathRewriter{revisionContext.DocumentRewriter}
-		}
-		// Preserve the oldest entry as a sentinel when there is no prior version.
-		// The legacy commands keep only revisions with libopenapi changes, while
-		// the new doctor-based commands keep every revision with comparable docs.
-		if c == len(commitHistory)-1 || commitHistory[c].Changes != nil || (opts.KeepComparable && oldDoc != nil && newDoc != nil) {
-			cleaned = append(cleaned, commitHistory[c])
-		}
+		previousComparable = commit
 	}
 	for i, j := 0, len(cleaned)-1; i < j; i, j = i+1, j-1 {
 		cleaned[i], cleaned[j] = cleaned[j], cleaned[i]
 	}
-	return cleaned, changeErrors
+	reverseStrings(skippedCommits)
+	if comparableCount == 0 && len(skippedCommits) > 0 {
+		changeErrors = append(changeErrors, fmt.Errorf("all %d candidate commits failed to build or compare", len(skippedCommits)))
+	}
+	return &HistoryBuildResult{
+		Commits:        cleaned,
+		SkippedCommits: skippedCommits,
+	}, changeErrors
+}
+
+func warnSkippedCommit(commit *model.Commit, reason string, progressChan chan *model.ProgressUpdate, skippedCommits *[]string, seen map[string]struct{}) {
+	if commit == nil {
+		return
+	}
+	if commit.Hash != "" {
+		if _, ok := seen[commit.Hash]; !ok {
+			seen[commit.Hash] = struct{}{}
+			*skippedCommits = append(*skippedCommits, commit.Hash)
+		}
+	}
+	message := reason
+	if commit.Hash != "" {
+		message = fmt.Sprintf("Skipping commit %s: %s", commit.Hash, reason)
+	}
+	model.SendProgressWarning("building models", message, progressChan)
+}
+
+func reverseStrings(values []string) {
+	for i, j := 0, len(values)-1; i < j; i, j = i+1, j-1 {
+		values[i], values[j] = values[j], values[i]
+	}
 }
 
 func ExtractPathAndFile(location string) (string, string) {

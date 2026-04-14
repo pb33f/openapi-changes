@@ -14,6 +14,7 @@ import (
 
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/git"
+	"github.com/pb33f/openapi-changes/internal/testutil"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,8 +34,10 @@ func TestRunLeftRightReport_PropagatesChangeratorErrors(t *testing.T) {
 
 func TestRunGithubHistoryReport_PropagatesChangeratorErrors(t *testing.T) {
 	originalProcess := processGithubRepo
+	originalProcessDetailed := processGithubRepoDetailed
 	t.Cleanup(func() {
 		processGithubRepo = originalProcess
+		processGithubRepoDetailed = originalProcessDetailed
 	})
 
 	processGithubRepo = func(username, repo, filePath string,
@@ -42,6 +45,12 @@ func TestRunGithubHistoryReport_PropagatesChangeratorErrors(t *testing.T) {
 		opts git.HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
 	) ([]*model.Commit, []error) {
 		return []*model.Commit{makeSwagger2Commit(t)}, nil
+	}
+	processGithubRepoDetailed = func(username, repo, filePath string,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
+		opts git.HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
+	) (*git.HistoryBuildResult, []error) {
+		return &git.HistoryBuildResult{Commits: []*model.Commit{makeSwagger2Commit(t)}}, nil
 	}
 
 	report, err := runGithubHistoryReport("https://github.com/oai/openapi-specification/blob/main/examples/v2.0/json/petstore-expanded.json", summaryOpts{}, nil)
@@ -78,6 +87,18 @@ func TestRunLeftRightReport_Success(t *testing.T) {
 	assert.Contains(t, report.Summary, "paths")
 	assert.Equal(t, 30, report.Summary["paths"].Total)
 	assert.Equal(t, 16, report.Summary["paths"].Breaking)
+}
+
+func TestRunLeftRightReport_IdenticalSpecsShortCircuit(t *testing.T) {
+	report, err := runLeftRightReport(
+		"../sample-specs/petstorev3.json",
+		"../sample-specs/petstorev3.json",
+		summaryOpts{noColor: true},
+		nil,
+	)
+
+	require.NoError(t, err)
+	assert.Nil(t, report)
 }
 
 func TestRunLeftRightReport_SanitizesURLSourceMetadata(t *testing.T) {
@@ -301,6 +322,94 @@ func TestRunGitHistoryReport_BasePathUsesRevisionScopedSiblingRefs(t *testing.T)
 	content := string(encoded)
 	assert.Contains(t, content, `"property":"$ref"`)
 	assert.Contains(t, content, `"path":"$.paths['/thing'].get.responses['200'].content['application/json'].schema"`)
+}
+
+func TestRunGitHistoryReport_PartialHistoryIncludesMetaData(t *testing.T) {
+	fixture := testutil.CreateInvalidHistoryGitSpecRepo(t)
+
+	report, err := runGitHistoryReport(fixture.RepoDir, fixture.FileName, summaryOpts{base: fixture.RepoDir, noColor: true, limitTime: -1}, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	require.Len(t, report.Reports, 1)
+	require.NotNil(t, report.MetaData)
+	assert.True(t, report.MetaData.Partial)
+	assert.Equal(t, []string{fixture.InvalidHash}, report.MetaData.SkippedCommits)
+	assert.Equal(t, fixture.NewestHash, report.Reports[0].Commit.Hash)
+
+	encoded, err := json.Marshal(report)
+	require.NoError(t, err)
+	assert.Contains(t, string(encoded), `"metaData"`)
+	assert.Contains(t, string(encoded), fixture.InvalidHash)
+}
+
+func TestRunGitHistoryReport_AllInvalidHistoryFails(t *testing.T) {
+	repoDir := t.TempDir()
+	runGitInDir(t, repoDir, "init")
+	runGitInDir(t, repoDir, "config", "user.name", "Test User")
+	runGitInDir(t, repoDir, "config", "user.email", "test@example.com")
+
+	fileName := "openapi.yaml"
+	specPath := filepath.Join(repoDir, fileName)
+	require.NoError(t, os.WriteFile(specPath, []byte("swagger: \"2.0\"\ninfo:\n  title: broken\n  version: \"1.0\"\npaths: {}\n"), 0o644))
+	runGitInDir(t, repoDir, "add", fileName)
+	runGitInDir(t, repoDir, "commit", "-m", "invalid one")
+	require.NoError(t, os.WriteFile(specPath, []byte("swagger: \"2.0\"\ninfo:\n  title: broken\n  version: \"1.1\"\npaths: {}\n"), 0o644))
+	runGitInDir(t, repoDir, "add", fileName)
+	runGitInDir(t, repoDir, "commit", "-m", "invalid two")
+
+	report, err := runGitHistoryReport(repoDir, fileName, summaryOpts{base: repoDir, noColor: true, limitTime: -1}, nil)
+
+	require.Error(t, err)
+	assert.Nil(t, report)
+	assert.Contains(t, err.Error(), "failed to render report data")
+}
+
+func TestRunGithubHistoryReport_PartialHistoryIncludesMetaData(t *testing.T) {
+	originalProcess := processGithubRepoDetailed
+	t.Cleanup(func() {
+		processGithubRepoDetailed = originalProcess
+	})
+
+	commits := []*model.Commit{
+		mustMakeDoctorOnlyCommitFromSpecs(t, "ccc333", `openapi: 3.0.3
+info:
+  title: test
+  version: "1.0.0"
+paths: {}
+`, `openapi: 3.0.3
+info:
+  title: test
+  version: "1.2.0"
+paths:
+  /pets:
+    get:
+      responses:
+        "200":
+          description: ok
+`),
+	}
+	commits[0].Message = "valid last"
+	commits[0].Author = "tester"
+
+	processGithubRepoDetailed = func(username, repo, filePath string,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
+		opts git.HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
+	) (*git.HistoryBuildResult, []error) {
+		return &git.HistoryBuildResult{
+			Commits:        commits,
+			SkippedCommits: []string{"bbb222"},
+		}, nil
+	}
+
+	report, err := runGithubHistoryReport("https://github.com/oai/openapi-specification/blob/main/examples/v3.0/petstore.yaml", summaryOpts{}, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	require.Len(t, report.Reports, 1)
+	require.NotNil(t, report.MetaData)
+	assert.True(t, report.MetaData.Partial)
+	assert.Equal(t, []string{"bbb222"}, report.MetaData.SkippedCommits)
 }
 
 func TestReportCommand_GitRefUsesLeftRightMode(t *testing.T) {

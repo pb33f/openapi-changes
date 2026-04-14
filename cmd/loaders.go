@@ -19,9 +19,16 @@ import (
 )
 
 var processGithubRepo = git.ProcessGithubRepo
+var processGithubRepoDetailed = git.ProcessGithubRepoDetailed
 var extractHistoryFromFile = git.ExtractHistoryFromFile
 var populateHistory = git.PopulateHistory
+var populateHistoryDetailed = git.PopulateHistoryDetailed
 var httpGet = http.Get
+
+type loadedHistoryResult struct {
+	Commits        []*model.Commit
+	SkippedCommits []string
+}
 
 // progressDrainer drains git progress channels that use synchronous sends.
 // Call close() before reading collected warnings or errors.
@@ -116,7 +123,7 @@ func (d *progressDrainer) collectErrors(errs []error) error {
 	return errors.Join(all...)
 }
 
-func loadGitHubCommits(rawURL string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
+func loadGitHubCommitsDetailed(rawURL string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*loadedHistoryResult, error) {
 	specURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid URL: %w", err)
@@ -127,7 +134,7 @@ func loadGitHubCommits(rawURL string, opts summaryOpts, breakingConfig *whatChan
 	}
 
 	d := makeProgressDrainer()
-	commits, errs := processGithubRepo(user, repo, filePath,
+	result, errs := processGithubRepoDetailed(user, repo, filePath,
 		d.ProgressChan, d.ErrorChan, git.HistoryOptions{
 			BaseCommit:     opts.baseCommit,
 			Limit:          opts.limit,
@@ -141,13 +148,28 @@ func loadGitHubCommits(rawURL string, opts summaryOpts, breakingConfig *whatChan
 		return nil, err
 	}
 
+	if result == nil {
+		return nil, nil
+	}
+	commits := result.Commits
 	if opts.latest && len(commits) > 1 {
 		commits = commits[:1]
 	}
-	return commits, nil
+	return &loadedHistoryResult{
+		Commits:        commits,
+		SkippedCommits: result.SkippedCommits,
+	}, nil
 }
 
-func loadGitHistoryCommits(gitPath, filePath string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
+func loadGitHubCommits(rawURL string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
+	result, err := loadGitHubCommitsDetailed(rawURL, opts, breakingConfig)
+	if result == nil {
+		return nil, err
+	}
+	return result.Commits, err
+}
+
+func loadGitHistoryCommitsDetailed(gitPath, filePath string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) (*loadedHistoryResult, error) {
 	if gitPath == "" || filePath == "" {
 		return nil, errors.New("please supply a path to a git repo and a path to a file")
 	}
@@ -178,7 +200,7 @@ func loadGitHistoryCommits(gitPath, filePath string, opts summaryOpts, breakingC
 	}
 
 	populateDrainer := makeProgressDrainer()
-	commits, errs = populateHistory(commits,
+	result, errs := populateHistoryDetailed(commits,
 		populateDrainer.ProgressChan, populateDrainer.ErrorChan, git.HistoryOptions{
 			LimitTime:      opts.limitTime,
 			Base:           opts.base,
@@ -190,13 +212,31 @@ func loadGitHistoryCommits(gitPath, filePath string, opts summaryOpts, breakingC
 		return nil, err
 	}
 
-	if len(commits) == 0 {
+	if result == nil {
 		return nil, nil
+	}
+	commits = result.Commits
+	if len(commits) == 0 {
+		return &loadedHistoryResult{SkippedCommits: result.SkippedCommits}, nil
 	}
 	if opts.latest {
 		commits = commits[:1]
 	}
-	return commits, nil
+	return &loadedHistoryResult{
+		Commits:        commits,
+		SkippedCommits: result.SkippedCommits,
+	}, nil
+}
+
+func loadGitHistoryCommits(gitPath, filePath string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
+	result, err := loadGitHistoryCommitsDetailed(gitPath, filePath, opts, breakingConfig)
+	if result == nil {
+		return nil, err
+	}
+	if len(result.Commits) == 0 {
+		return nil, nil
+	}
+	return result.Commits, err
 }
 
 func loadLeftRightCommits(left, right string, opts summaryOpts) ([]*model.Commit, error) {

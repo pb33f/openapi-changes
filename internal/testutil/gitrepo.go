@@ -4,6 +4,7 @@
 package testutil
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -107,4 +108,88 @@ paths:
 	RunGit(t, repoDir, "commit", "-m", "second")
 
 	return repoDir, "spec.yaml"
+}
+
+type InvalidHistoryRepo struct {
+	RepoDir        string
+	FileName       string
+	OldestHash     string
+	InvalidHash    string
+	NewestHash     string
+	ExpectedChange string
+}
+
+func CreateInvalidHistoryGitSpecRepo(t testing.TB) InvalidHistoryRepo {
+	t.Helper()
+
+	repoDir := t.TempDir()
+
+	RunGit(t, repoDir, "init")
+	RunGit(t, repoDir, "config", "user.name", "Test User")
+	RunGit(t, repoDir, "config", "user.email", "test@example.com")
+
+	fileName := "openapi.yaml"
+	specPath := filepath.Join(repoDir, fileName)
+
+	first := `openapi: 3.0.3
+info:
+  title: Test API
+  version: "1.0.0"
+paths: {}
+`
+	invalid := `swagger: "2.0"
+info:
+  title: Broken API
+  version: "1.1.0"
+paths: {}
+`
+	third := `openapi: 3.0.3
+info:
+  title: Test API
+  version: "1.2.0"
+paths:
+  /pets:
+    get:
+      responses:
+        "200":
+          description: ok
+`
+
+	require.NoError(t, os.WriteFile(specPath, []byte(first), 0o644))
+	RunGit(t, repoDir, "add", fileName)
+	RunGit(t, repoDir, "commit", "-m", "valid first")
+	oldestHash := gitOutput(t, repoDir, "rev-parse", "--short", "HEAD")
+
+	require.NoError(t, os.WriteFile(specPath, []byte(invalid), 0o644))
+	RunGit(t, repoDir, "add", fileName)
+	RunGit(t, repoDir, "commit", "-m", "invalid middle")
+	invalidHash := gitOutput(t, repoDir, "rev-parse", "--short", "HEAD")
+
+	require.NoError(t, os.WriteFile(specPath, []byte(third), 0o644))
+	RunGit(t, repoDir, "add", fileName)
+	RunGit(t, repoDir, "commit", "-m", "valid last")
+	newestHash := gitOutput(t, repoDir, "rev-parse", "--short", "HEAD")
+
+	return InvalidHistoryRepo{
+		RepoDir:        repoDir,
+		FileName:       fileName,
+		OldestHash:     oldestHash,
+		InvalidHash:    invalidHash,
+		NewestHash:     newestHash,
+		ExpectedChange: "$.paths['/pets']",
+	}
+}
+
+func gitOutput(t testing.TB, dir string, args ...string) string {
+	t.Helper()
+
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	require.NoError(t, err, "git %v failed: %s", args, stderr.String())
+	return string(bytes.TrimSpace(stdout.Bytes()))
 }

@@ -90,9 +90,11 @@ func mustMakeDoctorOnlyCommitFromSpecs(t *testing.T, hash, left, right string) *
 func TestLoadGitHistoryCommits_ReturnsPopulateErrors(t *testing.T) {
 	originalExtract := extractHistoryFromFile
 	originalPopulate := populateHistory
+	originalPopulateDetailed := populateHistoryDetailed
 	t.Cleanup(func() {
 		extractHistoryFromFile = originalExtract
 		populateHistory = originalPopulate
+		populateHistoryDetailed = originalPopulateDetailed
 	})
 
 	extractHistoryFromFile = func(repoDirectory, filePath string,
@@ -106,6 +108,12 @@ func TestLoadGitHistoryCommits_ReturnsPopulateErrors(t *testing.T) {
 	) ([]*model.Commit, []error) {
 		return commitHistory, []error{errors.New("malformed spec"), errors.New("broken reference")}
 	}
+	populateHistoryDetailed = func(commitHistory []*model.Commit,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, opts git.HistoryOptions,
+		breakingConfig *whatChangedModel.BreakingRulesConfig,
+	) (*git.HistoryBuildResult, []error) {
+		return nil, []error{errors.New("malformed spec"), errors.New("broken reference")}
+	}
 
 	commits, err := loadGitHistoryCommits("..", "sample-specs/petstorev3.json", summaryOpts{}, nil)
 
@@ -118,9 +126,11 @@ func TestLoadGitHistoryCommits_ReturnsPopulateErrors(t *testing.T) {
 func TestLoadGitHistoryCommits_ReturnsFatalProgressErrors(t *testing.T) {
 	originalExtract := extractHistoryFromFile
 	originalPopulate := populateHistory
+	originalPopulateDetailed := populateHistoryDetailed
 	t.Cleanup(func() {
 		extractHistoryFromFile = originalExtract
 		populateHistory = originalPopulate
+		populateHistoryDetailed = originalPopulateDetailed
 	})
 
 	extractHistoryFromFile = func(repoDirectory, filePath string,
@@ -135,6 +145,13 @@ func TestLoadGitHistoryCommits_ReturnsFatalProgressErrors(t *testing.T) {
 		errorChan <- model.ProgressError{Message: "unable to parse original document", Fatal: true}
 		return commitHistory, nil
 	}
+	populateHistoryDetailed = func(commitHistory []*model.Commit,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, opts git.HistoryOptions,
+		breakingConfig *whatChangedModel.BreakingRulesConfig,
+	) (*git.HistoryBuildResult, []error) {
+		errorChan <- model.ProgressError{Message: "unable to parse original document", Fatal: true}
+		return &git.HistoryBuildResult{Commits: commitHistory}, nil
+	}
 
 	commits, err := loadGitHistoryCommits("..", "sample-specs/petstorev3.json", summaryOpts{}, nil)
 
@@ -145,14 +162,22 @@ func TestLoadGitHistoryCommits_ReturnsFatalProgressErrors(t *testing.T) {
 
 func TestLoadGitHubCommits_ReturnsProcessErrors(t *testing.T) {
 	originalProcess := processGithubRepo
+	originalProcessDetailed := processGithubRepoDetailed
 	t.Cleanup(func() {
 		processGithubRepo = originalProcess
+		processGithubRepoDetailed = originalProcessDetailed
 	})
 
 	processGithubRepo = func(username, repo, filePath string,
 		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
 		opts git.HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
 	) ([]*model.Commit, []error) {
+		return nil, []error{errors.New("unable to build model")}
+	}
+	processGithubRepoDetailed = func(username, repo, filePath string,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
+		opts git.HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
+	) (*git.HistoryBuildResult, []error) {
 		return nil, []error{errors.New("unable to build model")}
 	}
 
@@ -900,9 +925,11 @@ components:
 func TestNewSummaryCommand_NoComparableHistoryPrintsPriorVersionMessage(t *testing.T) {
 	originalExtract := extractHistoryFromFile
 	originalPopulate := populateHistory
+	originalPopulateDetailed := populateHistoryDetailed
 	t.Cleanup(func() {
 		extractHistoryFromFile = originalExtract
 		populateHistory = originalPopulate
+		populateHistoryDetailed = originalPopulateDetailed
 	})
 
 	extractHistoryFromFile = func(repoDirectory, filePath string,
@@ -915,6 +942,12 @@ func TestNewSummaryCommand_NoComparableHistoryPrintsPriorVersionMessage(t *testi
 		breakingConfig *whatChangedModel.BreakingRulesConfig,
 	) ([]*model.Commit, []error) {
 		return []*model.Commit{}, nil
+	}
+	populateHistoryDetailed = func(commitHistory []*model.Commit,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError, opts git.HistoryOptions,
+		breakingConfig *whatChangedModel.BreakingRulesConfig,
+	) (*git.HistoryBuildResult, []error) {
+		return &git.HistoryBuildResult{}, nil
 	}
 
 	cmd := testRootCmd(GetSummaryCommand(), "--no-logo", "--no-color", "..", "sample-specs/petstorev3.json")

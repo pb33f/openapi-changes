@@ -4,8 +4,10 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/pb33f/doctor/changerator"
 	drModel "github.com/pb33f/doctor/model"
@@ -13,6 +15,7 @@ import (
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/internal/breakingrules"
 	"github.com/pb33f/openapi-changes/model"
+	"go.yaml.in/yaml/v4"
 )
 
 // changeratorResult owns the doctor-side resources created for a single comparison.
@@ -50,6 +53,9 @@ func runChangerator(commit *model.Commit, breakingConfig *whatChangedModel.Break
 	leftModel, err := commit.OldDocument.BuildV3Model()
 	if err != nil {
 		return nil, modelBuildError("original", commitSourceLabel(commit, false), err)
+	}
+	if isSelfContainedIdenticalComparison(commit) {
+		return nil, nil
 	}
 
 	rightDrDoc := drModel.NewDrDocumentAndGraph(rightModel)
@@ -90,6 +96,54 @@ func runChangerator(commit *model.Commit, breakingConfig *whatChangedModel.Break
 		RightDrDoc:  rightDrDoc,
 		LeftDrDoc:   leftDrDoc,
 	}, nil
+}
+
+func isSelfContainedIdenticalComparison(commit *model.Commit) bool {
+	if commit == nil || !commit.Synthetic || len(commit.Data) == 0 || len(commit.OldData) == 0 {
+		return false
+	}
+	if !bytes.Equal(commit.Data, commit.OldData) {
+		return false
+	}
+	return !rootBytesContainExternalRefs(commit.OldData) && !rootBytesContainExternalRefs(commit.Data)
+}
+
+func rootBytesContainExternalRefs(spec []byte) bool {
+	if len(spec) == 0 {
+		return false
+	}
+	var root yaml.Node
+	if err := yaml.Unmarshal(spec, &root); err != nil {
+		return true
+	}
+	return nodeContainsExternalRef(&root)
+}
+
+func nodeContainsExternalRef(node *yaml.Node) bool {
+	if node == nil {
+		return false
+	}
+	if node.Kind == yaml.MappingNode {
+		for i := 0; i+1 < len(node.Content); i += 2 {
+			key := node.Content[i]
+			value := node.Content[i+1]
+			if key != nil && key.Value == "$ref" && value != nil && value.Kind == yaml.ScalarNode {
+				if value.Value != "" && !strings.HasPrefix(value.Value, "#") {
+					return true
+				}
+			}
+			if nodeContainsExternalRef(value) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, child := range node.Content {
+		if nodeContainsExternalRef(child) {
+			return true
+		}
+	}
+	return false
 }
 
 func rewriteOutputLocations(ctr *changerator.Changerator, docChanges *whatChangedModel.DocumentChanges, rewriters []model.DocumentPathRewriter) {

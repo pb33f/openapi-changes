@@ -207,6 +207,32 @@ func TestPopulateHistory_UsesRevisionScopedSiblingRefs(t *testing.T) {
 	require.NotEmpty(t, cleaned[0].DocumentRewriters)
 }
 
+func TestPopulateHistoryDetailed_SkipsInvalidCommitAndUsesNearestPriorValid(t *testing.T) {
+	fixture := testutil.CreateInvalidHistoryGitSpecRepo(t)
+	progressChan := make(chan *model.ProgressUpdate, 64)
+	errorChan := make(chan model.ProgressError, 64)
+
+	history, errs := ExtractHistoryFromFile(fixture.RepoDir, fixture.FileName, progressChan, errorChan, HistoryOptions{Limit: 0, LimitTime: -1})
+	require.Empty(t, errs)
+	require.Len(t, history, 3)
+
+	result, errs := PopulateHistoryDetailed(history, progressChan, errorChan, HistoryOptions{
+		KeepComparable: true,
+	}, nil)
+	require.Empty(t, errs)
+	require.NotNil(t, result)
+	require.Len(t, result.SkippedCommits, 1)
+	assert.Equal(t, fixture.InvalidHash, result.SkippedCommits[0])
+	require.Len(t, result.Commits, 2)
+	assert.Equal(t, fixture.NewestHash, result.Commits[0].Hash)
+	assert.Equal(t, fixture.OldestHash, result.Commits[1].Hash)
+	require.NotNil(t, result.Commits[0].OldDocument)
+	require.NotNil(t, result.Commits[0].Document)
+	assert.Equal(t, string(result.Commits[1].Data), string(result.Commits[0].OldData))
+	assert.NotNil(t, result.Commits[1].Document)
+	assert.Nil(t, result.Commits[1].OldDocument)
+}
+
 func runGit(t *testing.T, dir string, args ...string) {
 	t.Helper()
 

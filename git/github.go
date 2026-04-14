@@ -30,7 +30,20 @@ func convertGitHubRevisionsIntoModel(revisions []*doctorgithub.FileRevision, fil
 	progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError,
 	opts HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
 ) ([]*model.Commit, []error) {
+	result, errs := convertGitHubRevisionsIntoModelDetailed(revisions, filePath, progressChan, progressErrorChan, opts, breakingConfig)
+	if result == nil {
+		return nil, errs
+	}
+	return result.Commits, errs
+}
+
+func convertGitHubRevisionsIntoModelDetailed(revisions []*doctorgithub.FileRevision, filePath string,
+	progressChan chan *model.ProgressUpdate, progressErrorChan chan model.ProgressError,
+	opts HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
+) (*HistoryBuildResult, []error) {
 	normalized := make([]*model.Commit, 0, len(revisions))
+	var skippedCommits []string
+	skippedSeen := make(map[string]struct{})
 
 	if len(revisions) > 0 {
 		model.SendProgressUpdate("converting commits",
@@ -41,6 +54,10 @@ func convertGitHubRevisionsIntoModel(revisions []*doctorgithub.FileRevision, fil
 		if len(revision.FileBytes) == 0 {
 			model.SendProgressWarning("converting commits",
 				fmt.Sprintf("Skipping commit %s because GitHub returned empty file contents", revision.Commit.SHA), progressChan)
+			if _, ok := skippedSeen[revision.Commit.SHA]; !ok {
+				skippedSeen[revision.Commit.SHA] = struct{}{}
+				skippedCommits = append(skippedCommits, revision.Commit.SHA)
+			}
 			continue
 		}
 		commit := &model.Commit{
@@ -62,29 +79,42 @@ func convertGitHubRevisionsIntoModel(revisions []*doctorgithub.FileRevision, fil
 		model.SendProgressUpdate("converting commits", "building data models...", false, progressChan)
 	}
 
-	normalized, errs = buildCommitChangelog(normalized, progressChan, progressErrorChan, opts, breakingConfig)
+	result, errs := buildCommitChangelogDetailed(normalized, progressChan, progressErrorChan, opts, breakingConfig)
+	if result == nil {
+		return nil, errs
+	}
+	for _, hash := range result.SkippedCommits {
+		if _, ok := skippedSeen[hash]; ok {
+			continue
+		}
+		skippedSeen[hash] = struct{}{}
+		skippedCommits = append(skippedCommits, hash)
+	}
 
 	if len(errs) > 0 {
 		model.SendProgressError("converting commits",
 			fmt.Sprintf("%d errors detected when normalizing", len(errs)), progressErrorChan)
 	} else {
-		if len(normalized) > 0 {
+		if len(result.Commits) > 0 {
 			model.SendProgressUpdate("converting commits",
-				fmt.Sprintf("Success: %d commits normalized", len(normalized)), true, progressChan)
+				fmt.Sprintf("Success: %d commits normalized", len(result.Commits)), true, progressChan)
 		} else {
 			model.SendFatalError("converting commits", "no commits were normalized, please check the URL/Path", progressErrorChan)
 		}
 	}
-	return normalized, errs
+	return &HistoryBuildResult{
+		Commits:        result.Commits,
+		SkippedCommits: skippedCommits,
+	}, errs
 }
 
 // ProcessGithubRepo fetches file history from GitHub and builds the commit
 // changelog. Set opts.KeepComparable to preserve revisions even when the
 // legacy libopenapi diff is empty.
-func ProcessGithubRepo(username, repo, filePath string,
+func ProcessGithubRepoDetailed(username, repo, filePath string,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
 	opts HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
-) ([]*model.Commit, []error) {
+) (*HistoryBuildResult, []error) {
 	if username == "" || repo == "" || filePath == "" {
 		err := errors.New("please supply valid github username/repo and filepath")
 		model.SendProgressError("git", err.Error(), errorChan)
@@ -125,7 +155,7 @@ func ProcessGithubRepo(username, repo, filePath string,
 	model.SendProgressUpdate("git",
 		fmt.Sprintf("fetched %d github revisions", len(revisions)), true, progressChan)
 
-	commitHistory, errs := convertGitHubRevisionsIntoModel(revisions, filePath, progressChan, errorChan, opts, breakingConfig)
+	commitHistory, errs := convertGitHubRevisionsIntoModelDetailed(revisions, filePath, progressChan, errorChan, opts, breakingConfig)
 	if errs != nil {
 		for _, err := range errs {
 			model.SendProgressError("git", err.Error(), errorChan)
@@ -133,4 +163,15 @@ func ProcessGithubRepo(username, repo, filePath string,
 		return commitHistory, errs
 	}
 	return commitHistory, nil
+}
+
+func ProcessGithubRepo(username, repo, filePath string,
+	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
+	opts HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
+) ([]*model.Commit, []error) {
+	result, errs := ProcessGithubRepoDetailed(username, repo, filePath, progressChan, errorChan, opts, breakingConfig)
+	if result == nil {
+		return nil, errs
+	}
+	return result.Commits, errs
 }
