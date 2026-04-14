@@ -280,12 +280,30 @@ func buildCommitChangelogDetailed(commitHistory []*model.Commit,
 		}
 
 		if previousComparable == nil {
-			if c == len(commitHistory)-1 && commit.RepoDirectory != "" {
-				model.SendProgressWarning("building models",
-					fmt.Sprintf("Commit %s is the first version of '%s' — no prior version to compare against, skipping",
-						commit.Hash, commit.FilePath), progressChan)
+			baseline, baselineErr := resolvePriorComparableBaseline(commit, newDoc, revisionContext, docConfig)
+			if baselineErr != nil {
+				model.SendFatalError("building models", fmt.Sprintf("unable to configure original document '%s': %s", commit.FilePath, baselineErr.Error()), errorChan)
+				changeErrors = append(changeErrors, baselineErr)
+				return nil, changeErrors
 			}
-			cleaned = append(cleaned, commit)
+			if baseline == nil {
+				if c == len(commitHistory)-1 && commit.RepoDirectory != "" {
+					model.SendProgressWarning("building models",
+						fmt.Sprintf("Commit %s is the first version of '%s' — no prior version to compare against, skipping",
+							commit.Hash, commit.FilePath), progressChan)
+				}
+				cleaned = append(cleaned, commit)
+				previousComparable = commit
+				continue
+			}
+
+			comparableCount++
+			commit.OldData = baseline.Data
+			commit.OldDocument = baseline.Document
+			commit.Changes = baseline.Changes
+			if commit.Changes != nil || opts.KeepComparable {
+				cleaned = append(cleaned, commit)
+			}
 			previousComparable = commit
 			continue
 		}
@@ -323,6 +341,47 @@ func buildCommitChangelogDetailed(commitHistory []*model.Commit,
 		Commits:        cleaned,
 		SkippedCommits: skippedCommits,
 	}, changeErrors
+}
+
+type priorComparableBaseline struct {
+	Data     []byte
+	Document libopenapi.Document
+	Changes  *whatChangedModel.DocumentChanges
+}
+
+func resolvePriorComparableBaseline(commit *model.Commit, newDoc libopenapi.Document,
+	revisionContext *RevisionDocumentContext, docConfig *datamodel.DocumentConfiguration,
+) (*priorComparableBaseline, error) {
+	if commit == nil || commit.RepoDirectory == "" || newDoc == nil {
+		return nil, nil
+	}
+
+	for revision := fmt.Sprintf("%s~1", commit.Hash); ; revision = fmt.Sprintf("%s~1", revision) {
+		oldBits, err := readFile(commit.RepoDirectory, revision, commit.FilePath)
+		if err != nil {
+			return nil, nil
+		}
+
+		oldDocConfig, err := BuildRevisionDocumentConfiguration(revisionContext, revision, docConfig)
+		if err != nil {
+			return nil, err
+		}
+		oldDoc, err := libopenapi.NewDocumentWithConfiguration(oldBits, oldDocConfig)
+		if err != nil {
+			continue
+		}
+
+		changes, err := libopenapi.CompareDocuments(oldDoc, newDoc)
+		if err != nil {
+			continue
+		}
+
+		return &priorComparableBaseline{
+			Data:     oldBits,
+			Document: oldDoc,
+			Changes:  changes,
+		}, nil
+	}
 }
 
 func warnSkippedCommit(commit *model.Commit, reason string, progressChan chan *model.ProgressUpdate, skippedCommits *[]string, seen map[string]struct{}) {

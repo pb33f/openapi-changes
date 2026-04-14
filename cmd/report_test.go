@@ -324,6 +324,42 @@ func TestRunGitHistoryReport_BasePathUsesRevisionScopedSiblingRefs(t *testing.T)
 	assert.Contains(t, content, `"path":"$.paths['/thing'].get.responses['200'].content['application/json'].schema"`)
 }
 
+func TestRunGitHistoryReport_LimitOneComparesAgainstParent(t *testing.T) {
+	repoDir := createGitSpecRepoForFile(t, "openapi.yaml")
+
+	report, err := runGitHistoryReport(repoDir, "openapi.yaml", summaryOpts{
+		base:      repoDir,
+		noColor:   true,
+		limit:     1,
+		limitTime: -1,
+	}, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	require.Len(t, report.Reports, 1)
+	assert.Equal(t, gitOutputInDir(t, repoDir, "rev-parse", "--short", "HEAD"), report.Reports[0].Commit.Hash)
+	assert.NotEmpty(t, report.Reports[0].Changes)
+}
+
+func TestRunGitHistoryReport_BaseCommitUsesExcludedParentAsBaseline(t *testing.T) {
+	repoDir := createGitSpecRepoForFile(t, "openapi.yaml")
+	baseCommit := gitOutputInDir(t, repoDir, "rev-parse", "--short", "HEAD~2")
+
+	report, err := runGitHistoryReport(repoDir, "openapi.yaml", summaryOpts{
+		base:       repoDir,
+		baseCommit: baseCommit,
+		noColor:    true,
+		limitTime:  -1,
+	}, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	require.Len(t, report.Reports, 2)
+	assert.Equal(t, gitOutputInDir(t, repoDir, "rev-parse", "--short", "HEAD"), report.Reports[0].Commit.Hash)
+	assert.Equal(t, gitOutputInDir(t, repoDir, "rev-parse", "--short", "HEAD~1"), report.Reports[1].Commit.Hash)
+	assert.NotEmpty(t, report.Reports[1].Changes)
+}
+
 func TestRunGitHistoryReport_PartialHistoryIncludesMetaData(t *testing.T) {
 	fixture := testutil.CreateInvalidHistoryGitSpecRepo(t)
 
@@ -341,6 +377,23 @@ func TestRunGitHistoryReport_PartialHistoryIncludesMetaData(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, string(encoded), `"metaData"`)
 	assert.Contains(t, string(encoded), fixture.InvalidHash)
+}
+
+func TestRunGitHistoryReport_PartialHistoryWithoutChangesReturnsEmptyPartialReport(t *testing.T) {
+	fixture := testutil.CreateRevertedHistoryGitSpecRepo(t)
+
+	report, err := runGitHistoryReport(fixture.RepoDir, fixture.FileName, summaryOpts{
+		base:      fixture.RepoDir,
+		noColor:   true,
+		limitTime: -1,
+	}, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	assert.Empty(t, report.Reports)
+	require.NotNil(t, report.MetaData)
+	assert.True(t, report.MetaData.Partial)
+	assert.Equal(t, []string{fixture.InvalidHash}, report.MetaData.SkippedCommits)
 }
 
 func TestRunGitHistoryReport_AllInvalidHistoryFails(t *testing.T) {
@@ -407,6 +460,44 @@ paths:
 	require.NoError(t, err)
 	require.NotNil(t, report)
 	require.Len(t, report.Reports, 1)
+	require.NotNil(t, report.MetaData)
+	assert.True(t, report.MetaData.Partial)
+	assert.Equal(t, []string{"bbb222"}, report.MetaData.SkippedCommits)
+}
+
+func TestRunGithubHistoryReport_PartialHistoryWithoutChangesReturnsEmptyPartialReport(t *testing.T) {
+	originalProcess := processGithubRepoDetailed
+	t.Cleanup(func() {
+		processGithubRepoDetailed = originalProcess
+	})
+
+	processGithubRepoDetailed = func(username, repo, filePath string,
+		progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
+		opts git.HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
+	) (*git.HistoryBuildResult, []error) {
+		return &git.HistoryBuildResult{
+			Commits: []*model.Commit{
+				mustMakeDoctorOnlyCommitFromSpecs(t, "ccc333", `openapi: 3.0.3
+info:
+  title: test
+  version: "1.0.0"
+paths: {}
+`, `openapi: 3.0.3
+info:
+  title: test
+  version: "1.0.0"
+paths: {}
+`),
+			},
+			SkippedCommits: []string{"bbb222"},
+		}, nil
+	}
+
+	report, err := runGithubHistoryReport("https://github.com/oai/openapi-specification/blob/main/examples/v3.0/petstore.yaml", summaryOpts{}, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	assert.Empty(t, report.Reports)
 	require.NotNil(t, report.MetaData)
 	assert.True(t, report.MetaData.Partial)
 	assert.Equal(t, []string{"bbb222"}, report.MetaData.SkippedCommits)

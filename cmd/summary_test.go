@@ -957,3 +957,22 @@ func TestNewSummaryCommand_NoComparableHistoryPrintsPriorVersionMessage(t *testi
 
 	assert.Contains(t, output, "The file has no prior version to compare against")
 }
+
+func TestSummaryCommand_LimitOneStillComparesAgainstParent(t *testing.T) {
+	repoDir := createGitSpecRepoForFile(t, "openapi.yaml")
+
+	cmd := testRootCmd(GetSummaryCommand(),
+		"--no-logo", "--no-color",
+		"--limit", "1",
+		"--base", repoDir,
+		repoDir, "openapi.yaml",
+	)
+	output := captureStdout(t, func() {
+		require.NoError(t, cmd.Execute())
+	})
+
+	assert.NotContains(t, output, noPriorVersionMessage)
+	assert.NotContains(t, output, noChangesFoundMessage)
+	assert.Contains(t, output, "Document Element")
+	assert.Contains(t, output, "paths")
+}

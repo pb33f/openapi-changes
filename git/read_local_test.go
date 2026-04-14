@@ -233,6 +233,96 @@ func TestPopulateHistoryDetailed_SkipsInvalidCommitAndUsesNearestPriorValid(t *t
 	assert.Nil(t, result.Commits[1].OldDocument)
 }
 
+func TestPopulateHistoryDetailed_LimitOneComparesAgainstParent(t *testing.T) {
+	repoDir := t.TempDir()
+	runGit(t, repoDir, "init")
+	runGit(t, repoDir, "config", "user.name", "Test User")
+	runGit(t, repoDir, "config", "user.email", "test@example.com")
+
+	fileName := "openapi.yaml"
+	specPath := filepath.Join(repoDir, fileName)
+
+	require.NoError(t, os.WriteFile(specPath, []byte("openapi: 3.0.3\ninfo:\n  title: first\n  version: '1.0'\npaths: {}\n"), 0o644))
+	runGit(t, repoDir, "add", fileName)
+	runGit(t, repoDir, "commit", "-m", "first")
+
+	require.NoError(t, os.WriteFile(specPath, []byte("openapi: 3.0.3\ninfo:\n  title: second\n  version: '1.1'\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: ok\n"), 0o644))
+	runGit(t, repoDir, "add", fileName)
+	runGit(t, repoDir, "commit", "-m", "second")
+
+	require.NoError(t, os.WriteFile(specPath, []byte("openapi: 3.0.3\ninfo:\n  title: third\n  version: '1.2'\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: updated ok\n"), 0o644))
+	runGit(t, repoDir, "add", fileName)
+	runGit(t, repoDir, "commit", "-m", "third")
+
+	progressChan := make(chan *model.ProgressUpdate, 64)
+	errorChan := make(chan model.ProgressError, 64)
+
+	history, errs := ExtractHistoryFromFile(repoDir, fileName, progressChan, errorChan, HistoryOptions{Limit: 1, LimitTime: -1})
+	require.Empty(t, errs)
+	require.Len(t, history, 1)
+
+	result, errs := PopulateHistoryDetailed(history, progressChan, errorChan, HistoryOptions{
+		KeepComparable: true,
+	}, nil)
+	require.Empty(t, errs)
+	require.NotNil(t, result)
+	require.Len(t, result.Commits, 1)
+
+	commit := result.Commits[0]
+	assert.Equal(t, gitOutput(t, repoDir, "rev-parse", "--short", "HEAD"), commit.Hash)
+	require.NotNil(t, commit.Document)
+	require.NotNil(t, commit.OldDocument)
+	require.NotNil(t, commit.Changes)
+	assert.Contains(t, string(commit.OldData), "title: second")
+}
+
+func TestPopulateHistoryDetailed_BaseCommitComparesAgainstExcludedParent(t *testing.T) {
+	repoDir := t.TempDir()
+	runGit(t, repoDir, "init")
+	runGit(t, repoDir, "config", "user.name", "Test User")
+	runGit(t, repoDir, "config", "user.email", "test@example.com")
+
+	fileName := "openapi.yaml"
+	specPath := filepath.Join(repoDir, fileName)
+
+	require.NoError(t, os.WriteFile(specPath, []byte("openapi: 3.0.3\ninfo:\n  title: first\n  version: '1.0'\npaths: {}\n"), 0o644))
+	runGit(t, repoDir, "add", fileName)
+	runGit(t, repoDir, "commit", "-m", "first")
+
+	require.NoError(t, os.WriteFile(specPath, []byte("openapi: 3.0.3\ninfo:\n  title: second\n  version: '1.1'\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: ok\n"), 0o644))
+	runGit(t, repoDir, "add", fileName)
+	runGit(t, repoDir, "commit", "-m", "second")
+
+	require.NoError(t, os.WriteFile(specPath, []byte("openapi: 3.0.3\ninfo:\n  title: third\n  version: '1.2'\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: updated ok\n"), 0o644))
+	runGit(t, repoDir, "add", fileName)
+	runGit(t, repoDir, "commit", "-m", "third")
+
+	progressChan := make(chan *model.ProgressUpdate, 64)
+	errorChan := make(chan model.ProgressError, 64)
+	baseCommit := gitOutput(t, repoDir, "rev-parse", "--short", "HEAD~2")
+
+	history, errs := ExtractHistoryFromFile(repoDir, fileName, progressChan, errorChan, HistoryOptions{
+		BaseCommit: baseCommit,
+		LimitTime:  -1,
+	})
+	require.Empty(t, errs)
+	require.Len(t, history, 2)
+
+	result, errs := PopulateHistoryDetailed(history, progressChan, errorChan, HistoryOptions{
+		KeepComparable: true,
+	}, nil)
+	require.Empty(t, errs)
+	require.NotNil(t, result)
+	require.Len(t, result.Commits, 2)
+
+	oldestLoaded := result.Commits[1]
+	assert.Equal(t, gitOutput(t, repoDir, "rev-parse", "--short", "HEAD~1"), oldestLoaded.Hash)
+	require.NotNil(t, oldestLoaded.Document)
+	require.NotNil(t, oldestLoaded.OldDocument)
+	require.NotNil(t, oldestLoaded.Changes)
+	assert.Contains(t, string(oldestLoaded.OldData), "title: first")
+}
+
 func runGit(t *testing.T, dir string, args ...string) {
 	t.Helper()
 
@@ -248,4 +338,14 @@ func mustReadTestFile(t *testing.T, path string) []byte {
 	bits, err := os.ReadFile(path)
 	require.NoError(t, err, fmt.Sprintf("read test file %s", path))
 	return bits
+}
+
+func gitOutput(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	require.NoError(t, err, "git %v failed: %s", args, string(out))
+	return strings.TrimSpace(string(out))
 }

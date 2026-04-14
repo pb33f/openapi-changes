@@ -13,7 +13,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-runewidth v0.0.23
 	github.com/muesli/termenv v0.16.0
-	github.com/pb33f/doctor v0.0.51
+	github.com/pb33f/doctor v0.0.52
 	github.com/pb33f/libopenapi v0.36.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/spf13/cobra v1.10.2

@@ -180,6 +180,63 @@ paths:
 	}
 }
 
+type RevertedHistoryRepo struct {
+	RepoDir     string
+	FileName    string
+	OldestHash  string
+	InvalidHash string
+	NewestHash  string
+}
+
+func CreateRevertedHistoryGitSpecRepo(t testing.TB) RevertedHistoryRepo {
+	t.Helper()
+
+	repoDir := t.TempDir()
+
+	RunGit(t, repoDir, "init")
+	RunGit(t, repoDir, "config", "user.name", "Test User")
+	RunGit(t, repoDir, "config", "user.email", "test@example.com")
+
+	fileName := "openapi.yaml"
+	specPath := filepath.Join(repoDir, fileName)
+
+	valid := `openapi: 3.0.3
+info:
+  title: Test API
+  version: "1.0.0"
+paths: {}
+`
+	invalid := `swagger: "2.0"
+info:
+  title: Broken API
+  version: "1.1.0"
+paths: {}
+`
+
+	require.NoError(t, os.WriteFile(specPath, []byte(valid), 0o644))
+	RunGit(t, repoDir, "add", fileName)
+	RunGit(t, repoDir, "commit", "-m", "valid first")
+	oldestHash := gitOutput(t, repoDir, "rev-parse", "--short", "HEAD")
+
+	require.NoError(t, os.WriteFile(specPath, []byte(invalid), 0o644))
+	RunGit(t, repoDir, "add", fileName)
+	RunGit(t, repoDir, "commit", "-m", "invalid middle")
+	invalidHash := gitOutput(t, repoDir, "rev-parse", "--short", "HEAD")
+
+	require.NoError(t, os.WriteFile(specPath, []byte(valid), 0o644))
+	RunGit(t, repoDir, "add", fileName)
+	RunGit(t, repoDir, "commit", "-m", "valid revert")
+	newestHash := gitOutput(t, repoDir, "rev-parse", "--short", "HEAD")
+
+	return RevertedHistoryRepo{
+		RepoDir:     repoDir,
+		FileName:    fileName,
+		OldestHash:  oldestHash,
+		InvalidHash: invalidHash,
+		NewestHash:  newestHash,
+	}
+}
+
 func gitOutput(t testing.TB, dir string, args ...string) string {
 	t.Helper()
 
