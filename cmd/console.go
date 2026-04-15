@@ -33,7 +33,7 @@ func bridgeRunChangerator(commit *model.Commit, breakingConfig *whatChangedModel
 	if result == nil {
 		return nil, nil, nil, nil
 	}
-	root := result.RightDrDoc.V3Document.Node
+	root := resolveChangeTreeRoot(result.Changerator, result.RightDrDoc.V3Document.Node)
 	releaseFn := func() { result.Release() }
 	return result.Changerator, root, releaseFn, nil
 }

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pb33f/doctor/changerator"
 	v3 "github.com/pb33f/doctor/model/high/v3"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/stretchr/testify/assert"
@@ -86,4 +87,54 @@ func collectChangedNodeOrigins(nodes []*v3.Node) []string {
 		walk(node)
 	}
 	return origins
+}
+
+func TestResolveChangeTreeRoot_PrefersChangedRoot(t *testing.T) {
+	fallback := &v3.Node{Id: "document-root"}
+	changedRoot := &v3.Node{Id: "root"}
+	ctr := &changerator.Changerator{
+		ChangedNodes: []*v3.Node{
+			{Id: "paths"},
+			changedRoot,
+		},
+	}
+
+	assert.Same(t, changedRoot, resolveChangeTreeRoot(ctr, fallback))
+}
+
+func TestResolveChangeTreeRoot_FallsBackToDocumentRoot(t *testing.T) {
+	fallback := &v3.Node{Id: "document-root"}
+	ctr := &changerator.Changerator{
+		ChangedNodes: []*v3.Node{
+			{Id: "paths"},
+		},
+	}
+
+	assert.Same(t, fallback, resolveChangeTreeRoot(ctr, fallback))
+	assert.Same(t, fallback, resolveChangeTreeRoot(nil, fallback))
+}
+
+func TestResolveChangeTreeRoot_UsesChangeratorRootForPetstoreFixture(t *testing.T) {
+	commits, err := loadLeftRightCommits("../sample-specs/petstorev3-original.json", "../sample-specs/petstorev3.json", summaryOpts{noColor: true})
+	require.NoError(t, err)
+	require.Len(t, commits, 1)
+
+	result, err := runChangerator(commits[0], nil)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	defer result.Release()
+
+	fallback := result.RightDrDoc.V3Document.Node
+	root := resolveChangeTreeRoot(result.Changerator, fallback)
+	require.NotNil(t, root)
+	assert.Equal(t, "root", root.Id)
+
+	foundInChangedNodes := false
+	for _, node := range result.Changerator.ChangedNodes {
+		if node == root {
+			foundInChangedNodes = true
+			break
+		}
+	}
+	assert.True(t, foundInChangedNodes, "expected selected root to come from changerator.ChangedNodes")
 }

@@ -156,6 +156,19 @@ func rewriteOutputLocations(ctr *changerator.Changerator, docChanges *whatChange
 	}
 }
 
+// resolveChangeTreeRoot prefers the changerator's changed-tree root and only
+// falls back to the full document root when the engine did not expose one.
+func resolveChangeTreeRoot(ctr *changerator.Changerator, fallback *v3.Node) *v3.Node {
+	if ctr != nil {
+		for _, node := range ctr.ChangedNodes {
+			if node != nil && node.Id == "root" {
+				return node
+			}
+		}
+	}
+	return fallback
+}
+
 func rewriteDocumentChangeLocations(docChanges *whatChangedModel.DocumentChanges, rewriters []model.DocumentPathRewriter) {
 	if docChanges == nil {
 		return

@@ -12,7 +12,6 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/pb33f/doctor/changerator/renderer"
-	v3 "github.com/pb33f/doctor/model/high/v3"
 	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/internal/changecounts"
@@ -321,16 +320,7 @@ func renderSummaryWithTheme(
 
 			// Build node change tree and render tree for the first renderable commit only.
 			if !treeRendered {
-				var changeRoot *v3.Node
-				for _, node := range result.Changerator.ChangedNodes {
-					if node != nil && node.Id == "root" {
-						changeRoot = node
-						break
-					}
-				}
-				if changeRoot == nil {
-					changeRoot = result.RightDrDoc.V3Document.Node
-				}
+				changeRoot := resolveChangeTreeRoot(result.Changerator, result.RightDrDoc.V3Document.Node)
 
 				var colorScheme terminal.ColorScheme
 				if markdown {
