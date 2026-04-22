@@ -1,5 +1,10 @@
 .idea/
 .github/vhs/tmp/
 dist/demos/
-html-report/ui/build/
+html-report/ui/build/*
+!html-report/ui/build/static/
+html-report/ui/build/static/*
+!html-report/ui/build/static/bundle.js
+!html-report/ui/build/static/bundle-lite.js
+!html-report/ui/build/static/bundle.css
 html-report/ui/node_modules/

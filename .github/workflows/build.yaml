@@ -31,6 +31,11 @@ jobs:
         run: npm ci && npm run build
         working-directory: html-report/ui
 
+      - name: Verify embedded UI bundles are committed
+        run: |
+          status="$(git status --porcelain --untracked-files=all -- html-report/ui/build/static)"
+          test -z "$status" || { echo "$status"; exit 1; }
+
       - name: Get dependencies
         run: go get -v -t -d ./...
 
@@ -59,3 +64,8 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: html-report/ui
+
+      - name: Verify embedded UI bundles are committed
+        run: |
+          status="$(git status --porcelain --untracked-files=all -- html-report/ui/build/static)"
+          test -z "$status" || { echo "$status"; exit 1; }
