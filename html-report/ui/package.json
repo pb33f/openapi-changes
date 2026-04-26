@@ -15,6 +15,9 @@
     "chart.js": "^4.5.1",
     "lit": "^3.3.2"
   },
+  "overrides": {
+    "uuid": "14.0.0"
+  },
   "devDependencies": {
     "@open-wc/testing": "^4.0.0",
     "elkjs": "^0.9.3",
