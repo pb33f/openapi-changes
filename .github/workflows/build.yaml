@@ -9,17 +9,44 @@ on:
       - main
 
 jobs:
-  build:
-    name: Build
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+  build-windows:
+    name: Build Windows
+    runs-on: blacksmith-4vcpu-windows-2025
+    env:
+      GOWORK: off
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Set up Go 1.x
+      - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: ^1.24
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build
+        run: go build -o openapi-changes.exe .
+
+  build:
+    name: Build
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    env:
+      GOWORK: off
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
         id: go
 
       - name: Set up Node.js
@@ -36,8 +63,8 @@ jobs:
           status="$(git status --porcelain --untracked-files=all -- html-report/ui/build/static)"
           test -z "$status" || { echo "$status"; exit 1; }
 
-      - name: Get dependencies
-        run: go get -v -t -d ./...
+      - name: Download dependencies
+        run: go mod download
 
       - name: Test
         run: go test ./...

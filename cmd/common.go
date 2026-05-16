@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/term"
 	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
@@ -73,6 +74,22 @@ func commandStylesFor(palette terminal.Palette) commandStyles {
 	}
 }
 
+func commandPaletteForTheme(theme terminal.ThemeName) terminal.Palette {
+	if canQueryTerminalBackground(os.Stdin, os.Stderr) {
+		return terminal.PaletteForTheme(theme)
+	}
+	env := os.Environ()
+	return terminal.PaletteFor(theme, os.Stdout, env, terminal.DetectDarkBackgroundFromEnv(env))
+}
+
+func canQueryTerminalBackground(in, out *os.File) bool {
+	return isTerminalFile(in) && isTerminalFile(out)
+}
+
+func isTerminalFile(file *os.File) bool {
+	return file != nil && term.IsTerminal(file.Fd())
+}
+
 func addTerminalThemeFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolP("no-color", "n", false, "Use the light Roger monochrome terminal theme")
 	cmd.Flags().Bool("roger-mode", false, "Alias for --no-color")
@@ -101,7 +118,7 @@ func readCommonFlags(cmd *cobra.Command) (opts summaryOpts, configFlag string, e
 	if err != nil {
 		return opts, configFlag, err
 	}
-	opts.palette = terminal.PaletteForTheme(opts.theme)
+	opts.palette = commandPaletteForTheme(opts.theme)
 	return
 }
 
