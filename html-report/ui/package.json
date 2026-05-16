@@ -16,6 +16,7 @@
     "lit": "^3.3.2"
   },
   "overrides": {
+    "mermaid": "11.15.0",
     "uuid": "14.0.0"
   },
   "devDependencies": {
