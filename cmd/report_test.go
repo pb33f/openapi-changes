@@ -526,6 +526,10 @@ func TestReportCommand_GitRefUsesLeftRightMode(t *testing.T) {
 }
 
 func TestReportCommand_RepoHistoryColonPathUsesHistoryMode(t *testing.T) {
+	if os.PathSeparator == '\\' {
+		t.Skip("colon filenames are not portable on Windows")
+	}
+
 	repoDir := createGitSpecRepoForFile(t, "v1:beta.yaml")
 	chdirForTest(t, t.TempDir())
 
