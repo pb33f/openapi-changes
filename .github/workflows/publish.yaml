@@ -19,7 +19,8 @@ jobs:
         uses: actions/setup-go@v6
         id: go
         with:
-          go-version: ^1.24
+          go-version-file: go.mod
+          cache: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v5

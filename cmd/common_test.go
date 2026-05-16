@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"os"
 	"testing"
 
 	"github.com/pb33f/doctor/terminal"
@@ -48,6 +49,24 @@ func TestResolveTheme_RejectsConflictingFlags(t *testing.T) {
 	_, err := resolveTheme(true, true)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "--no-color/--roger-mode and --tektronix cannot be used together")
+}
+
+func TestCanQueryTerminalBackground_RejectsRedirectedHandles(t *testing.T) {
+	stdinReader, stdinWriter, err := os.Pipe()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = stdinReader.Close()
+		_ = stdinWriter.Close()
+	})
+
+	stderrReader, stderrWriter, err := os.Pipe()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = stderrReader.Close()
+		_ = stderrWriter.Close()
+	})
+
+	assert.False(t, canQueryTerminalBackground(stdinReader, stderrWriter))
 }
 
 // --- prepareCommandRun ---

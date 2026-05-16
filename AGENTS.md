@@ -122,7 +122,7 @@ All `cmd/` implementation files use their canonical names (e.g., `cmd/summary.go
 - `git/read_local.go` still forces `ExcludeExtensionRefs = true`, which weakens the practical effect of `--ext-refs` on that path.
 - libopenapi breaking-rule configuration is global. `cmd/engine.go` guards this with `breakingConfigMu`, but `git/read_local.go` also writes to the global config via `SetActiveBreakingRulesConfig` — if the `git` layer is ever parallelized, it needs its own guard.
 - The residual `tui/` package still exists in-repo, but it is not the canonical console implementation. The canonical console is `tui/v2/` (Bubbletea).
-- **Dependency version sensitivity**: `doctor` (currently `v0.0.49`) and `libopenapi` (currently `v0.34.4`) version bumps can silently change comparison output, count semantics, or tree structure. After upgrading either dependency, always re-run the petstore regression fixtures and verify counts match expectations.
+- **Dependency version sensitivity**: `doctor` (currently `v0.0.65`) and `libopenapi` (currently `v0.36.1`) version bumps can silently change comparison output, count semantics, or tree structure. After upgrading either dependency, always re-run the petstore regression fixtures and verify counts match expectations.
 
 ## Regression Fixtures
 
