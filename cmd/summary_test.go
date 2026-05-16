@@ -28,6 +28,18 @@ func captureStdout(t *testing.T, fn func()) string {
 	reader, writer, err := os.Pipe()
 	require.NoError(t, err)
 
+	outputCh := make(chan struct {
+		data []byte
+		err  error
+	}, 1)
+	go func() {
+		data, readErr := io.ReadAll(reader)
+		outputCh <- struct {
+			data []byte
+			err  error
+		}{data: data, err: readErr}
+	}()
+
 	os.Stdout = writer
 	t.Cleanup(func() {
 		os.Stdout = oldStdout
@@ -35,13 +47,13 @@ func captureStdout(t *testing.T, fn func()) string {
 
 	fn()
 
-	require.NoError(t, writer.Close())
-	output, err := io.ReadAll(reader)
-	require.NoError(t, err)
-	require.NoError(t, reader.Close())
 	os.Stdout = oldStdout
+	require.NoError(t, writer.Close())
+	output := <-outputCh
+	require.NoError(t, output.err)
+	require.NoError(t, reader.Close())
 
-	return string(output)
+	return string(output.data)
 }
 
 func captureStderr(t *testing.T, fn func()) string {
@@ -51,6 +63,18 @@ func captureStderr(t *testing.T, fn func()) string {
 	reader, writer, err := os.Pipe()
 	require.NoError(t, err)
 
+	outputCh := make(chan struct {
+		data []byte
+		err  error
+	}, 1)
+	go func() {
+		data, readErr := io.ReadAll(reader)
+		outputCh <- struct {
+			data []byte
+			err  error
+		}{data: data, err: readErr}
+	}()
+
 	os.Stderr = writer
 	t.Cleanup(func() {
 		os.Stderr = oldStderr
@@ -58,13 +82,13 @@ func captureStderr(t *testing.T, fn func()) string {
 
 	fn()
 
-	require.NoError(t, writer.Close())
-	output, err := io.ReadAll(reader)
-	require.NoError(t, err)
-	require.NoError(t, reader.Close())
 	os.Stderr = oldStderr
+	require.NoError(t, writer.Close())
+	output := <-outputCh
+	require.NoError(t, output.err)
+	require.NoError(t, reader.Close())
 
-	return string(output)
+	return string(output.data)
 }
 
 func mustMakeDoctorOnlyCommitFromSpecs(t *testing.T, hash, left, right string) *model.Commit {

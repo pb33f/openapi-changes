@@ -308,6 +308,10 @@ func TestLoadCommitsFromArgs_GitRefUsesLeftRightDispatch(t *testing.T) {
 }
 
 func TestLoadCommitsFromArgs_LocalColonPathOutsideGitRepoStaysFileComparison(t *testing.T) {
+	if os.PathSeparator == '\\' {
+		t.Skip("colon filenames are not portable on Windows")
+	}
+
 	dir := t.TempDir()
 	chdirForTest(t, dir)
 
@@ -325,6 +329,10 @@ func TestLoadCommitsFromArgs_LocalColonPathOutsideGitRepoStaysFileComparison(t *
 }
 
 func TestLoadCommitsFromArgs_RepoHistoryColonPathUsesHistoryDispatch(t *testing.T) {
+	if os.PathSeparator == '\\' {
+		t.Skip("colon filenames are not portable on Windows")
+	}
+
 	repoDir := createGitSpecRepoForFile(t, "v1:beta.yaml")
 	chdirForTest(t, t.TempDir())
 
