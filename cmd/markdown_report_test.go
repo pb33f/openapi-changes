@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -273,7 +274,7 @@ func TestMarkdownReportCommand_TooManyArgs(t *testing.T) {
 func TestMarkdownReportCommand_LeftRightFiles(t *testing.T) {
 	cmd := testRootCmd(GetMarkdownReportCommand(),
 		"--no-logo", "--no-color",
-		"--report-file", "/dev/null",
+		"--report-file", filepath.Join(t.TempDir(), "report.md"),
 		"../sample-specs/petstorev3-original.json",
 		"../sample-specs/petstorev3.json",
 	)

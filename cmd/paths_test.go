@@ -18,7 +18,7 @@ func TestAbsoluteRepoPath(t *testing.T) {
 	})
 
 	t.Run("returns absolute path", func(t *testing.T) {
-		p := "/home/user/repo"
+		p := t.TempDir()
 
 		have, err := absoluteRepoPath(p)
 		assert.NoError(t, err)
