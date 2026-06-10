@@ -6,7 +6,7 @@ COPY html-report/ui/src ./src
 RUN npm ci
 RUN npm run build
 
-FROM --platform=$BUILDPLATFORM golang:1.25-bookworm AS builder
+FROM --platform=$BUILDPLATFORM golang:1.25.7-bookworm AS builder
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM

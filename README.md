@@ -175,7 +175,7 @@ Full docs: https://pb33f.io/openapi-changes/
 
 ## Build from source
 
-`openapi-changes` currently requires Go `1.25.0`.
+`openapi-changes` currently requires Go `1.25.7+`.
 
 ```bash
 git clone https://github.com/pb33f/openapi-changes.git

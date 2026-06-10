@@ -1,18 +1,18 @@
 module github.com/pb33f/openapi-changes
 
-go 1.25.0
+go 1.25.7
 
 require (
 	charm.land/bubbles/v2 v2.1.0
-	charm.land/bubbletea/v2 v2.0.6
+	charm.land/bubbletea/v2 v2.0.7
 	charm.land/lipgloss/v2 v2.0.3
-	github.com/alecthomas/chroma/v2 v2.23.1
+	github.com/alecthomas/chroma/v2 v2.26.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/charmbracelet/glamour v0.8.0
 	github.com/charmbracelet/x/term v0.2.2
 	github.com/google/uuid v1.6.0
-	github.com/mattn/go-runewidth v0.0.23
+	github.com/mattn/go-runewidth v0.0.24
 	github.com/muesli/termenv v0.16.0
 	github.com/pb33f/doctor v0.0.65
 	github.com/pb33f/libopenapi v0.36.1
@@ -30,14 +30,14 @@ require (
 	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charmbracelet/lipgloss v1.0.0 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20260416155717-489999b90468 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20260525132238-948f4557a654 // indirect
 	github.com/charmbracelet/x/ansi v0.11.7 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/dlclark/regexp2 v1.11.5 // indirect
+	github.com/dlclark/regexp2/v2 v2.1.1 // indirect
 	github.com/google/go-github/v72 v72.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
@@ -57,7 +57,7 @@ require (
 	github.com/yuin/goldmark-emoji v1.0.6 // indirect
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
