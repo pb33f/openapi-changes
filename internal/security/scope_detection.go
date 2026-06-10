@@ -27,7 +27,7 @@ var knownNonSecurityProperties = map[string]bool{
 // Property contains scheme name and New/Original contains scope value.
 // We need to be restrictive to avoid false positives on other change types.
 func IsSecurityScopeChange(change *wcModel.Change) bool {
-	if change.Property == "" {
+	if change == nil || change.Property == "" {
 		return false
 	}
 

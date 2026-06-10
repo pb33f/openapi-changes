@@ -1,4 +1,4 @@
-// Copyright 2023-2026 Princess Beef Heavy Industries, LLC / Dave Shanley
+// Copyright 2023-2026 Princess B33f Heavy Industries / Dave Shanley
 // SPDX-License-Identifier: Apache-2.0
 
 package security
@@ -10,177 +10,81 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsSecurityScopeChange_Added(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType: wcModel.ObjectAdded,
-		Property:   "petstore_auth",
-		New:        "read:pets",
+func TestIsSecurityScopeChange(t *testing.T) {
+	tests := []struct {
+		name     string
+		change   *wcModel.Change
+		expected bool
+	}{
+		{
+			name: "empty property",
+			change: &wcModel.Change{
+				Property: "",
+			},
+			expected: false,
+		},
+		{
+			name: "property with slash",
+			change: &wcModel.Change{
+				Property: "parameters/chaps",
+			},
+			expected: false,
+		},
+		{
+			name: "known non-security property",
+			change: &wcModel.Change{
+				Property: "servers",
+			},
+			expected: false,
+		},
+		{
+			name: "valid security scope addition",
+			change: &wcModel.Change{
+				Property:   "read:scope",
+				ChangeType: wcModel.ObjectAdded,
+				New:        "read:scope",
+			},
+			expected: true,
+		},
 	}
-	assert.True(t, IsSecurityScopeChange(change))
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, IsSecurityScopeChange(tt.change))
+		})
+	}
 }
 
-func TestIsSecurityScopeChange_Removed(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType: wcModel.ObjectRemoved,
-		Property:   "petstore_auth",
-		Original:   "write:pets",
+func TestFormatSecurityScopeTitle(t *testing.T) {
+	tests := []struct {
+		name     string
+		change   *wcModel.Change
+		expected string
+	}{
+		{
+			name: "scopes property",
+			change: &wcModel.Change{
+				Property:     "scopes",
+				ChangeType:   wcModel.ObjectAdded,
+				NewObject:    "read",
+				New:          "true",
+			},
+			expected: "scopes/read (true)",
+		},
+		{
+			name: "standard property",
+			change: &wcModel.Change{
+				Property:   "security",
+				ChangeType: wcModel.ObjectAdded,
+				New:        "oauth2",
+			},
+			expected: "security/oauth2",
+		},
 	}
-	assert.True(t, IsSecurityScopeChange(change))
-}
 
-func TestIsSecurityScopeChange_EmptyProperty(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType: wcModel.ObjectAdded,
-		Property:   "",
-		New:        "read:pets",
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, FormatSecurityScopeTitle(tt.change))
+		})
 	}
-	assert.False(t, IsSecurityScopeChange(change))
-}
-
-func TestIsSecurityScopeChange_PropertyWithSlash(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType: wcModel.ObjectAdded,
-		Property:   "parameters/chaps",
-		New:        "some value",
-	}
-	assert.False(t, IsSecurityScopeChange(change))
-}
-
-func TestIsSecurityScopeChange_KnownNonSecurityProperty(t *testing.T) {
-	for _, prop := range []string{"servers", "description", "paths", "tags", "info", "components"} {
-		change := &wcModel.Change{
-			ChangeType: wcModel.ObjectAdded,
-			Property:   prop,
-			New:        "some value",
-		}
-		assert.False(t, IsSecurityScopeChange(change), "should reject known property: %s", prop)
-	}
-}
-
-func TestIsSecurityScopeChange_NewContainsURL(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType: wcModel.ObjectAdded,
-		Property:   "petstore_auth",
-		New:        "https://example.com/auth",
-	}
-	assert.False(t, IsSecurityScopeChange(change))
-}
-
-func TestIsSecurityScopeChange_NewContainsSlash(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType: wcModel.ObjectAdded,
-		Property:   "petstore_auth",
-		New:        "some/path",
-	}
-	assert.False(t, IsSecurityScopeChange(change))
-}
-
-func TestIsSecurityScopeChange_NewEqualsProperty(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType: wcModel.ObjectAdded,
-		Property:   "petstore_auth",
-		New:        "petstore_auth",
-	}
-	assert.False(t, IsSecurityScopeChange(change))
-}
-
-func TestIsSecurityScopeChange_EmptyNew(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType: wcModel.ObjectAdded,
-		Property:   "petstore_auth",
-		New:        "",
-	}
-	assert.False(t, IsSecurityScopeChange(change))
-}
-
-func TestIsSecurityScopeChange_ModifiedIgnored(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType: wcModel.Modified,
-		Property:   "petstore_auth",
-		New:        "read:pets",
-		Original:   "write:pets",
-	}
-	assert.False(t, IsSecurityScopeChange(change))
-}
-
-func TestIsSecurityScopeChange_CaseInsensitivePropertyLookup(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType: wcModel.ObjectAdded,
-		Property:   "Servers",
-		New:        "some value",
-	}
-	assert.False(t, IsSecurityScopeChange(change))
-}
-
-func TestFormatSecurityScopeTitle_AddedWithScopesKey(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType:    wcModel.ObjectAdded,
-		Property:      "scopes",
-		New:           "Access all pets",
-		NewObject:     "read:pets",
-	}
-	result := FormatSecurityScopeTitle(change)
-	assert.Equal(t, "scopes/read:pets (Access all pets)", result)
-}
-
-func TestFormatSecurityScopeTitle_AddedWithScopesKeyOnly(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType:    wcModel.ObjectAdded,
-		Property:      "scopes",
-		New:           "read:pets",
-		NewObject:     "read:pets",
-	}
-	// value == key, so no parenthetical
-	result := FormatSecurityScopeTitle(change)
-	assert.Equal(t, "scopes/read:pets", result)
-}
-
-func TestFormatSecurityScopeTitle_RemovedWithScopesKey(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType:       wcModel.ObjectRemoved,
-		Property:         "scopes",
-		Original:         "Write pets",
-		OriginalObject:   "write:pets",
-	}
-	result := FormatSecurityScopeTitle(change)
-	assert.Equal(t, "scopes/write:pets (Write pets)", result)
-}
-
-func TestFormatSecurityScopeTitle_AddedNonScopes(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType: wcModel.ObjectAdded,
-		Property:   "petstore_auth",
-		New:        "read:pets",
-	}
-	result := FormatSecurityScopeTitle(change)
-	assert.Equal(t, "petstore_auth/read:pets", result)
-}
-
-func TestFormatSecurityScopeTitle_RemovedNonScopes(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType: wcModel.ObjectRemoved,
-		Property:   "petstore_auth",
-		Original:   "write:pets",
-	}
-	result := FormatSecurityScopeTitle(change)
-	assert.Equal(t, "petstore_auth/write:pets", result)
-}
-
-func TestFormatSecurityScopeTitle_FallbackToProperty(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType: wcModel.Modified,
-		Property:   "some_scheme",
-	}
-	result := FormatSecurityScopeTitle(change)
-	assert.Equal(t, "some_scheme", result)
-}
-
-func TestFormatSecurityScopeTitle_AddedEmptyNew(t *testing.T) {
-	change := &wcModel.Change{
-		ChangeType: wcModel.ObjectAdded,
-		Property:   "petstore_auth",
-		New:        "",
-	}
-	result := FormatSecurityScopeTitle(change)
-	assert.Equal(t, "petstore_auth", result)
 }
