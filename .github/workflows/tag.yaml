@@ -10,7 +10,7 @@ jobs:
   tag:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: actions-ecosystem/action-get-merged-pull-request@v1
         id: get-merged-pull-request
@@ -50,7 +50,7 @@ jobs:
           tag: ${{ steps.bump-semver.outputs.new_version }}
           message: "${{ steps.bump-semver.outputs.new_version }}: PR #${{ steps.get-merged-pull-request.outputs.number }} ${{ steps.get-merged-pull-request.outputs.title }}"
 
-      - uses: peter-evans/repository-dispatch@v1
+      - uses: peter-evans/repository-dispatch@v4
         if: ${{ steps.bump-semver.outputs.new_version != null }}
         with:
           token: ${{ secrets.GH_PAT }}

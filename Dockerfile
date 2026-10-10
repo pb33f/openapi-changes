@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS ui-builder
+FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS ui-builder
 
 WORKDIR /opt/openapi-changes/html-report/ui
 COPY html-report/ui/package.json html-report/ui/package-lock.json html-report/ui/tsconfig.json html-report/ui/vite.config.ts html-report/ui/index.html ./
@@ -6,7 +6,7 @@ COPY html-report/ui/src ./src
 RUN npm ci
 RUN npm run build
 
-FROM --platform=$BUILDPLATFORM golang:1.25.7-bookworm AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26.9-bookworm AS builder
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
