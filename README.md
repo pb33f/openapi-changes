@@ -175,7 +175,16 @@ Full docs: https://pb33f.io/openapi-changes/
 
 ## Build from source
 
-`openapi-changes` currently requires Go `1.25.7+`.
+`openapi-changes` currently requires Go `1.26.9+`. The npm installer requires Node.js `20+`.
+
+The report UI uses Node.js `24.15+` in the Node 24 release line. Run `npm ci`,
+`npm run typecheck`, `npm test`, and `npm run build` in `html-report/ui` after
+dependency changes. Commit the full and lite bundles in `build/static` so
+`go install` embeds the same patched code. Mermaid stays on the supported 11.x
+line; its KaTeX override supplies the patched trust checks.
+
+Use the pb33f-maintained `go-yaml`, `testify`, and `jsonschema/v6` modules.
+Validate Go dependency updates with `GOWORK=off` to avoid local workspace replacements.
 
 ```bash
 git clone https://github.com/pb33f/openapi-changes.git
