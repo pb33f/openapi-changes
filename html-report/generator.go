@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"html"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/alecthomas/chroma/v2"
@@ -425,8 +424,7 @@ func cloneNodeTree(node *v3.Node) *v3.Node {
 		return nil
 	}
 
-	clone := *node
-	clone.Mutex = sync.RWMutex{}
+	clone := node.CloneShallow()
 	clone.SubtreeChanges = nil
 	clone.ChildChangeSummaries = nil
 	if node.Changes != nil {
@@ -446,7 +444,7 @@ func cloneNodeTree(node *v3.Node) *v3.Node {
 	} else {
 		clone.Children = nil
 	}
-	return &clone
+	return clone
 }
 
 func buildCommitInfo(commit *model.Commit) *CommitInfo {

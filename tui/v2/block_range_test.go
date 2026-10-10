@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
-	"github.com/stretchr/testify/assert"
+	"github.com/pb33f/testify/assert"
 )
 
 func TestComputeBlockRange_ObjectAdded(t *testing.T) {

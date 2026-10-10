@@ -8,7 +8,7 @@ import (
 
 	wcModel "github.com/pb33f/libopenapi/what-changed/model"
 	openapiModel "github.com/pb33f/openapi-changes/model"
-	"github.com/stretchr/testify/assert"
+	"github.com/pb33f/testify/assert"
 )
 
 func intPtr(v int) *int { return &v }

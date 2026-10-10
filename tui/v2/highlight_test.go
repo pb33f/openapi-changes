@@ -6,7 +6,7 @@ package v2
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/pb33f/testify/assert"
 )
 
 func TestFindYAMLColon_Simple(t *testing.T) {

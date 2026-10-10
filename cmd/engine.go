@@ -12,10 +12,10 @@ import (
 	"github.com/pb33f/doctor/changerator"
 	drModel "github.com/pb33f/doctor/model"
 	v3 "github.com/pb33f/doctor/model/high/v3"
+	"github.com/pb33f/go-yaml"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/internal/breakingrules"
 	"github.com/pb33f/openapi-changes/model"
-	"go.yaml.in/yaml/v4"
 )
 
 // changeratorResult owns the doctor-side resources created for a single comparison.
