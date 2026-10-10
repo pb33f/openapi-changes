@@ -246,7 +246,7 @@ func BuildReportItem(
 		}
 	}
 
-	deduplicatedChanges := result.DeduplicateChanges()
+	deduplicatedChanges := changecounts.Deduplicate(docChanges.GetAllChanges())
 	counts := changecounts.FromChanges(deduplicatedChanges)
 
 	htmlConfig := renderer.DefaultRenderConfig()

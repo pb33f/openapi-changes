@@ -13,6 +13,7 @@ import (
 	"github.com/pb33f/doctor/changerator/renderer"
 	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
+	"github.com/pb33f/openapi-changes/internal/changecounts"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/spf13/cobra"
@@ -35,7 +36,7 @@ func renderCommitMarkdown(commit *model.Commit, breakingConfig *whatChangedModel
 		return "", nil
 	}
 	defer result.Release()
-	deduplicatedChanges := result.Changerator.DeduplicateChanges()
+	deduplicatedChanges := changecounts.Deduplicate(result.DocChanges.GetAllChanges())
 
 	markdown, err := renderer.NewHTMLRenderer(renderer.DefaultRenderConfig()).RenderMarkdown(&renderer.RenderInput{
 		DocumentChanges:     result.DocChanges,
