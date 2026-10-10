@@ -186,6 +186,9 @@ line; its KaTeX override supplies the patched trust checks.
 Use the pb33f-maintained `go-yaml`, `testify`, and `jsonschema/v6` modules.
 Validate Go dependency updates with `GOWORK=off` to avoid local workspace replacements.
 
+Terminal Markdown reports wrap long table content and use clickable links in
+terminals that support OSC 8 hyperlinks.
+
 ```bash
 git clone https://github.com/pb33f/openapi-changes.git
 cd openapi-changes
