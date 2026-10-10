@@ -1,6 +1,6 @@
 import { html, nothing, TemplateResult, PropertyValues } from 'lit';
 import { customElement, query, state } from 'lit/decorators.js';
-import type { SlTabShowEvent } from '@shoelace-style/shoelace/dist/events/sl-tab-show.js';
+import type { SlTabShowEvent } from '@shoelace-style/shoelace';
 import { ReportShellBase } from './report-shell-base.js';
 import type { Change } from '@pb33f/cowboy-components/static-report';
 
@@ -106,7 +106,7 @@ export class ReportShell extends ReportShellBase {
         super.disconnectedCallback();
     }
 
-    protected override onDataOrIndexChanged(changedProperties: Map<string, unknown>): void {
+    protected override onDataOrIndexChanged(changedProperties: PropertyValues): void {
         this.updateExplorer();
         super.onDataOrIndexChanged(changedProperties);
     }

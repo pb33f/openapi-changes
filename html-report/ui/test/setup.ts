@@ -60,7 +60,6 @@ vi.mock('@shoelace-style/shoelace/dist/components/tree/tree.js', () => ({}));
 vi.mock('@shoelace-style/shoelace/dist/components/tree-item/tree-item.js', () => ({}));
 vi.mock('@shoelace-style/shoelace/dist/components/radio-group/radio-group.js', () => ({}));
 vi.mock('@shoelace-style/shoelace/dist/components/radio-button/radio-button.js', () => ({}));
-vi.mock('@shoelace-style/shoelace/dist/events/sl-tab-show.js', () => ({}));
 
 // --- Stub custom elements that need methods called on them in jsdom ---
 

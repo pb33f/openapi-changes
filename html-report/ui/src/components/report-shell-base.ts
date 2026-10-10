@@ -1,7 +1,7 @@
-import { LitElement, html, nothing, TemplateResult } from 'lit';
+import { LitElement, html, nothing, TemplateResult, PropertyValues } from 'lit';
 import { state, query } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import type { SlTabShowEvent } from '@shoelace-style/shoelace/dist/events/sl-tab-show.js';
+import type { SlTabShowEvent } from '@shoelace-style/shoelace';
 import reportCss from '../css/report.css.js';
 
 // Import cowboy-components via the static-report entrypoint.
@@ -301,13 +301,13 @@ export abstract class ReportShellBase extends LitElement {
         requestAnimationFrame(() => this._drawActiveGlow());
     }
 
-    willUpdate(changedProperties: Map<string, unknown>): void {
+    willUpdate(changedProperties: PropertyValues): void {
         if (changedProperties.has('activeItemIndex') || changedProperties.has('data')) {
             this.updateChartData();
         }
     }
 
-    updated(changedProperties: Map<string, unknown>): void {
+    protected override updated(changedProperties: PropertyValues): void {
         super.updated(changedProperties);
         if (changedProperties.has('activeItemIndex') || changedProperties.has('data')) {
             this.updateComplete.then(() => {
@@ -331,7 +331,7 @@ export abstract class ReportShellBase extends LitElement {
      * Called after updateComplete when data or activeItemIndex changes.
      * Subclasses can override to add explorer updates.
      */
-    protected onDataOrIndexChanged(changedProperties: Map<string, unknown>): void {
+    protected onDataOrIndexChanged(changedProperties: PropertyValues): void {
         this.updateModelTree();
         if (changedProperties.has('data')) {
             // Shoelace tab group doesn't auto-activate the first tab when rendered

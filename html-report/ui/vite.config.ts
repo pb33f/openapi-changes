@@ -99,7 +99,7 @@ export default defineConfig({
     outDir: 'build/static',
     emptyOutDir: !isLite, // Don't wipe when building lite (full bundle already there)
     lib: {
-      entry: resolve(__dirname, isLite ? 'src/main-lite.ts' : 'src/main.ts'),
+      entry: resolve(import.meta.dirname, isLite ? 'src/main-lite.ts' : 'src/main.ts'),
       name: 'openapiChangesReport',
       fileName: () => isLite ? 'bundle-lite.js' : 'bundle.js',
       cssFileName: 'bundle',

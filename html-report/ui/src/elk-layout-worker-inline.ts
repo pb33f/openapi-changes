@@ -1,15 +1,15 @@
-import ELK from 'elkjs/lib/elk.bundled.js';
+import ELK, { type ELK as ElkInstance, type ElkNode, type LayoutOptions } from 'elkjs/lib/elk.bundled.js';
 
 type LayoutRequest = {
     requestId?: number;
-    graph?: unknown;
-    layoutOptions?: unknown;
+    graph?: ElkNode;
+    layoutOptions?: LayoutOptions;
 };
 
 type LayoutResponse = {
     success: boolean;
     requestId?: number;
-    graph?: unknown;
+    graph?: ElkNode;
     error?: string;
 };
 
@@ -27,7 +27,7 @@ class InlineElkLayoutWorker {
 
     private readonly messageListeners = new Set<EventListenerOrEventListenerObject>();
     private readonly errorListeners = new Set<EventListenerOrEventListenerObject>();
-    private elk: ELK | null = null;
+    private elk: ElkInstance | null = null;
     private terminated = false;
 
     postMessage(data: LayoutRequest): void {
@@ -72,7 +72,7 @@ class InlineElkLayoutWorker {
         this.elk = null;
     }
 
-    private getElk(): ELK {
+    private getElk(): ElkInstance {
         if (!this.elk) {
             this.elk = new ELK();
         }
