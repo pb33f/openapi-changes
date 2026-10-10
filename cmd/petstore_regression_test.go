@@ -48,7 +48,7 @@ func TestPetstoreRegressionCounts(t *testing.T) {
 	require.NotNil(t, result, "changerator must produce a result for the petstore fixtures")
 	defer result.Release()
 
-	deduped := result.Changerator.DeduplicateChanges()
+	deduped := changecounts.Deduplicate(result.DocChanges.GetAllChanges())
 	require.NotEmpty(t, deduped, "deduplicated changes must not be empty")
 
 	counts := changecounts.FromChanges(deduped)

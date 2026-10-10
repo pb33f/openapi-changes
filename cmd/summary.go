@@ -317,7 +317,7 @@ func renderSummaryWithTheme(
 		func() {
 			defer result.Release()
 
-			deduplicatedChanges := result.Changerator.DeduplicateChanges()
+			deduplicatedChanges := changecounts.Deduplicate(result.DocChanges.GetAllChanges())
 
 			// Build node change tree and render tree for the first renderable commit only.
 			if !treeRendered {
