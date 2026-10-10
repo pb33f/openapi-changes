@@ -9,8 +9,8 @@ import (
 
 	"github.com/pb33f/doctor/terminal"
 	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/pb33f/testify/assert"
+	"github.com/pb33f/testify/require"
 )
 
 // testRootCmd creates a root command with standard persistent flags and a subcommand for testing.

@@ -16,7 +16,7 @@ import (
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/internal/testutil"
 	"github.com/pb33f/openapi-changes/model"
-	"github.com/stretchr/testify/require"
+	"github.com/pb33f/testify/require"
 )
 
 func makeSwagger2Commit(t *testing.T) *model.Commit {

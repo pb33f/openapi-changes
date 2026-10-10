@@ -8,9 +8,8 @@ import (
 	"image/color"
 	"strings"
 
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/glamour/ansi"
-	"github.com/muesli/termenv"
+	"charm.land/glamour/v2"
+	"charm.land/glamour/v2/ansi"
 	"github.com/pb33f/doctor/terminal"
 )
 
@@ -233,7 +232,6 @@ func renderMarkdown(markdown string, contentWidth int, palette terminal.Palette)
 	renderer, err := glamour.NewTermRenderer(
 		glamour.WithStyles(style),
 		glamour.WithWordWrap(contentWidth),
-		glamour.WithColorProfile(termenv.TrueColor),
 	)
 	if err != nil {
 		return markdown

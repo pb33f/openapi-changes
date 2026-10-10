@@ -7,9 +7,11 @@ import (
 	"testing"
 	"time"
 
+	v3 "github.com/pb33f/doctor/model/high/v3"
+	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/pb33f/testify/assert"
+	"github.com/pb33f/testify/require"
 )
 
 func TestHighlightSpecLines_YAML(t *testing.T) {
@@ -149,4 +151,43 @@ func TestBuildCommitInfo(t *testing.T) {
 	assert.Equal(t, "Dave", info.Author)
 	assert.Equal(t, "dave@example.com", info.AuthorEmail)
 	assert.Equal(t, now.Format(time.RFC3339), info.Date)
+}
+
+// The report tree must have independent children and change slices so report
+// sanitization cannot remove data from the explorer tree.
+func TestCloneNodeTree(t *testing.T) {
+	require.Nil(t, cloneNodeTree(nil))
+	originalChange := &whatChangedModel.Change{Property: "description"}
+	source := &v3.Node{
+		Id: "$.paths", Label: "paths", OriginLocation: "petstore.yaml",
+		RenderedChanges:      []*whatChangedModel.Change{originalChange},
+		CleanedChanged:       []*whatChangedModel.Change{originalChange},
+		SubtreeChanges:       &v3.ChangeSummary{},
+		ChildChangeSummaries: []*v3.ChildChangeSummary{{NodeId: "child"}},
+		Children:             []*v3.Node{{Id: "child", Label: "pet"}, nil},
+	}
+	source.Mutex.Lock()
+	defer source.Mutex.Unlock()
+
+	clone := cloneNodeTree(source)
+	require.NotSame(t, source, clone)
+	require.True(t, clone.Mutex.TryLock(), "the clone must not inherit the source lock")
+	clone.Mutex.Unlock()
+	assert.Equal(t, source.Id, clone.Id)
+	assert.Equal(t, source.OriginLocation, clone.OriginLocation)
+	assert.Nil(t, clone.SubtreeChanges)
+	assert.Nil(t, clone.ChildChangeSummaries)
+	require.Len(t, clone.Children, 2)
+	require.NotSame(t, source.Children[0], clone.Children[0])
+	assert.Nil(t, clone.Children[1])
+	assert.Nil(t, clone.Children[0].Children)
+
+	clone.Children[0].Label = "report-only label"
+	clone.RenderedChanges[0] = nil
+	clone.CleanedChanged[0] = nil
+	assert.Equal(t, "pet", source.Children[0].Label)
+	assert.Same(t, originalChange, source.RenderedChanges[0])
+	assert.Same(t, originalChange, source.CleanedChanged[0])
+	assert.NotNil(t, source.SubtreeChanges)
+	assert.Len(t, source.ChildChangeSummaries, 1)
 }

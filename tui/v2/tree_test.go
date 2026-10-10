@@ -8,8 +8,8 @@ import (
 
 	v3 "github.com/pb33f/doctor/model/high/v3"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/pb33f/testify/assert"
+	"github.com/pb33f/testify/require"
 )
 
 // mockChanged implements what_changed.Changed for testing.

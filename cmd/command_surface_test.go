@@ -6,7 +6,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/pb33f/testify/assert"
 )
 
 func TestCommandSurface_UsesCanonicalNames(t *testing.T) {

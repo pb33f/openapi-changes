@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
-	"github.com/stretchr/testify/assert"
+	"github.com/pb33f/testify/assert"
 )
 
 func ptrInt(n int) *int { return &n }

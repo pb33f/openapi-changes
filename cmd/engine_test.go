@@ -10,8 +10,8 @@ import (
 
 	v3 "github.com/pb33f/doctor/model/high/v3"
 	"github.com/pb33f/openapi-changes/model"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/pb33f/testify/assert"
+	"github.com/pb33f/testify/require"
 )
 
 func TestRunChangerator_RewritesChangedNodeOriginsToRepoRelativePaths(t *testing.T) {

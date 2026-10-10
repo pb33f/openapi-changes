@@ -16,8 +16,8 @@ import (
 	"github.com/pb33f/openapi-changes/git"
 	"github.com/pb33f/openapi-changes/internal/testutil"
 	"github.com/pb33f/openapi-changes/model"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/pb33f/testify/assert"
+	"github.com/pb33f/testify/require"
 )
 
 func TestRunLeftRightReport_PropagatesChangeratorErrors(t *testing.T) {
