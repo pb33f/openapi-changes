@@ -6,9 +6,9 @@ package cmd
 import (
 	"testing"
 
+	"github.com/pb33f/testify/assert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/pb33f/testify/assert"
 )
 
 func flagNames(cmd *cobra.Command) map[string]bool {
@@ -42,6 +42,8 @@ func TestCanonicalCommandLocalFlags(t *testing.T) {
 		"tektronix":    true,
 		"report-file":  true,
 		"include-diff": true,
+		"compact":      true,
+		"result-file":  true,
 	}, flagNames(GetMarkdownReportCommand()))
 
 	assert.Equal(t, map[string]bool{
