@@ -99,6 +99,9 @@ class CompareIntegration(unittest.TestCase):
                 self.assertIn(head, summary)
                 artifacts = Path(outputs['artifact-path'])
                 if expected != 'analysis-error':
+                    if case in ('breaking', 'reference'):
+                        self.assertIn('### Breaking highlights', summary)
+                        self.assertIn('pets', summary)
                     self.assertTrue((artifacts / 'report.json').is_file())
                     json.loads((artifacts / 'report.json').read_text())
                     self.assertIn('https://pb33f.io/doctor/', summary)
