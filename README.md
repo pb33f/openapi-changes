@@ -284,3 +284,8 @@ For the full rules reference and more examples, see the
 ---
 
 See the full docs at https://pb33f.io/openapi-changes/
+
+## GitHub pull requests
+
+Use the [lightweight GitHub Action](GITHUB_ACTION.md) for a compact job summary,
+full report artifacts, and a breaking-change check.
