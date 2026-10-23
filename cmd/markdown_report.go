@@ -4,9 +4,11 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -160,6 +162,13 @@ func GetMarkdownReportCommand() *cobra.Command {
 		Long:         "Generate a detailed markdown report of API changes rendered as markdown",
 		Example:      "openapi-changes markdown-report HEAD~1:openapi.yaml ./openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			compact, _ := cmd.Flags().GetBool("compact")
+			resultFile, _ := cmd.Flags().GetString("result-file")
+			reportFile, _ := cmd.Flags().GetString("report-file")
+			includeDiff, _ := cmd.Flags().GetBool("include-diff")
+			if err := validateCompactOptions(args, compact, includeDiff, reportFile, resultFile); err != nil {
+				return err
+			}
 			input, err := prepareCommandRun(cmd, args, printMarkdownReportUsage)
 			if err != nil {
 				return err
@@ -167,9 +176,25 @@ func GetMarkdownReportCommand() *cobra.Command {
 			if input == nil {
 				return nil
 			}
-			reportFile, _ := cmd.Flags().GetString("report-file")
-			includeDiff, _ := cmd.Flags().GetBool("include-diff")
 			styles := commandStylesFor(input.Opts.palette)
+
+			if compact {
+				report, outcome, err := generateCompactMarkdown(input.Commits, input.BreakingConfig)
+				if err != nil {
+					return err
+				}
+				if err := writeReportFile(reportFile, report, styles); err != nil {
+					return err
+				}
+				if resultFile != "" {
+					data, err := json.Marshal(outcome)
+					if err != nil {
+						return err
+					}
+					return os.WriteFile(resultFile, append(data, '\n'), 0600)
+				}
+				return nil
+			}
 
 			report, err := generateMarkdownReport(input.Commits, input.BreakingConfig, includeDiff)
 			if err != nil {
@@ -185,6 +210,42 @@ func GetMarkdownReportCommand() *cobra.Command {
 	}
 	addTerminalThemeFlags(cmd)
 	cmd.Flags().StringP("report-file", "", "report.md", "The name of the Markdown report file (defaults to 'report.md')")
+	cmd.Flags().Bool("compact", false, "Write a short Markdown report for a direct left/right comparison")
+	cmd.Flags().String("result-file", "", "Write completed comparison counts as JSON (requires --compact)")
 	cmd.Flags().Bool("include-diff", false, "Include a collapsible unified diff of the raw spec for each commit")
 	return cmd
+}
+
+func validateCompactOptions(args []string, compact, includeDiff bool, reportFile, resultFile string) error {
+	if resultFile != "" && !compact {
+		return errors.New("--result-file requires --compact")
+	}
+	if !compact {
+		return nil
+	}
+	if len(args) != 2 {
+		return errors.New("--compact requires two direct comparison inputs; history is not supported")
+	}
+	if info, err := os.Stat(args[0]); err == nil && info.IsDir() {
+		return errors.New("--compact does not support repository history")
+	}
+	if includeDiff {
+		return errors.New("--compact cannot be combined with --include-diff")
+	}
+	if resultFile != "" {
+		reportPath, err := filepath.Abs(reportFile)
+		if err != nil {
+			return err
+		}
+		resultPath, err := filepath.Abs(resultFile)
+		if err != nil {
+			return err
+		}
+		reportInfo, reportErr := os.Stat(reportPath)
+		resultInfo, resultErr := os.Stat(resultPath)
+		if reportPath == resultPath || (reportErr == nil && resultErr == nil && os.SameFile(reportInfo, resultInfo)) {
+			return errors.New("--report-file and --result-file must be different files")
+		}
+	}
+	return nil
 }
