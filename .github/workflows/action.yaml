@@ -1,0 +1,54 @@
+name: Action
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  action:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [unchanged, permitted, breaking, invalid, reference]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Prepare synthetic revisions
+        id: fixture
+        env:
+          FIXTURE_CASE: ${{ matrix.case }}
+        run: python3 action/tests/test_compare.py --fixture "$FIXTURE_CASE"
+      - name: Compare API revisions
+        id: compare
+        continue-on-error: true
+        uses: ./
+        with:
+          spec: .action-fixtures/openapi.yaml
+          base: ${{ steps.fixture.outputs.base }}
+          head: ${{ steps.fixture.outputs.head }}
+          artifact-name: openapi-changes-${{ matrix.case }}
+      - name: Check result and job status
+        if: always()
+        env:
+          FIXTURE_CASE: ${{ matrix.case }}
+          RESULT: ${{ steps.compare.outputs.outcome }}
+          STEP_OUTCOME: ${{ steps.compare.outcome }}
+        run: |
+          case "$FIXTURE_CASE" in
+            unchanged|permitted) expected=passed; step=success ;;
+            breaking|reference) expected=policy-failed; step=failure ;;
+            invalid) expected=analysis-error; step=failure ;;
+          esac
+          test "$RESULT" = "$expected"
+          test "$STEP_OUTCOME" = "$step"
+      - name: Run runner integration cases
+        if: matrix.case == 'unchanged'
+        env:
+          OPENAPI_CHANGES_BINARY: ${{ runner.temp }}/openapi-changes-tests
+        run: |
+          GOWORK=off go build -o "$OPENAPI_CHANGES_BINARY" .
+          python3 -m unittest discover -s action/tests -v
