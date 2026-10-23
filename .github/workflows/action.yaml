@@ -1,0 +1,53 @@
+name: Action
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  action:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [unchanged, permitted, breaking, invalid, reference]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+      - name: Prepare synthetic revisions
+        id: fixture
+        env:
+          ACTION_FIXTURE_CASE: ${{ matrix.case }}
+        run: GOWORK=off go test ./action -run '^TestWorkflowFixture$' -count=1
+      - name: Compare API revisions
+        id: compare
+        continue-on-error: true
+        uses: ./
+        with:
+          spec: .action-fixtures/openapi.yaml
+          base: ${{ steps.fixture.outputs.base }}
+          head: ${{ steps.fixture.outputs.head }}
+          artifact-name: openapi-changes-${{ matrix.case }}
+      - name: Check result and job status
+        if: always()
+        env:
+          FIXTURE_CASE: ${{ matrix.case }}
+          RESULT: ${{ steps.compare.outputs.outcome }}
+          STEP_OUTCOME: ${{ steps.compare.outcome }}
+        run: |
+          case "$FIXTURE_CASE" in
+            unchanged|permitted) expected=passed; step=success ;;
+            breaking|reference) expected=policy-failed; step=failure ;;
+            invalid) expected=analysis-error; step=failure ;;
+          esac
+          test "$RESULT" = "$expected"
+          test "$STEP_OUTCOME" = "$step"
+      - name: Run runner integration cases
+        if: matrix.case == 'unchanged'
+        run: GOWORK=off go test ./action -count=1

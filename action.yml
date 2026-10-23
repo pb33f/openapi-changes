@@ -1,0 +1,98 @@
+name: OpenAPI changes
+description: Compare committed OpenAPI documents and attach reports to a GitHub Actions run.
+branding:
+  icon: git-pull-request
+  color: purple
+inputs:
+  spec:
+    description: Repository-relative root specification path, present at both revisions.
+    required: true
+  base:
+    description: Base commit SHA or literal ref already fetched in the checkout.
+    required: true
+  head:
+    description: Head commit SHA or literal ref already fetched in the checkout.
+    required: true
+  breaking-rules:
+    description: Optional repository-relative rules file, read from the base revision.
+    default: ''
+  fail-on:
+    description: Policy for a completed comparison (breaking, changes, or none).
+    default: breaking
+  artifact-name:
+    description: Unique report artifact name for this job.
+    default: openapi-changes
+outputs:
+  artifact-path:
+    description: Local directory containing reports and diagnostics.
+    value: ${{ steps.compare.outputs.artifact-path }}
+  outcome:
+    description: passed, policy-failed, or analysis-error.
+    value: ${{ steps.compare.outputs.outcome }}
+  base-sha:
+    description: Resolved base commit SHA.
+    value: ${{ steps.compare.outputs.base-sha }}
+  head-sha:
+    description: Resolved head commit SHA.
+    value: ${{ steps.compare.outputs.head-sha }}
+  total:
+    description: Deduplicated changes, available only after successful analysis.
+    value: ${{ steps.compare.outputs.total }}
+  breaking:
+    description: Deduplicated breaking changes, available only after successful analysis.
+    value: ${{ steps.compare.outputs.breaking }}
+runs:
+  using: composite
+  steps:
+    - name: Check runner
+      shell: bash
+      run: test "$RUNNER_OS" = Linux
+    - name: Set up Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+      with:
+        go-version-file: ${{ github.action_path }}/go.mod
+        cache: false
+    - name: Build pinned comparison tool
+      id: build
+      shell: bash
+      env:
+        ACTION_SOURCE: ${{ github.action_path }}
+        GOWORK: 'off'
+        GOFLAGS: ''
+      run: |
+        binary_dir="$(mktemp -d "$RUNNER_TEMP/openapi-changes-bin-XXXXXX")"
+        cd "$ACTION_SOURCE"
+        go build -trimpath -o "$binary_dir/openapi-changes" .
+        go build -trimpath -o "$binary_dir/openapi-changes-action" ./action
+        echo "binary=$binary_dir/openapi-changes" >> "$GITHUB_OUTPUT"
+        echo "runner=$binary_dir/openapi-changes-action" >> "$GITHUB_OUTPUT"
+    - name: Compare specifications
+      id: compare
+      shell: bash
+      env:
+        ACTION_RUNNER: ${{ steps.build.outputs.runner }}
+        OPENAPI_CHANGES_BINARY: ${{ steps.build.outputs.binary }}
+        INPUT_SPEC: ${{ inputs.spec }}
+        INPUT_BASE: ${{ inputs.base }}
+        INPUT_HEAD: ${{ inputs.head }}
+        INPUT_BREAKING_RULES: ${{ inputs.breaking-rules }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+      run: '"$ACTION_RUNNER"'
+    - name: Upload reports
+      if: ${{ always() && steps.compare.outputs.artifact-path != '' }}
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ steps.compare.outputs.artifact-path }}
+        if-no-files-found: error
+    - name: Apply comparison policy
+      if: ${{ always() }}
+      shell: bash
+      env:
+        COMPARISON_OUTCOME: ${{ steps.compare.outputs.outcome }}
+      run: |
+        case "$COMPARISON_OUTCOME" in
+          passed) exit 0 ;;
+          policy-failed) echo 'OpenAPI comparison policy failed.'; exit 1 ;;
+          *) echo 'OpenAPI analysis did not complete.'; exit 2 ;;
+        esac
