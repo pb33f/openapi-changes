@@ -14,7 +14,8 @@ openapi-changes markdown-report --compact \
 
 The report contains the total and breaking change counts, up to eight semantic
 breaking highlights from Doctor, and a link to the public Doctor page. Each
-highlight is limited to 300 characters. Spec text cannot inject Markdown links,
+highlight is limited to 300 characters. If Doctor supplies no highlight for a
+whole-object removal, the report shows its changed path and property. Spec text cannot inject Markdown links,
 HTML, or mentions. Counts use the same JSONPath + property deduplication as
 `summary`. Existing detailed Markdown and raw JSON reports do not change.
 

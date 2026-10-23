@@ -54,6 +54,17 @@ func generateCompactMarkdown(commits []*model.Commit, config *whatChangedModel.B
 			highlights = renderer.NewSemanticTreeRenderer(root, changes, &renderer.TreeConfig{
 				ColorScheme: terminal.NoColorScheme{},
 			}).Highlights(8)
+			// Whole-object removals can have no surviving tree node to highlight.
+			if len(highlights) == 0 {
+				for _, change := range changes {
+					if change != nil && change.Breaking {
+						highlights = append(highlights, "Breaking change: "+strings.TrimSpace(change.Path+" "+change.Property))
+						if len(highlights) == 8 {
+							break
+						}
+					}
+				}
+			}
 		}
 	}
 	return renderCompactMarkdown(outcome, highlights), outcome, nil
@@ -66,9 +77,9 @@ func renderCompactMarkdown(outcome compactOutcome, highlights []string) []byte {
 	case outcome.Total == 0:
 		sb.WriteString("No changes found.\n\n")
 	case outcome.Breaking == 0:
-		fmt.Fprintf(&sb, "**%d changes. No breaking changes found.**\n\n", outcome.Total)
+		fmt.Fprintf(&sb, "**Total changes: %d. No breaking changes found.**\n\n", outcome.Total)
 	default:
-		fmt.Fprintf(&sb, "**%d changes. %d breaking changes found.**\n\n", outcome.Total, outcome.Breaking)
+		fmt.Fprintf(&sb, "**Total changes: %d. Breaking changes: %d.**\n\n", outcome.Total, outcome.Breaking)
 	}
 	sb.WriteString("Counts are deduplicated by JSONPath + property.\n\n")
 	if len(highlights) > 0 {

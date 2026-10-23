@@ -21,7 +21,7 @@ func TestCompactReportPetstore(t *testing.T) {
 	report, outcome, err := generateCompactMarkdown(commits, nil)
 	require.NoError(t, err)
 	assert.Equal(t, compactOutcome{Total: 42, Breaking: 18}, outcome)
-	assert.Contains(t, string(report), "**42 changes. 18 breaking changes found.**")
+	assert.Contains(t, string(report), "**Total changes: 42. Breaking changes: 18.**")
 	assert.Contains(t, string(report), "### Breaking highlights")
 	assert.Contains(t, string(report), "https://pb33f.io/doctor/")
 	assert.NotContains(t, string(report), "Commit")
@@ -109,4 +109,19 @@ func TestCompactReportRejectsAliasedOutputs(t *testing.T) {
 	require.NoError(t, os.WriteFile(report, []byte("existing"), 0600))
 	require.NoError(t, os.Link(report, result))
 	require.Error(t, validateCompactOptions([]string{"a", "b"}, true, false, report, result))
+}
+
+func TestCompactReportHighlightsRemovedPath(t *testing.T) {
+	dir := t.TempDir()
+	left, right := filepath.Join(dir, "left.yaml"), filepath.Join(dir, "right.yaml")
+	header := "openapi: 3.0.3\ninfo: {title: Synthetic, version: 1.0.0}\n"
+	require.NoError(t, os.WriteFile(left, []byte(header+"paths:\n  /pets:\n    get:\n      responses:\n        '200': {description: OK}\n"), 0600))
+	require.NoError(t, os.WriteFile(right, []byte(header+"paths: {}\n"), 0600))
+	commits, err := loadLeftRightCommits(left, right, summaryOpts{})
+	require.NoError(t, err)
+	report, outcome, err := generateCompactMarkdown(commits, nil)
+	require.NoError(t, err)
+	assert.Equal(t, compactOutcome{Total: 1, Breaking: 1}, outcome)
+	assert.Contains(t, string(report), "### Breaking highlights")
+	assert.Contains(t, string(report), "&#47;pets")
 }
