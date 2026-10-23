@@ -63,19 +63,21 @@ runs:
         binary_dir="$(mktemp -d "$RUNNER_TEMP/openapi-changes-bin-XXXXXX")"
         cd "$ACTION_SOURCE"
         go build -trimpath -o "$binary_dir/openapi-changes" .
+        go build -trimpath -o "$binary_dir/openapi-changes-action" ./action
         echo "binary=$binary_dir/openapi-changes" >> "$GITHUB_OUTPUT"
+        echo "runner=$binary_dir/openapi-changes-action" >> "$GITHUB_OUTPUT"
     - name: Compare specifications
       id: compare
       shell: bash
       env:
-        ACTION_SOURCE: ${{ github.action_path }}
+        ACTION_RUNNER: ${{ steps.build.outputs.runner }}
         OPENAPI_CHANGES_BINARY: ${{ steps.build.outputs.binary }}
         INPUT_SPEC: ${{ inputs.spec }}
         INPUT_BASE: ${{ inputs.base }}
         INPUT_HEAD: ${{ inputs.head }}
         INPUT_BREAKING_RULES: ${{ inputs.breaking-rules }}
         INPUT_FAIL_ON: ${{ inputs.fail-on }}
-      run: python3 "$ACTION_SOURCE/action/compare.py"
+      run: '"$ACTION_RUNNER"'
     - name: Upload reports
       if: ${{ always() && steps.compare.outputs.artifact-path != '' }}
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
