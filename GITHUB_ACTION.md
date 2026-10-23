@@ -28,7 +28,7 @@ Replace `<FULL_COMMIT_SHA>` with a reviewed commit that contains `action.yml`.
 The Action builds the CLI from that same revision, with the Go version and
 modules in its `go.mod`. The first run needs time to download and compile them.
 It does not build or execute code from the repository being compared.
-Linux runners need git and Python 3; `ubuntu-latest` includes both.
+Linux runners need git. The Action builds its Go runner with the CLI.
 
 Use `pull_request`, including for fork PRs. Do not use `pull_request_target` to
 run code from a PR. Keep `contents: read` and `persist-credentials: false`.

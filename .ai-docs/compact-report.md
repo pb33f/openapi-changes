@@ -40,3 +40,9 @@ error with a breaking change. Result and report paths must differ.
 No account, upload, private repository metadata, or platform token is needed.
 The Doctor link opens its normal entry page. It does not transfer reports or
 open a workspace-specific comparison.
+
+The GitHub Action builds `action/main.go` as a separate Go runner alongside the
+CLI. The runner selects revisions, invokes the existing report commands, writes
+workflow outputs, and records the policy result. Its Go integration tests use
+the real CLI and synthetic git revisions. No additional scripting runtime is
+required.
