@@ -34,6 +34,8 @@ func bridgeRunChangerator(commit *model.Commit, breakingConfig *whatChangedModel
 	}
 	result, err := runChangerator(comparison, breakingConfig)
 	commit.OldData = comparison.OldData
+	commit.Specification = comparison.Specification
+	commit.OriginalRevision = comparison.OriginalRevision
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -45,13 +47,28 @@ func bridgeRunChangerator(commit *model.Commit, breakingConfig *whatChangedModel
 	return result.Changerator, root, releaseFn, nil
 }
 
-func hasRenderableDocuments(commits []*model.Commit) bool {
+func hasRenderableDocuments(commits []*model.Commit) (bool, error) {
 	for _, commit := range commits {
 		if commit.Comparable() {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	for _, commit := range commits {
+		// A lazy source with no baseline still needs validation before we can
+		// report that this is the first version of the specification.
+		if commit != nil && commit.Source != nil {
+			prepared, release, err := commit.PrepareHistory()
+			if err != nil {
+				return false, wrapCommitError(commit, err)
+			}
+			comparable := prepared.Comparable()
+			release()
+			if comparable {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 func wrapConsoleStartError(err error) error {
@@ -88,8 +105,12 @@ func GetConsoleCommand() *cobra.Command {
 				return nil
 			}
 
-			if !hasRenderableDocuments(input.Commits) {
-				printNoChangesText()
+			renderable, err := hasRenderableDocuments(input.Commits)
+			if err != nil {
+				return err
+			}
+			if !renderable {
+				printNoPriorVersionText()
 				return nil
 			}
 

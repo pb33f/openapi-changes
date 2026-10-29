@@ -80,8 +80,12 @@ func TestHasRenderableDocuments(t *testing.T) {
 		{Hash: "a"},
 		{Hash: "b", Document: doc, OldDocument: doc},
 	}
-	assert.True(t, hasRenderableDocuments(commits))
-	assert.False(t, hasRenderableDocuments([]*model.Commit{{Hash: "c"}}))
+	renderable, err := hasRenderableDocuments(commits)
+	require.NoError(t, err)
+	assert.True(t, renderable)
+	renderable, err = hasRenderableDocuments([]*model.Commit{{Hash: "c"}})
+	require.NoError(t, err)
+	assert.False(t, renderable)
 }
 
 func TestWrapConsoleStartError(t *testing.T) {

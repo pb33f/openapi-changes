@@ -51,6 +51,7 @@ type ConsoleModel struct {
 	// Data
 	commits     []*model.Commit
 	cache       *commitCache
+	counts      map[string]commitCounts
 	breakingCfg *whatChangedModel.BreakingRulesConfig
 	runFn       RunChangeratorFn
 
@@ -80,6 +81,9 @@ type ConsoleModel struct {
 	palette terminal.Palette
 }
 
+// commitCounts survives graph eviction without retaining a comparison report.
+type commitCounts struct{ total, breaking int }
+
 // RunChangeratorFn is the function signature for running the changerator.
 // This is injected from the cmd package to avoid import cycles.
 type RunChangeratorFn func(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*changerator.Changerator, *v3.Node, func(), error)
@@ -101,6 +105,7 @@ func NewConsoleModel(commits []*model.Commit, breakingConfig *whatChangedModel.B
 	m := ConsoleModel{
 		commits:     commits,
 		cache:       newCommitCache(3),
+		counts:      make(map[string]commitCounts),
 		breakingCfg: breakingConfig,
 		runFn:       runFn,
 		styles:      styles,
@@ -114,7 +119,7 @@ func NewConsoleModel(commits []*model.Commit, breakingConfig *whatChangedModel.B
 	m.focus = FocusTree
 
 	// Build commit table (default width, resized on first WindowSizeMsg)
-	m.commitTable = buildCommitTable(commits, 120, 0, styles)
+	m.commitTable = buildCommitTable(commits, 120, 0, styles, m.counts)
 
 	// Initialize tree with placeholder height (will be recalculated on WindowSizeMsg)
 	m.tree = newTreeModel(nil, 20)
@@ -287,7 +292,7 @@ func (m *ConsoleModel) recalculateLayout() {
 	if !m.singleCommit {
 		tableContent := m.tableHeight() - 2
 		m.commitTable.SetHeight(tableContent - 1) // -1 more for header row
-		resizeCommitTable(&m.commitTable, m.commits, m.highlightedIdx, m.width, m.styles)
+		resizeCommitTable(&m.commitTable, m.commits, m.highlightedIdx, m.width, m.styles, m.counts)
 	}
 
 	bottomH := m.bottomHeight()
@@ -415,12 +420,26 @@ func (m *ConsoleModel) loadActiveCommit() {
 	}
 	if ctr == nil {
 		m.emptyState = "No changes detected in this commit"
+		if commit.Comparable() {
+			m.counts[commit.Hash] = commitCounts{}
+			m.refreshCommitRows()
+		} else {
+			m.emptyState = "No prior version to compare against"
+		}
 		m.tree = newTreeModel(nil, m.tree.height)
 		m.showDiff = false
 		m.diffSummary = ""
 		m.diffSummaryH = 0
 		return
 	}
+	var counts commitCounts
+	if ctr.ChangeReport != nil {
+		counts = commitCounts{ctr.ChangeReport.TotalChanges(), ctr.ChangeReport.TotalBreakingChanges()}
+	} else if ctr.Config != nil && ctr.Config.DocumentChanges != nil {
+		counts = commitCounts{ctr.Config.DocumentChanges.TotalChanges(), ctr.Config.DocumentChanges.TotalBreakingChanges()}
+	}
+	m.counts[commit.Hash] = counts
+	m.refreshCommitRows()
 
 	// Build node change tree
 	ctr.BuildNodeChangeTree(root)
@@ -445,6 +464,10 @@ func (m *ConsoleModel) loadActiveCommit() {
 	}
 	m.cache.put(commit.Hash, entry)
 	m.applyCache(entry)
+}
+
+func (m *ConsoleModel) refreshCommitRows() {
+	m.commitTable.SetRows(buildCommitRows(m.commits, m.highlightedIdx, m.styles, m.counts))
 }
 
 func (m *ConsoleModel) applyCache(entry *cacheEntry) {
@@ -475,7 +498,7 @@ func (m *ConsoleModel) selectHighlightedCommit() {
 		return
 	}
 	m.highlightedIdx = row
-	m.commitTable.SetRows(buildCommitRows(m.commits, m.highlightedIdx, m.styles))
+	m.refreshCommitRows()
 	if row == m.activeIdx {
 		return // already loaded
 	}
@@ -670,10 +693,10 @@ func innerWidth(termWidth int) int {
 
 // buildCommitTable creates a bubbles table from the commit list.
 // Message column fills all remaining width inside the border panel.
-func buildCommitTable(commits []*model.Commit, termWidth int, highlightedIdx int, styles consoleStyles) table.Model {
+func buildCommitTable(commits []*model.Commit, termWidth int, highlightedIdx int, styles consoleStyles, counts map[string]commitCounts) table.Model {
 	iw := innerWidth(termWidth)
 	cols := commitColumns(iw)
-	rows := buildCommitRows(commits, highlightedIdx, styles)
+	rows := buildCommitRows(commits, highlightedIdx, styles, counts)
 
 	t := table.New(
 		table.WithColumns(cols),
@@ -688,10 +711,10 @@ func buildCommitTable(commits []*model.Commit, termWidth int, highlightedIdx int
 }
 
 // resizeCommitTable updates column widths and styles to fill the new terminal width.
-func resizeCommitTable(t *table.Model, commits []*model.Commit, highlightedIdx int, termWidth int, styles consoleStyles) {
+func resizeCommitTable(t *table.Model, commits []*model.Commit, highlightedIdx int, termWidth int, styles consoleStyles, counts map[string]commitCounts) {
 	iw := innerWidth(termWidth)
 	t.SetColumns(commitColumns(iw))
-	t.SetRows(buildCommitRows(commits, highlightedIdx, styles))
+	t.SetRows(buildCommitRows(commits, highlightedIdx, styles, counts))
 	t.SetWidth(iw)
 	t.SetStyles(commitTableStyles(iw, styles))
 }
@@ -710,7 +733,7 @@ func commitColumns(iw int) []table.Column {
 	}
 }
 
-func buildCommitRows(commits []*model.Commit, highlightedIdx int, styles consoleStyles) []table.Row {
+func buildCommitRows(commits []*model.Commit, highlightedIdx int, styles consoleStyles, counts map[string]commitCounts) []table.Row {
 	rows := make([]table.Row, 0, len(commits))
 	for i, c := range commits {
 		date := c.CommitDate.Format("01/02/06")
@@ -721,7 +744,10 @@ func buildCommitRows(commits []*model.Commit, highlightedIdx int, styles console
 		}
 		changes := "-"
 		breaking := "-"
-		if c.Changes != nil {
+		if count, ok := counts[c.Hash]; ok {
+			changes = fmt.Sprint(count.total)
+			breaking = fmt.Sprint(count.breaking)
+		} else if c.Changes != nil {
 			changes = fmt.Sprint(c.Changes.TotalChanges())
 			breaking = fmt.Sprint(c.Changes.TotalBreakingChanges())
 		}

@@ -4,10 +4,12 @@
 package v2
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/pb33f/doctor/changerator"
 	v3 "github.com/pb33f/doctor/model/high/v3"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
@@ -373,11 +375,57 @@ func TestCacheHit_ReusesResult(t *testing.T) {
 
 func TestEmptyChangerator_ShowsMessage(t *testing.T) {
 	commits := makeTestCommits()
+	commits[0].Source = &model.HistorySource{}
+	commits[0].OldData = commits[1].Data
 	runFn := func(_ *model.Commit, _ *whatChangedModel.BreakingRulesConfig) (*changerator.Changerator, *v3.Node, func(), error) {
 		return nil, nil, nil, nil
 	}
 	m := NewConsoleModel(commits, nil, true, "test", runFn)
 	assert.Equal(t, "No changes detected in this commit", m.emptyState)
+	assert.Equal(t, "0", strings.TrimSpace(ansi.Strip(m.commitTable.Rows()[0][3])))
+	assert.Equal(t, "0", strings.TrimSpace(ansi.Strip(m.commitTable.Rows()[0][4])))
+}
+
+func TestConsoleCountsSurviveGraphEviction(t *testing.T) {
+	commits := makeTestCommits()
+	calls, released := 0, 0
+	runFn := func(_ *model.Commit, _ *whatChangedModel.BreakingRulesConfig) (*changerator.Changerator, *v3.Node, func(), error) {
+		calls++
+		ctr := changerator.NewChangerator(&changerator.ChangeratorConfig{})
+		ctr.ChangeReport = changerator.ChangeList{
+			{ChangeType: whatChangedModel.Modified, Property: "title"},
+			{ChangeType: whatChangedModel.PropertyRemoved, Property: "address", Breaking: true},
+		}
+		return ctr, nil, func() { released++ }, nil
+	}
+	m := NewConsoleModel(commits, nil, true, "test", runFn)
+	defer m.cache.releaseAll()
+	require.Equal(t, 1, calls, "only the selected revision is compared")
+	rows := m.commitTable.Rows()
+	assert.Equal(t, "2", strings.TrimSpace(ansi.Strip(rows[0][3])))
+	assert.Equal(t, "1", strings.TrimSpace(ansi.Strip(rows[0][4])))
+	assert.Equal(t, "-", strings.TrimSpace(ansi.Strip(rows[1][3])))
+	m.cache.maxSize = 1
+	m.activeIdx = 1
+	m.loadActiveCommit()
+	require.Equal(t, 1, released, "the first comparison graph must be released")
+	m.width = 140
+	m.recalculateLayout()
+	assert.Equal(t, "2", strings.TrimSpace(ansi.Strip(m.commitTable.Rows()[0][3])))
+	assert.Equal(t, "1", strings.TrimSpace(ansi.Strip(m.commitTable.Rows()[0][4])))
+	m.loadActiveCommit()
+	assert.Equal(t, 2, calls, "a cache hit or resize must not compare again")
+	assert.Nil(t, commits[0].Changes)
+	assert.Nil(t, commits[0].ChangeReport)
+}
+
+func TestConsoleFirstRevisionIsNotUnchanged(t *testing.T) {
+	runFn := func(_ *model.Commit, _ *whatChangedModel.BreakingRulesConfig) (*changerator.Changerator, *v3.Node, func(), error) {
+		return nil, nil, nil, nil
+	}
+	m := NewConsoleModel(makeTestCommits(), nil, true, "test", runFn)
+	assert.Equal(t, "No prior version to compare against", m.emptyState)
+	assert.Equal(t, "-", strings.TrimSpace(ansi.Strip(m.commitTable.Rows()[0][3])))
 }
 
 func TestCodeModal_ModifiedChange_ShowsNewSpec(t *testing.T) {
