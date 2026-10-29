@@ -1,14 +1,70 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	v3 "github.com/pb33f/doctor/model/high/v3"
+	htmlReport "github.com/pb33f/openapi-changes/html-report"
 	"github.com/pb33f/testify/require"
 )
+
+func TestAsyncAPIHTMLExplorerConnectivityAndCounts(t *testing.T) {
+	commits, err := loadLeftRightCommits("../sample-specs/asyncapi-original.yaml", "../sample-specs/asyncapi.yaml", summaryOpts{})
+	require.NoError(t, err)
+	items, err := buildHTMLReportItems(commits, nil)
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+	item := items[0]
+	require.Equal(t, 5, item.Summary.TotalChanges)
+	require.Equal(t, 4, item.Summary.BreakingChanges)
+	for _, graph := range []*htmlReport.GraphData{item.Graph, item.ExplorerGraph} {
+		require.NotNil(t, graph)
+		var nodes []struct {
+			ID       string            `json:"id"`
+			ParentID string            `json:"parentId"`
+			Timeline []json.RawMessage `json:"timeline"`
+			Subtree  *v3.ChangeSummary `json:"subtreeChanges"`
+		}
+		var edges []*v3.Edge
+		require.NoError(t, json.Unmarshal(graph.Nodes, &nodes))
+		require.NoError(t, json.Unmarshal(graph.Edges, &edges))
+		ids := make(map[string]bool, len(nodes))
+		for _, node := range nodes {
+			ids[node.ID] = true
+			if node.ID == "$.components.schemas.Order.properties.id" {
+				require.Len(t, node.Timeline, 1, "one edit must produce one detail row")
+			}
+			if graph.Mode == "change" && node.ID == "root" {
+				require.NotNil(t, node.Subtree)
+				require.Equal(t, item.Summary.TotalChanges, node.Subtree.Total)
+				require.Equal(t, item.Summary.BreakingChanges, node.Subtree.Breaking)
+			}
+		}
+		require.Contains(t, ids, "$.components.schemas.Order.properties.id")
+		pairs := make(map[string]bool, len(edges))
+		edgeIDs := make(map[string]bool, len(edges))
+		for _, edge := range edges {
+			require.NotEmpty(t, edge.Id)
+			require.False(t, edgeIDs[edge.Id], "duplicate edge ID")
+			edgeIDs[edge.Id] = true
+			require.Len(t, edge.Sources, 1)
+			require.Len(t, edge.Targets, 1)
+			require.Contains(t, ids, edge.Sources[0])
+			require.Contains(t, ids, edge.Targets[0])
+			pairs[edge.Sources[0]+" -> "+edge.Targets[0]] = true
+		}
+		for _, node := range nodes {
+			if node.ParentID != "" {
+				require.True(t, pairs[node.ParentID+" -> "+node.ID], "disconnected node: %s", node.ID)
+			}
+		}
+	}
+}
 
 func TestAsyncAPIHTMLPreservesAliasBounds(t *testing.T) {
 	var source strings.Builder

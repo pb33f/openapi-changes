@@ -57,6 +57,12 @@ Channels also use the hash icon in the report statistics. JSONPaths remain
 machine identities; the human report uses object names and nested message,
 payload, variable, tag and example labels.
 
+Both serialized graphs include parent-child edges with stable IDs. The explorer
+filters those edges with its changed-node tree, so every retained child stays
+connected. Reference edges preserve authored targets. Shared definition edits
+appear once in node timelines and detail rows; distinct edits to a property
+remain visible. The native machine-readable change list remains raw.
+
 ## Verification
 
 Keep the canonical petstore totals unchanged: summary 42 changes / 18 breaking;
