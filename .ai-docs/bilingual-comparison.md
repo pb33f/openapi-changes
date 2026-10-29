@@ -46,6 +46,11 @@ with `kind`, `originalVersion`, and `modifiedVersion`; direct reports continue
 to omit synthetic git metadata. HTML items have the same additive metadata and
 retain the unpruned graph for the document and explorer views.
 
+The shared UI renders native AsyncAPI document labels and send/receive actions.
+Channels use hash icons in the document tree and explorer. Icons are embedded
+in the offline report bundle; the UI dependency is pinned to a reviewed Git
+commit until the corresponding package release.
+
 ## Verification
 
 Keep the canonical petstore totals unchanged: summary 42 changes / 18 breaking;
