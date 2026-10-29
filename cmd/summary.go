@@ -290,9 +290,10 @@ func renderSummaryWithTheme(
 	renderedCommits := 0
 	treeRendered := false
 	var renderErrors []error
+	noPriorVersion := false
 
 	for c, commit := range commits {
-		if !commit.Comparable() {
+		if commit == nil {
 			continue
 		}
 
@@ -305,6 +306,8 @@ func renderSummaryWithTheme(
 		if result == nil {
 			if commit.Comparable() {
 				renderedCommits++
+			} else if commit.Source != nil {
+				noPriorVersion = true
 			}
 			if commit.Comparable() && !isDirectFileComparison(commits) && totalChanges == 0 && c+1 < len(commits) {
 				baseline := commit.OriginalRevision
@@ -458,6 +461,9 @@ func renderSummaryWithTheme(
 	}
 	if !hasChanges && len(renderErrors) == 0 {
 		if sb.Len() == 0 {
+			if renderedCommits == 0 && noPriorVersion {
+				return noPriorVersionMessage + "\n", false, false, nil
+			}
 			return noChangesFoundMessage + "\n", false, false, nil
 		}
 		return sb.String(), false, false, nil

@@ -33,6 +33,11 @@ identity are preserved. Failed candidate revisions still reach the existing
 warning and JSON `metaData.partial/skippedCommits` handling. A successful
 unchanged pair counts as success. The console disables idle model retention;
 its existing bounded result cache owns and releases each comparison pair.
+The console stores only scalar total/breaking counts outside that cache. Counts
+appear after a revision is visited and survive graph eviction; unvisited and
+baseline-only revisions show `-`, while unchanged comparisons show zero.
+Summary and console validate lazy first revisions before reporting that no prior
+version exists. A malformed first revision fails instead of reporting no changes.
 
 The JSON flattening boundary drops model-only object pointers and copies only
 commit metadata. It preserves semantic paths, rawPath when normalized, and the
