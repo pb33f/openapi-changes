@@ -51,6 +51,12 @@ Channels use hash icons in the document tree and explorer. Icons are embedded
 in the offline report bundle; the UI dependency is pinned to a reviewed Git
 commit until the corresponding package release.
 
+HTML and Markdown use doctor's native AsyncAPI report traversal with the same
+section levels, object headings, separators and change formatting as OpenAPI.
+Channels also use the hash icon in the report statistics. JSONPaths remain
+machine identities; the human report uses object names and nested message,
+payload, variable, tag and example labels.
+
 ## Verification
 
 Keep the canonical petstore totals unchanged: summary 42 changes / 18 breaking;
