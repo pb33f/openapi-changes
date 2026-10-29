@@ -24,6 +24,7 @@ const (
 
 // summaryOpts holds the flags shared by the current doctor-based command family.
 type summaryOpts struct {
+	rules           *model.ComparisonRules
 	noColor         bool
 	tektronix       bool
 	markdown        bool
@@ -201,11 +202,13 @@ func prepareCommandRun(
 		return nil, fmt.Errorf("too many arguments provided, expecting at most two (2)")
 	}
 
-	breakingConfig, err := LoadBreakingRulesConfig(configFlag)
+	rules, err := loadComparisonRules(configFlag)
 	if err != nil {
 		PrintConfigError(err, opts.palette)
 		return nil, err
 	}
+	opts.rules = rules
+	breakingConfig := rules.OpenAPI
 
 	commits, err := loadCommitsFromArgs(args, opts, breakingConfig)
 	if err != nil {

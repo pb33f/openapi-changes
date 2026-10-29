@@ -5,9 +5,11 @@ package git
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	doctorgithub "github.com/pb33f/doctor/github"
@@ -155,6 +157,26 @@ func ProcessGithubRepoDetailed(username, repo, filePath string,
 	model.SendProgressUpdate("git",
 		fmt.Sprintf("fetched %d github revisions", len(revisions)), true, progressChan)
 
+	opts.ReadRevision = func(_, revision, path string) ([]byte, error) {
+		service := newGitHubService()
+		files, ok := service.(doctorgithub.FileService)
+		if !ok {
+			return nil, fmt.Errorf("GitHub service cannot read revision references")
+		}
+		session := service.CreateSessionWithOptionalToken(os.Getenv(GithubToken), config)
+		if session == nil {
+			return nil, fmt.Errorf("failed to create GitHub reference session")
+		}
+		defer session.Close()
+		file, err := files.GetFileContent(context.Background(), session, username, repo, path, revision)
+		if err != nil {
+			return nil, err
+		}
+		if file.Encoding == "base64" {
+			return base64.StdEncoding.DecodeString(strings.ReplaceAll(file.Content, "\n", ""))
+		}
+		return []byte(file.Content), nil
+	}
 	commitHistory, errs := convertGitHubRevisionsIntoModelDetailed(revisions, filePath, progressChan, errorChan, opts, breakingConfig)
 	if errs != nil {
 		for _, err := range errs {
