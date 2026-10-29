@@ -19,8 +19,8 @@ var (
 	rootCmd = &cobra.Command{
 		SilenceUsage: true,
 		Use:          "openapi-changes",
-		Short:        "Detect and explore changes between OpenAPI / Swagger specifications.",
-		Long: `openapi-changes can detect every change found in an OpenAPI specification.
+		Short:        "Detect and explore changes between OpenAPI and AsyncAPI specifications.",
+		Long: `openapi-changes detects changes within OpenAPI or AsyncAPI 3.x specifications.
 	it can compare between two files, or a single file, over time.
 
 	The comparison and reporting commands use the current doctor-based engine.`,

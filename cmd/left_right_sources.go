@@ -16,7 +16,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pb33f/doctor/terminal"
-	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel"
 	"github.com/pb33f/libopenapi/index"
 	"github.com/pb33f/openapi-changes/git"
@@ -253,17 +252,22 @@ func attachLazyLocalFS(docConfig *datamodel.DocumentConfiguration) error {
 }
 
 func buildLeftRightCommit(left, right comparisonSource) (*model.Commit, error) {
-	leftDoc, err := libopenapi.NewDocumentWithConfiguration(left.RootBytes, left.DocConfig)
+	leftDoc, leftAsync, err := model.ParseSpecification(left.RootBytes, left.DocConfig)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse original document '%s': %w", left.Display, err)
 	}
-	rightDoc, err := libopenapi.NewDocumentWithConfiguration(right.RootBytes, right.DocConfig)
+	rightDoc, rightAsync, err := model.ParseSpecification(right.RootBytes, right.DocConfig)
 	if err != nil {
-		leftDoc.Release()
+		if leftDoc != nil {
+			leftDoc.Release()
+		}
 		return nil, fmt.Errorf("unable to parse modified document '%s': %w", right.Display, err)
 	}
 
 	var rewriters []model.DocumentPathRewriter
+	if (leftAsync == nil) != (rightAsync == nil) {
+		return nil, fmt.Errorf("cannot compare OpenAPI and AsyncAPI documents")
+	}
 	if left.RewriteDocumentPath != nil {
 		rewriters = append(rewriters, left.RewriteDocumentPath)
 	}
@@ -279,6 +283,8 @@ func buildLeftRightCommit(left, right comparisonSource) (*model.Commit, error) {
 		Data:              right.RootBytes,
 		OldDocument:       leftDoc,
 		Document:          rightDoc,
+		OldAsyncDocument:  leftAsync,
+		AsyncDocument:     rightAsync,
 		OriginalSource:    left.Display,
 		ModifiedSource:    right.Display,
 		Synthetic:         true,
@@ -303,5 +309,7 @@ func buildLeftRightCommitAndSources(left, right string, opts summaryOpts) (*mode
 	if err != nil {
 		return nil, err
 	}
+	commit.Rules = opts.rules
+	commit.SetSpecification()
 	return commit, nil
 }

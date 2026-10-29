@@ -136,6 +136,7 @@ func loadGitHubCommitsDetailed(rawURL string, opts summaryOpts, breakingConfig *
 	d := makeProgressDrainer()
 	result, errs := processGithubRepoDetailed(user, repo, filePath,
 		d.ProgressChan, d.ErrorChan, git.HistoryOptions{
+			Lazy:           true,
 			BaseCommit:     opts.baseCommit,
 			Limit:          opts.limit,
 			LimitTime:      opts.limitTime,
@@ -152,6 +153,9 @@ func loadGitHubCommitsDetailed(rawURL string, opts summaryOpts, breakingConfig *
 		return nil, nil
 	}
 	commits := result.Commits
+	for _, commit := range commits {
+		commit.Rules = opts.rules
+	}
 	if opts.latest && len(commits) > 1 {
 		commits = commits[:1]
 	}
@@ -207,6 +211,7 @@ func loadGitHistoryCommitsDetailed(gitPath, filePath string, opts summaryOpts, b
 			Remote:         opts.remote,
 			ExtRefs:        opts.extRefs,
 			KeepComparable: true,
+			Lazy:           true,
 		}, breakingConfig)
 	if err := populateDrainer.collectErrors(errs); err != nil {
 		return nil, err
@@ -216,6 +221,9 @@ func loadGitHistoryCommitsDetailed(gitPath, filePath string, opts summaryOpts, b
 		return nil, nil
 	}
 	commits = result.Commits
+	for _, commit := range commits {
+		commit.Rules = opts.rules
+	}
 	if len(commits) == 0 {
 		return &loadedHistoryResult{SkippedCommits: result.SkippedCommits}, nil
 	}

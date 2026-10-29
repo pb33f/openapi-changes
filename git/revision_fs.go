@@ -24,12 +24,13 @@ import (
 var revisionFSReadFileAtRevision = ReadFileAtRevision
 
 type GitRevisionFS struct {
-	repoRoot    string
-	baseDir     string
-	revision    string
-	indexConfig *index.SpecIndexConfig
-	logger      *slog.Logger
-	rolodex     *index.Rolodex
+	readRevision func(repo, revision, path string) ([]byte, error)
+	repoRoot     string
+	baseDir      string
+	revision     string
+	indexConfig  *index.SpecIndexConfig
+	logger       *slog.Logger
+	rolodex      *index.Rolodex
 
 	files      sync.Map
 	processing sync.Map
@@ -170,7 +171,11 @@ func (g *GitRevisionFS) Open(name string) (fs.File, error) {
 		return nil, wait.err
 	}
 
-	data, err := revisionFSReadFileAtRevision(g.repoRoot, g.revision, relPath)
+	read := g.readRevision
+	if read == nil {
+		read = revisionFSReadFileAtRevision
+	}
+	data, err := read(g.repoRoot, g.revision, relPath)
 	if err != nil {
 		wait.err = err
 		return nil, err

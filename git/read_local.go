@@ -201,6 +201,9 @@ func buildCommitChangelogDetailed(commitHistory []*model.Commit,
 	progressChan chan *model.ProgressUpdate, errorChan chan model.ProgressError,
 	opts HistoryOptions, breakingConfig *whatChangedModel.BreakingRulesConfig,
 ) (*HistoryBuildResult, []error) {
+	if opts.Lazy {
+		return buildHistorySources(commitHistory, opts)
+	}
 	var changeErrors []error
 	var cleaned []*model.Commit
 	var skippedCommits []string
@@ -208,10 +211,8 @@ func buildCommitChangelogDetailed(commitHistory []*model.Commit,
 	comparableCount := 0
 
 	// apply breaking rules configuration before comparisons
-	if breakingConfig != nil {
-		breakingrules.Apply(breakingConfig)
-		defer breakingrules.Reset()
-	}
+	releaseRules := breakingrules.Acquire(breakingConfig)
+	defer releaseRules()
 
 	// create a new document config and set to default closed state,
 	// enable it if the user has specified a base url or a path.

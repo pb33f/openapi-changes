@@ -20,16 +20,18 @@ import (
 // compactOutcome is written only after a complete direct comparison.
 // Counts use the same semantic identity as the human summary.
 type compactOutcome struct {
+	async    bool
 	Total    int `json:"total"`
 	Breaking int `json:"breaking"`
 }
 
 func generateCompactMarkdown(commits []*model.Commit, config *whatChangedModel.BreakingRulesConfig) ([]byte, compactOutcome, error) {
 	var outcome compactOutcome
-	if len(commits) != 1 || commits[0] == nil || !commits[0].Synthetic || commits[0].Document == nil || commits[0].OldDocument == nil {
+	if len(commits) != 1 || commits[0] == nil || !commits[0].Synthetic || !commits[0].Comparable() {
 		return nil, outcome, errors.New("compact report requires one complete direct comparison")
 	}
 	result, err := runChangerator(commits[0], config)
+	outcome.async = commits[0].APILabel() == "AsyncAPI"
 	if err != nil {
 		return nil, outcome, err
 	}
@@ -48,7 +50,7 @@ func generateCompactMarkdown(commits []*model.Commit, config *whatChangedModel.B
 				}
 			}
 			if root == nil {
-				root = result.RightDrDoc.V3Document.Node
+				root = result.root()
 			}
 			result.Changerator.BuildNodeChangeTree(root)
 			highlights = renderer.NewSemanticTreeRenderer(root, changes, &renderer.TreeConfig{
@@ -72,7 +74,11 @@ func generateCompactMarkdown(commits []*model.Commit, config *whatChangedModel.B
 
 func renderCompactMarkdown(outcome compactOutcome, highlights []string) []byte {
 	var sb strings.Builder
-	sb.WriteString("## OpenAPI changes\n\n")
+	label := "OpenAPI"
+	if outcome.async {
+		label = "AsyncAPI"
+	}
+	sb.WriteString("## " + label + " changes\n\n")
 	switch {
 	case outcome.Total == 0:
 		sb.WriteString("No changes found.\n\n")

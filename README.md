@@ -9,7 +9,7 @@
 
 ## The world's **_most powerful and complete_** OpenAPI diff tool.
 
-`openapi-changes` lets you inspect what changed in an OpenAPI specification between two files,
+`openapi-changes` lets you inspect what changed in an OpenAPI or AsyncAPI 3.x specification between two files,
 between git revisions of the same file, across local git history, or directly from a GitHub-hosted file URL.
 
 It can render the same semantic change model as:
@@ -19,6 +19,41 @@ It can render the same semantic change model as:
 - a machine-readable JSON report
 - a markdown report
 - a self-contained offline HTML report
+
+The same commands accept both formats, including git history and revision-scoped
+references. Each comparison must use the same format on both sides. AsyncAPI 2.x
+and mixed OpenAPI/AsyncAPI comparisons are rejected.
+
+```sh
+openapi-changes summary previous-asyncapi.yaml asyncapi.yaml
+openapi-changes report HEAD~1:asyncapi.yaml HEAD:asyncapi.yaml
+openapi-changes html-report --report-file changes.html previous-asyncapi.yaml asyncapi.yaml
+```
+
+Existing breaking-rule files retain their OpenAPI meaning. To configure both
+engines, use named sections:
+
+```yaml
+openapiRules:
+  info:
+    description:
+      modified: false
+asyncapiRules:
+  channel:
+    address:
+      modified: true
+  multiFormatSchema:
+    modified: true
+schemaRules:
+  schema:
+    description:
+      modified: false
+```
+
+`schemaRules` applies to JSON Schemas in AsyncAPI. Foreign schema languages are
+compared as opaque content; changing their format or content is breaking by
+default. JSON and HTML report items include format and version metadata in
+`specification`. Human counts remain deduplicated; JSON retains raw changes.
 
 It works well for local exploration, CI/CD checks, release notes, and API review workflows.
 

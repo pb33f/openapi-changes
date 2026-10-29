@@ -85,16 +85,17 @@ type ReportPayload struct {
 
 // ReportItem represents a single commit/comparison in the report.
 type ReportItem struct {
-	ChangeId            string         `json:"changeId"`
-	Graph               *GraphData     `json:"graph"`
-	ExplorerGraph       *GraphData     `json:"explorerGraph,omitempty"`
-	Summary             *SummaryData   `json:"summary"`
-	HtmlReport          string         `json:"htmlReport"`
-	OriginalSpec        string         `json:"originalSpec"`
-	ModifiedSpec        string         `json:"modifiedSpec"`
-	OriginalHighlighted map[int]string `json:"originalHighlighted,omitempty"`
-	ModifiedHighlighted map[int]string `json:"modifiedHighlighted,omitempty"`
-	Commit              *CommitInfo    `json:"commit"`
+	Specification       *model.ComparisonSpecification `json:"specification,omitempty"`
+	ChangeId            string                         `json:"changeId"`
+	Graph               *GraphData                     `json:"graph"`
+	ExplorerGraph       *GraphData                     `json:"explorerGraph,omitempty"`
+	Summary             *SummaryData                   `json:"summary"`
+	HtmlReport          string                         `json:"htmlReport"`
+	OriginalSpec        string                         `json:"originalSpec"`
+	ModifiedSpec        string                         `json:"modifiedSpec"`
+	OriginalHighlighted map[int]string                 `json:"originalHighlighted,omitempty"`
+	ModifiedHighlighted map[int]string                 `json:"modifiedHighlighted,omitempty"`
+	Commit              *CommitInfo                    `json:"commit"`
 }
 
 // highlightSpecLines uses Chroma to syntax-highlight each line of a spec,
@@ -225,7 +226,7 @@ const (
 func BuildReportItem(
 	commit *model.Commit,
 	result *changerator.Changerator,
-	docChanges *whatChangedModel.DocumentChanges,
+	docChanges what_changed.Changed,
 	rightDrDoc *drModel.DrDocument,
 	changeId string,
 ) (*ReportItem, error) {
@@ -254,7 +255,7 @@ func BuildReportItem(
 	htmlConfig.HTML.EnableNestedListFix = true
 	htmlRenderer := renderer.NewHTMLRenderer(htmlConfig)
 	htmlReport, err := htmlRenderer.RenderHTML(&renderer.RenderInput{
-		DocumentChanges:     docChanges,
+		ChangeReport:        docChanges,
 		Doctor:              rightDrDoc,
 		RightDocContent:     commit.Data,
 		Config:              htmlConfig,
@@ -266,7 +267,16 @@ func BuildReportItem(
 
 	result.ClearContextCache()
 	drModel.SanitizeGraph(result.ChangedNodes, nil)
-	graphMap := rightDrDoc.BuildGraphMap()
+	graphMap := make(map[int]string)
+	if rightDrDoc != nil {
+		graphMap = rightDrDoc.BuildGraphMap()
+	} else {
+		for _, node := range result.ChangedNodes {
+			if node.ValueLine > 0 {
+				graphMap[node.ValueLine] = node.Id
+			}
+		}
+	}
 
 	standardGraph, err := buildGraphData(
 		graphModeStandard,
@@ -299,6 +309,7 @@ func BuildReportItem(
 	}
 
 	item := &ReportItem{
+		Specification:       commit.Specification,
 		ChangeId:            changeId,
 		Graph:               standardGraph,
 		ExplorerGraph:       explorerGraph,

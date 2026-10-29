@@ -13,6 +13,8 @@ import (
 	drModel "github.com/pb33f/doctor/model"
 	v3 "github.com/pb33f/doctor/model/high/v3"
 	"github.com/pb33f/go-yaml"
+	asyncRules "github.com/pb33f/libasyncapi/what-changed/model"
+	whatChanged "github.com/pb33f/libopenapi/what-changed"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/internal/breakingrules"
 	"github.com/pb33f/openapi-changes/model"
@@ -23,13 +25,29 @@ import (
 // Callers must call Release() exactly once when they are done reading Changerator,
 // DocChanges, and the doctor document tree.
 type changeratorResult struct {
-	Changerator *changerator.Changerator
-	DocChanges  *whatChangedModel.DocumentChanges
-	RightDrDoc  *drModel.DrDocument
-	LeftDrDoc   *drModel.DrDocument
+	releaseSources func()
+	Changerator    *changerator.Changerator
+	DocChanges     whatChanged.Changed
+	AsyncResult    *changerator.AsyncAPIResult
+	RightDrDoc     *drModel.DrDocument
+	LeftDrDoc      *drModel.DrDocument
+}
+
+func (r *changeratorResult) root() *v3.Node {
+	if r.AsyncResult != nil {
+		return r.AsyncResult.Right.Root
+	}
+	return r.RightDrDoc.V3Document.Node
 }
 
 func (r *changeratorResult) Release() {
+	if r.releaseSources != nil {
+		defer r.releaseSources()
+		r.releaseSources = nil
+	}
+	if r.AsyncResult != nil {
+		r.AsyncResult.Release()
+	}
 	if r.RightDrDoc != nil {
 		r.RightDrDoc.Release()
 	}
@@ -42,6 +60,47 @@ func (r *changeratorResult) Release() {
 // resulting comparison bundle. It returns nil, nil when the commit has no
 // comparable documents or the comparison produces no changes.
 func runChangerator(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*changeratorResult, error) {
+	if commit.Source != nil {
+		prepared, release, err := commit.PrepareHistory()
+		if err != nil {
+			return nil, err
+		}
+		commit.OldData = prepared.OldData
+		commit.OriginalRevision = prepared.OriginalRevision
+		prepared.SetSpecification()
+		commit.Specification = prepared.Specification
+		result, err := runChangerator(prepared, breakingConfig)
+		if result == nil {
+			release()
+		} else {
+			result.releaseSources = release
+		}
+		return result, err
+	}
+	if commit.AsyncDocument != nil && commit.OldAsyncDocument != nil {
+		if commit.Rules != nil && commit.Rules.Legacy {
+			return nil, fmt.Errorf("legacy OpenAPI rules cannot configure AsyncAPI; use asyncapiRules and schemaRules sections")
+		}
+		var schema *whatChangedModel.BreakingRulesConfig
+		var config *asyncRules.BreakingRulesConfig
+		if commit.Rules != nil {
+			schema = commit.Rules.Schema
+			config = commit.Rules.AsyncAPI
+		}
+		if config != nil {
+			defaults := asyncRules.NewDefaultBreakingRulesConfig()
+			defaults.Merge(config)
+			config = defaults
+		}
+		release := breakingrules.Acquire(schema)
+		defer release()
+		result, err := changerator.CompareAsyncAPI(commit.OldAsyncDocument, commit.AsyncDocument, config)
+		if err != nil || result == nil {
+			return nil, err
+		}
+		rewriteOutputLocations(result.Changerator, result.Changes, commit.DocumentRewriters)
+		return &changeratorResult{Changerator: result.Changerator, DocChanges: result.Changes, AsyncResult: result}, nil
+	}
 	if commit.Document == nil || commit.OldDocument == nil {
 		return nil, nil
 	}
@@ -70,10 +129,8 @@ func runChangerator(commit *model.Commit, breakingConfig *whatChangedModel.Break
 		return nil, fmt.Errorf("failed to create DrDocument models")
 	}
 
-	if breakingConfig != nil {
-		breakingrules.Apply(breakingConfig)
-		defer breakingrules.Reset()
-	}
+	releaseRules := breakingrules.Acquire(breakingConfig)
+	defer releaseRules()
 
 	ctr := changerator.NewChangerator(&changerator.ChangeratorConfig{
 		LeftDrDoc:       leftDrDoc.V3Document,
@@ -146,7 +203,7 @@ func nodeContainsExternalRef(node *yaml.Node) bool {
 	return false
 }
 
-func rewriteOutputLocations(ctr *changerator.Changerator, docChanges *whatChangedModel.DocumentChanges, rewriters []model.DocumentPathRewriter) {
+func rewriteOutputLocations(ctr *changerator.Changerator, docChanges whatChanged.Changed, rewriters []model.DocumentPathRewriter) {
 	if len(rewriters) == 0 {
 		return
 	}
@@ -156,7 +213,7 @@ func rewriteOutputLocations(ctr *changerator.Changerator, docChanges *whatChange
 	}
 }
 
-func rewriteDocumentChangeLocations(docChanges *whatChangedModel.DocumentChanges, rewriters []model.DocumentPathRewriter) {
+func rewriteDocumentChangeLocations(docChanges whatChanged.Changed, rewriters []model.DocumentPathRewriter) {
 	if docChanges == nil {
 		return
 	}

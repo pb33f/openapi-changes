@@ -19,28 +19,35 @@ import (
 
 func printConsoleUsage(palette terminal.Palette) {
 	printCommandUsage("console",
-		"The console command renders an interactive terminal user interface.\nExplore OpenAPI contract changes right in your terminal with a modern TUI.",
+		"The console command renders an interactive terminal user interface.\nExplore OpenAPI and AsyncAPI contract changes in your terminal.",
 		palette)
 }
 
 // bridgeRunChangerator adapts cmd.runChangerator to the v2tui.RunChangeratorFn signature
 // to avoid import cycles between cmd and tui/v2 packages.
 func bridgeRunChangerator(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*changerator.Changerator, *v3.Node, func(), error) {
-	result, err := runChangerator(commit, breakingConfig)
+	comparison := commit
+	if commit.Source != nil {
+		copy := *commit
+		copy.Window = &model.HistoryWindow{DiscardIdle: true}
+		comparison = &copy
+	}
+	result, err := runChangerator(comparison, breakingConfig)
+	commit.OldData = comparison.OldData
 	if err != nil {
 		return nil, nil, nil, err
 	}
 	if result == nil {
 		return nil, nil, nil, nil
 	}
-	root := result.RightDrDoc.V3Document.Node
+	root := result.root()
 	releaseFn := func() { result.Release() }
 	return result.Changerator, root, releaseFn, nil
 }
 
 func hasRenderableDocuments(commits []*model.Commit) bool {
 	for _, commit := range commits {
-		if commit.Document != nil && commit.OldDocument != nil {
+		if commit.Comparable() {
 			return true
 		}
 	}
@@ -69,6 +76,7 @@ func GetConsoleCommand() *cobra.Command {
 			if input == nil {
 				return nil
 			}
+			defer releaseHistoryWindows(input.Commits)
 
 			if len(input.Commits) == 0 {
 				firstArgInfo, statErr := os.Stat(args[0])

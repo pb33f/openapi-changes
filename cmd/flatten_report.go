@@ -27,16 +27,19 @@ func FlattenReportWithParameterNames(report *model.Report, parameterNames map[st
 
 func flattenReport(report *model.Report, parameterNames map[string]string) *model.FlatReport {
 	flatReport := &model.FlatReport{}
+	flatReport.Specification = report.Commit.Specification
 	flatReport.Summary = report.Summary
 	flatReport.DateGenerated = time.Now().Format(time.RFC3339)
 	var changes []*model.HashedChange
-	rpt := report.Commit.Changes
+	rpt := report.Commit.AllChanges()
 	for _, change := range rpt.GetAllChanges() {
 		rawPath := change.Path
 		flattenedChange := cloneChange(change)
 		if len(parameterNames) > 0 {
 			flattenedChange.Path, rawPath = normalizeParameterPath(flattenedChange, parameterNames)
 		}
+		flattenedChange.OriginalObject = nil
+		flattenedChange.NewObject = nil
 		hashedChange := model.HashedChange{
 			Change:  flattenedChange,
 			RawPath: rawPathIfChanged(rawPath, flattenedChange.Path),
@@ -50,9 +53,8 @@ func flattenReport(report *model.Report, parameterNames map[string]string) *mode
 	flatReport.Changes = changes
 
 	// Copy the Commit information from the report to the flatReport and then delete the changes
-	flatReport.Commit = &model.Commit{}
-	*flatReport.Commit = *report.Commit
-	flatReport.Commit.Changes = nil
+	c := report.Commit
+	flatReport.Commit = &model.Commit{Hash: c.Hash, Message: c.Message, Author: c.Author, AuthorEmail: c.AuthorEmail, CommitDate: c.CommitDate, Synthetic: c.Synthetic}
 
 	return flatReport
 }

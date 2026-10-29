@@ -45,7 +45,7 @@ func TestRunChangerator_RewritesChangedNodeOriginsToRepoRelativePaths(t *testing
 
 func firstComparableCommit(commits []*model.Commit) *model.Commit {
 	for _, commit := range commits {
-		if commit != nil && commit.Document != nil && commit.OldDocument != nil {
+		if commit.Comparable() {
 			return commit
 		}
 	}

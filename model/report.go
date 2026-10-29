@@ -75,6 +75,7 @@ type Report struct {
 }
 
 type FlatReport struct {
+	Specification *ComparisonSpecification    `json:"specification,omitempty"`
 	Summary       map[string]*reports.Changed `json:"reportSummary"`
 	Changes       []*HashedChange             `json:"changes"`
 	OriginalPath  string                      `json:"originalPath,omitempty"`

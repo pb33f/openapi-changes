@@ -15,17 +15,30 @@ import (
 
 var mu sync.Mutex
 
+// Acquire holds the policy lock through an entire comparison. The returned
+// function restores defaults and releases it, including for default-policy runs.
+func Acquire(config *wcModel.BreakingRulesConfig) func() {
+	mu.Lock()
+	apply(config)
+	return func() { wcModel.ResetActiveBreakingRulesConfig(); mu.Unlock() }
+}
+
 // Apply merges the given config on top of libopenapi defaults and sets it as
 // the active breaking rules configuration. If config is nil, resets to defaults.
 // Thread-safe — acquires the package-level mutex.
 func Apply(config *wcModel.BreakingRulesConfig) {
 	mu.Lock()
 	defer mu.Unlock()
+	apply(config)
+}
+
+func apply(config *wcModel.BreakingRulesConfig) {
 	if config == nil {
 		wcModel.ResetActiveBreakingRulesConfig()
 		return
 	}
-	defaults := wcModel.GenerateDefaultBreakingRules()
+	defaults := new(wcModel.BreakingRulesConfig)
+	defaults.Merge(wcModel.GenerateDefaultBreakingRules())
 	defaults.Merge(config)
 	wcModel.SetActiveBreakingRulesConfig(defaults)
 }
