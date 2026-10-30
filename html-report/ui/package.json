@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pb33f/cowboy-components": "git+https://github.com/pb33f/cowboy-components.git#962f1c14ebeafc097d8ad69c5f51ed5a7563347f",
+    "@pb33f/cowboy-components": "git+https://github.com/pb33f/cowboy-components.git#9a9763f7bd7ade1202528497175f444d73a4802b",
     "@shoelace-style/shoelace": "^2.20.1",
     "chart.js": "^4.5.1",
     "lit": "^3.3.3"

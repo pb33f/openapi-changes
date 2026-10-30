@@ -72,6 +72,8 @@ body row or widen child rows. Operation widths include native action labels.
 Change-view rows center icons, chevrons, badges and labels within each 25px row.
 Extension counts remain right-aligned; change annotations align with the card's
 left edge in both regular Doctor and change views.
+SVG node wrappers permit decoration overflow so selected borders do not clip
+the annotation badges or active arrow. The explorer viewport remains clipped.
 
 ## Verification
 

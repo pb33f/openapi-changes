@@ -159,6 +159,8 @@
 
     .fo {
         user-select: none;
+        /* Selected borders, annotations and glow extend beyond the layout box. */
+        overflow: visible;
     }
 
     .text {
