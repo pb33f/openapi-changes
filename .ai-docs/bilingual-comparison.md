@@ -47,8 +47,9 @@ to omit synthetic git metadata. HTML items have the same additive metadata and
 retain the unpruned graph for the document and explorer views.
 
 The shared UI renders native AsyncAPI document labels and send/receive actions.
-Action badges use primary blue for send and success green for receive, following
-the selected theme in the document tree, explorer, and detail views.
+Action badges use `--primary-color` for send and `--terminal-text` for receive,
+matching the method badge palette, with space before the operation label in the
+document tree, explorer, and detail views.
 Channels use hash icons in the document tree and explorer. Icons are embedded
 in the offline report bundle; the UI dependency is pinned to a reviewed Git
 commit until the corresponding package release.
