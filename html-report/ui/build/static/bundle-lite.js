@@ -2658,9 +2658,11 @@
             </div>
             ${this.renderUnderNodeAnnotations(e,t)}
             ${this.renderActiveArrow()}
-        `}};U.styles=[sa,ga],_a([A({type:Boolean})],U.prototype,`active`,void 0),_a([A({type:Boolean})],U.prototype,`expanded`,void 0),_a([A({type:Boolean})],U.prototype,`inPovMode`,void 0),_a([A({type:Boolean})],U.prototype,`disablePovMode`,void 0),_a([A({type:Boolean})],U.prototype,`hideExamples`,void 0),_a([A({type:String})],U.prototype,`povNodeId`,void 0),U=_a([O(`pb33f-explorer-graph-node`)],U);function va(e){return e?.label===`AsyncAPI`||typeof e?.instance?.asyncapi==`string`?`AsyncAPI Document`:`OpenAPI Document`}function ya(e,t){let n=ba(t);return n?N`<sl-badge class="operation-action"
-                             style="--sl-color-primary-600: var(--primary-color); --sl-color-success-600: var(--terminal-text); margin-inline-end: 0.4em"
-                             variant="${n===`send`?`primary`:`success`}">${n}</sl-badge><span class="header-text">${e}</span>`:N`<pb33f-http-method method="${e}" tiny></pb33f-http-method>`}function ba(e){let t=e?.action;return t===`send`||t===`receive`?t:void 0}var xa=function(e,t,n,r){var i=arguments.length,a=i<3?t:r===null?r=Object.getOwnPropertyDescriptor(t,n):r,o;if(typeof Reflect==`object`&&typeof Reflect.decorate==`function`)a=Reflect.decorate(e,t,n,r);else for(var s=e.length-1;s>=0;s--)(o=e[s])&&(a=(i<3?o(a):i>3?o(t,n,a):o(t,n))||a);return i>3&&a&&Object.defineProperty(t,n,a),a},Sa=class extends U{constructor(e){super(e)}renderDocument(){let e=[];e.push(N`<div class="row header">
+        `}};U.styles=[sa,ga],_a([A({type:Boolean})],U.prototype,`active`,void 0),_a([A({type:Boolean})],U.prototype,`expanded`,void 0),_a([A({type:Boolean})],U.prototype,`inPovMode`,void 0),_a([A({type:Boolean})],U.prototype,`disablePovMode`,void 0),_a([A({type:Boolean})],U.prototype,`hideExamples`,void 0),_a([A({type:String})],U.prototype,`povNodeId`,void 0),U=_a([O(`pb33f-explorer-graph-node`)],U);function va(e){return e?.label===`AsyncAPI`||typeof e?.instance?.asyncapi==`string`?`AsyncAPI Document`:`OpenAPI Document`}function ya(e,t){let n=ba(t);return n?N`<span style="display: inline-flex; align-items: center; gap: 0.4em; vertical-align: middle">
+            <sl-badge class="operation-action"
+                      style="--sl-color-primary-600: var(--primary-color); --sl-color-success-600: var(--terminal-text)"
+                      variant="${n===`send`?`primary`:`success`}">${n}</sl-badge><span class="header-text">${e}</span>
+        </span>`:N`<pb33f-http-method method="${e}" tiny></pb33f-http-method>`}function ba(e){let t=e?.action;return t===`send`||t===`receive`?t:void 0}var xa=function(e,t,n,r){var i=arguments.length,a=i<3?t:r===null?r=Object.getOwnPropertyDescriptor(t,n):r,o;if(typeof Reflect==`object`&&typeof Reflect.decorate==`function`)a=Reflect.decorate(e,t,n,r);else for(var s=e.length-1;s>=0;s--)(o=e[s])&&(a=(i<3?o(a):i>3?o(t,n,a):o(t,n))||a);return i>3&&a&&Object.defineProperty(t,n,a),a},Sa=class extends U{constructor(e){super(e)}renderDocument(){let e=[];e.push(N`<div class="row header">
                 <pb33f-model-icon color="${H.secondary}" size="${V.small}" icon="${B.DOCUMENT}"></pb33f-model-icon>
             <span class="header-text">${va(this.node)}</span>
             </div>`),this.document?.version&&e.push(N`<div class="row"><span class="chevron">&nbsp;&gt;</span>
@@ -4733,12 +4735,12 @@
         //height: 16px;
         //line-height: 14px;
         text-align: center;
-        display: inline-block;
         vertical-align: middle;
     }
 
     sl-badge:not(.operation-action)::part(base) {
         background: none;
+        display: inline-block;
     }
 
     sl-badge.warn::part(base) {

@@ -14,7 +14,7 @@ require (
 	github.com/charmbracelet/x/term v0.2.2
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-runewidth v0.0.31
-	github.com/pb33f/doctor v0.0.86-0.20261029234009-52835bc0b375
+	github.com/pb33f/doctor v0.0.86-0.20261030133420-a15e5e0ee77f
 	github.com/pb33f/go-yaml v0.1.1
 	github.com/pb33f/libasyncapi v0.0.6-0.20261029161437-e98dec724c6b
 	github.com/pb33f/libopenapi v0.41.9-0.20261029160729-ce227ab7d3c9

@@ -48,7 +48,7 @@ retain the unpruned graph for the document and explorer views.
 
 The shared UI renders native AsyncAPI document labels and send/receive actions.
 Action badges use `--primary-color` for send and `--terminal-text` for receive,
-matching the method badge palette, with space before the operation label in the
+matching the method badge palette, with vertically centered badges and spaced labels in the
 document tree, explorer, and detail views.
 Channels use hash icons in the document tree and explorer. Icons are embedded
 in the offline report bundle; the UI dependency is pinned to a reviewed Git
@@ -65,6 +65,10 @@ filters those edges with its changed-node tree, so every retained child stays
 connected. Reference edges preserve authored targets. Shared definition edits
 appear once in node timelines and detail rows; distinct edits to a property
 remain visible. The native machine-readable change list remains raw.
+
+Change-view card dimensions include the header, changed child rows and extension
+metadata. Change-count badges remain below the card; they do not add an empty
+body row or widen child rows. Operation widths include native action labels.
 
 ## Verification
 
