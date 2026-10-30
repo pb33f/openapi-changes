@@ -279,6 +279,7 @@ func renderSummaryWithTheme(
 	withLines bool,
 	styles summaryStyles,
 ) (string, bool, bool, error) {
+	defer releaseHistoryWindows(commits)
 	if len(commits) == 0 {
 		return noChangesFoundMessage + "\n", false, false, nil
 	}
@@ -289,13 +290,10 @@ func renderSummaryWithTheme(
 	renderedCommits := 0
 	treeRendered := false
 	var renderErrors []error
+	noPriorVersion := false
 
 	for c, commit := range commits {
-		if commit.Document == nil || commit.OldDocument == nil {
-			if !isDirectFileComparison(commits) && totalChanges == 0 && totalBreaking == 0 && c+1 < len(commits) {
-				sb.WriteString(fmt.Sprintf("No changes detected between %s and %s\n",
-					commit.Hash, commits[c+1].Hash))
-			}
+		if commit == nil {
 			continue
 		}
 
@@ -306,9 +304,18 @@ func renderSummaryWithTheme(
 			continue
 		}
 		if result == nil {
-			if !isDirectFileComparison(commits) && totalChanges == 0 && c+1 < len(commits) {
+			if commit.Comparable() {
+				renderedCommits++
+			} else if commit.Source != nil {
+				noPriorVersion = true
+			}
+			if commit.Comparable() && !isDirectFileComparison(commits) && totalChanges == 0 && c+1 < len(commits) {
+				baseline := commit.OriginalRevision
+				if baseline == "" {
+					baseline = commits[c+1].Hash
+				}
 				sb.WriteString(fmt.Sprintf("No changes detected between %s and %s\n",
-					commit.Hash, commits[c+1].Hash))
+					commit.Hash, baseline))
 			}
 			continue
 		}
@@ -329,7 +336,7 @@ func renderSummaryWithTheme(
 					}
 				}
 				if changeRoot == nil {
-					changeRoot = result.RightDrDoc.V3Document.Node
+					changeRoot = result.root()
 				}
 
 				var colorScheme terminal.ColorScheme
@@ -373,7 +380,9 @@ func renderSummaryWithTheme(
 			sb.WriteString("\n")
 
 			dateStr := commit.CommitDate.Format("01/02/06")
-			if markdown {
+			if commit.Synthetic {
+				sb.WriteString(commit.Message + "\n")
+			} else if markdown {
 				sb.WriteString(fmt.Sprintf("**Date**: %s | **Commit**: %s\n", dateStr, commit.Message))
 			} else {
 				sb.WriteString(styles.title.Render(fmt.Sprintf("Date: %s | Commit: %s", dateStr, commit.Message)))
@@ -452,6 +461,9 @@ func renderSummaryWithTheme(
 	}
 	if !hasChanges && len(renderErrors) == 0 {
 		if sb.Len() == 0 {
+			if renderedCommits == 0 && noPriorVersion {
+				return noPriorVersionMessage + "\n", false, false, nil
+			}
 			return noChangesFoundMessage + "\n", false, false, nil
 		}
 		return sb.String(), false, false, nil

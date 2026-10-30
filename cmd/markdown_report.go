@@ -41,7 +41,7 @@ func renderCommitMarkdown(commit *model.Commit, breakingConfig *whatChangedModel
 	deduplicatedChanges := changecounts.Deduplicate(result.DocChanges.GetAllChanges())
 
 	markdown, err := renderer.NewHTMLRenderer(renderer.DefaultRenderConfig()).RenderMarkdown(&renderer.RenderInput{
-		DocumentChanges:     result.DocChanges,
+		ChangeReport:        result.DocChanges,
 		Doctor:              result.RightDrDoc,
 		RightDocContent:     commit.Data,
 		DeduplicatedChanges: deduplicatedChanges,
@@ -83,8 +83,10 @@ func isSyntheticLeftRightCommit(commit *model.Commit) bool {
 // Returns (bytes, nil) when at least one commit renders successfully; failed
 // commits are logged to stderr and skipped.
 func generateMarkdownReport(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, includeDiff bool) ([]byte, error) {
+	defer releaseHistoryWindows(commits)
 	var sb strings.Builder
 	successCount := 0
+	comparedCount := 0
 	var renderErrors []error
 	headerWritten := false
 	includeCommitMetadata := true
@@ -96,13 +98,16 @@ func generateMarkdownReport(commits []*model.Commit, breakingConfig *whatChanged
 			renderErrors = append(renderErrors, wrapCommitError(commit, err))
 			continue
 		}
+		if commit.Comparable() {
+			comparedCount++
+		}
 		if markdown == "" {
 			continue
 		}
 
 		// Write header on first success
 		if !headerWritten {
-			sb.WriteString("# OpenAPI Changes Report\n\n")
+			sb.WriteString("# " + commit.APILabel() + " Changes Report\n\n")
 			sb.WriteString(fmt.Sprintf("*Generated: %s*\n\n", time.Now().Format(time.RFC3339)))
 			headerWritten = true
 		}
@@ -142,13 +147,13 @@ func generateMarkdownReport(commits []*model.Commit, breakingConfig *whatChanged
 		sb.WriteString("---\n\n")
 	}
 
-	if successCount == 0 && len(renderErrors) > 0 {
+	if comparedCount == 0 && len(renderErrors) > 0 {
 		return nil, fmt.Errorf("all %d commits failed to render: %w", len(renderErrors), errors.Join(renderErrors...))
 	}
 	if len(renderErrors) > 0 {
 		fmt.Fprintf(os.Stderr, "warning: %d commits failed to render\n", len(renderErrors))
 	}
-	if successCount == 0 && len(renderErrors) == 0 {
+	if successCount == 0 {
 		return nil, nil
 	}
 	return []byte(sb.String()), nil

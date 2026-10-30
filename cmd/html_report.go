@@ -31,8 +31,10 @@ func printHTMLReportUsage(palette terminal.Palette) {
 // commits are logged and skipped; an error is returned only when every
 // candidate commit fails.
 func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*htmlReport.ReportItem, error) {
+	defer releaseHistoryWindows(commits)
 	items := make([]*htmlReport.ReportItem, 0, len(commits))
 	var buildErrors []error
+	comparedCount := 0
 
 	for i, commit := range commits {
 		result, err := runChangerator(commit, breakingConfig)
@@ -42,6 +44,9 @@ func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedMo
 			continue
 		}
 		if result == nil {
+			if commit.Comparable() {
+				comparedCount++
+			}
 			continue
 		}
 
@@ -63,10 +68,11 @@ func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedMo
 		}
 
 		items = append(items, item)
+		comparedCount++
 	}
 
 	if len(buildErrors) > 0 {
-		if len(items) == 0 {
+		if comparedCount == 0 {
 			return nil, fmt.Errorf("all %d commits failed to build report items: %w", len(buildErrors), errors.Join(buildErrors...))
 		}
 		fmt.Fprintf(os.Stderr, "warning: %d commits failed to build report items\n", len(buildErrors))

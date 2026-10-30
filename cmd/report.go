@@ -27,7 +27,8 @@ func changerateCommit(commit *model.Commit, breakingConfig *whatChangedModel.Bre
 	if result == nil {
 		return nil, nil
 	}
-	commit.Changes = result.DocChanges
+	commit.ChangeReport = result.DocChanges
+	commit.Changes, _ = result.DocChanges.(*whatChangedModel.DocumentChanges)
 	return result, nil
 }
 
@@ -38,6 +39,7 @@ type historicalFlattenResult struct {
 }
 
 func changerateAndFlattenHistory(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*historicalFlattenResult, error) {
+	defer releaseHistoryWindows(commits)
 	reports := make([]*model.FlatReport, 0, len(commits))
 	var renderErrors []error
 	var skippedCommits []string
@@ -48,7 +50,6 @@ func changerateAndFlattenHistory(commits []*model.Commit, breakingConfig *whatCh
 		if commit == nil {
 			continue
 		}
-		comparable := commit.Document != nil && commit.OldDocument != nil
 		result, err := runChangerator(commit, breakingConfig)
 		if err != nil {
 			emitCommitWarning(commit, err)
@@ -56,14 +57,15 @@ func changerateAndFlattenHistory(commits []*model.Commit, breakingConfig *whatCh
 			addSkippedCommitHash(&skippedCommits, skippedSeen, commit.Hash)
 			continue
 		}
-		if comparable {
+		if commit.Comparable() {
 			processedComparables++
 		}
 		if result == nil {
 			continue
 		}
-		commit.Changes = result.DocChanges
+		commit.ChangeReport = result.DocChanges
 		reports = append(reports, FlattenReportWithParameterNames(createReport(commit), result.Changerator.ParameterNames))
+		commit.ChangeReport = nil
 		result.Release()
 	}
 	if len(renderErrors) > 0 {
@@ -219,11 +221,13 @@ func GetReportCommand() *cobra.Command {
 				return fmt.Errorf("too many arguments provided, expecting at most two (2)")
 			}
 
-			breakingConfig, err := LoadBreakingRulesConfig(configFlag)
+			rules, err := loadComparisonRules(configFlag)
 			if err != nil {
 				PrintConfigError(err, opts.palette)
 				return err
 			}
+			opts.rules = rules
+			breakingConfig := rules.OpenAPI
 
 			if len(args) == 1 {
 				if err := validateGitHubURL(args[0]); err != nil {

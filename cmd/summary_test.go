@@ -420,7 +420,7 @@ paths: {}
 	)
 
 	require.NoError(t, err)
-	assert.Contains(t, output, "No changes detected between empty123 and good123")
+	assert.NotContains(t, output, "No changes detected between empty123 and good123", "missing documents are not a successful comparison")
 	assert.Contains(t, output, "info")
 	assert.Contains(t, output, "Document Element")
 	assert.False(t, hasBreaking)
