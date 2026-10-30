@@ -2561,6 +2561,10 @@
         padding-left: 2px;
         border: 1px solid var(--font-color-sub2);
     }
+
+    .change-div > .change-icon:first-child {
+        margin-left: 0;
+    }
     
     sl-icon {
         vertical-align: middle;
@@ -3088,10 +3092,46 @@
                 <div class="row"><span class="chevron">&nbsp;&gt;</span>
                     Name: <code>${this.xml.name}</code>
                 </div>`),e}render(){return this.xml=this.nodeInstance,this.renderNodeWrapper(this.renderNode())}};Ri.styles=[ai,di],Ri=zte([wt(`pb33f-explorer-xml-node`)],Ri);var Bte=xe`
-    .cv-row {
+    .row {
         display: flex;
         align-items: center;
         gap: 4px;
+        box-sizing: border-box;
+        height: 25px;
+        padding-top: 0;
+        line-height: 1;
+    }
+
+    .row > pb33f-model-icon {
+        display: inline-flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .row > .count {
+        margin-left: auto;
+        margin-top: 0;
+        flex-shrink: 0;
+    }
+
+    .header {
+        padding-left: 5px;
+    }
+
+    .header > pb33f-model-icon {
+        position: static;
+    }
+
+    .header .dependent-icon {
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    .header .dependent-icon::part(base) {
+        padding-top: 0;
+    }
+
+    .cv-row {
         cursor: pointer;
     }
 

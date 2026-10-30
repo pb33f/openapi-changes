@@ -69,6 +69,9 @@ remain visible. The native machine-readable change list remains raw.
 Change-view card dimensions include the header, changed child rows and extension
 metadata. Change-count badges remain below the card; they do not add an empty
 body row or widen child rows. Operation widths include native action labels.
+Change-view rows center icons, chevrons, badges and labels within each 25px row.
+Extension counts remain right-aligned; change annotations align with the card's
+left edge in both regular Doctor and change views.
 
 ## Verification
 
