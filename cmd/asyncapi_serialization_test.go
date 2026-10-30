@@ -25,10 +25,13 @@ func TestAsyncAPIHTMLExplorerConnectivityAndCounts(t *testing.T) {
 	for _, graph := range []*htmlReport.GraphData{item.Graph, item.ExplorerGraph} {
 		require.NotNil(t, graph)
 		var nodes []struct {
-			ID       string            `json:"id"`
-			ParentID string            `json:"parentId"`
-			Timeline []json.RawMessage `json:"timeline"`
-			Subtree  *v3.ChangeSummary `json:"subtreeChanges"`
+			ID           string            `json:"id"`
+			ParentID     string            `json:"parentId"`
+			Timeline     []json.RawMessage `json:"timeline"`
+			Subtree      *v3.ChangeSummary `json:"subtreeChanges"`
+			Height       int               `json:"height"`
+			Extensions   int               `json:"extensions"`
+			ChildChanges []json.RawMessage `json:"childChanges"`
 		}
 		var edges []*v3.Edge
 		require.NoError(t, json.Unmarshal(graph.Nodes, &nodes))
@@ -36,6 +39,13 @@ func TestAsyncAPIHTMLExplorerConnectivityAndCounts(t *testing.T) {
 		ids := make(map[string]bool, len(nodes))
 		for _, node := range nodes {
 			ids[node.ID] = true
+			if graph.Mode == "change" {
+				rows := 1 + len(node.ChildChanges)
+				if node.Extensions > 0 {
+					rows++
+				}
+				require.Equal(t, rows*v3.HEIGHT, node.Height, "card height must match its visible rows: %s", node.ID)
+			}
 			if node.ID == "$.components.schemas.Order.properties.id" {
 				require.Len(t, node.Timeline, 1, "one edit must produce one detail row")
 			}

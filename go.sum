@@ -99,8 +99,8 @@ github.com/muesli/cancelreader v0.2.2 h1:3I4Kt4BQjOR54NavqnDogx/MIoWBFa0StPA8ELU
 github.com/muesli/cancelreader v0.2.2/go.mod h1:3XuTXfFS2VjM+HTLZY9Ak0l6eUKfijIfMUZ4EgX0QYo=
 github.com/ncruces/go-strftime v1.1.0 h1:vtPmPWMkb539RGV9WpWT9EwJGvrOCKvMNI4obWL47Hk=
 github.com/ncruces/go-strftime v1.1.0/go.mod h1:yVaq7iwCN09vHRrKBrrflXT0M9tTMG2KmZ9Fj7xeG/g=
-github.com/pb33f/doctor v0.0.86-0.20261029234009-52835bc0b375 h1:L8keSgeWyIs2zLmpojQXj2SDavNEGSScU3H1HtDXcYI=
-github.com/pb33f/doctor v0.0.86-0.20261029234009-52835bc0b375/go.mod h1:xxmxpVsz5SzfFORO0MvGf5JTZcy210dR2wMkSnHjvhA=
+github.com/pb33f/doctor v0.0.86-0.20261030133420-a15e5e0ee77f h1:OVXRBg2DcVF213fcjeJGwdx6kJqmVNT+8ejjxZUKM3I=
+github.com/pb33f/doctor v0.0.86-0.20261030133420-a15e5e0ee77f/go.mod h1:xxmxpVsz5SzfFORO0MvGf5JTZcy210dR2wMkSnHjvhA=
 github.com/pb33f/go-yaml v0.1.1 h1:yWGmhVdwzionRnSc/hEJwcfq6PaZL2QdYzyReXBbX7Q=
 github.com/pb33f/go-yaml v0.1.1/go.mod h1:QvWdkHP5VjFYAeHMQUkaPQqREaQnBNOXmWzAjNrnSdo=
 github.com/pb33f/jsonpath v0.8.4 h1:Yx7fxsKl8scgERL22WhKDs2c6gYNNUonPSWEG8Y194s=
