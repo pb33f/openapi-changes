@@ -58,8 +58,8 @@ document tree, explorer, and detail views. Cowboy's shared external
 `native-labels.css.ts` supplies these rules in each component's shadow root,
 using Cowboy palette tokens directly instead of inline Shoelace color overrides.
 Channels use hash icons in the document tree and explorer. Icons are embedded
-in the offline report bundle; the UI dependency is pinned to a reviewed Git
-commit until the corresponding package release.
+in the offline report bundle. The UI pins the public Cowboy Components 0.16.0
+package; installation does not require private Git repository access.
 
 HTML and Markdown use doctor's native AsyncAPI report traversal with the same
 section levels, object headings, separators and change formatting as OpenAPI.
@@ -89,7 +89,7 @@ Components. The Docker UI builder pins the same version in its Node image.
 The report UI lockfile retains its Mermaid, UUID, and KaTeX
 overrides; dependency overrides in Cowboy do not propagate to consumers.
 Rebuild both embedded bundles whenever the Cowboy pin or build dependencies
-change. Replace the private Git pin with the public package after release.
+change. Use the locked public npm package when rebuilding these assets.
 
 ## Verification
 
