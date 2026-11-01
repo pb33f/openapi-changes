@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS ui-builder
+FROM --platform=$BUILDPLATFORM node:26.13.0-bookworm-slim AS ui-builder
 
 WORKDIR /opt/openapi-changes/html-report/ui
 COPY html-report/ui/package.json html-report/ui/package-lock.json html-report/ui/tsconfig.json html-report/ui/vite.config.ts html-report/ui/index.html ./
