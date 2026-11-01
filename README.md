@@ -212,7 +212,7 @@ Full docs: https://pb33f.io/openapi-changes/
 
 ## Build from source
 
-`openapi-changes` currently requires Go `1.26.9+`. The npm installer requires Node.js `20+`.
+`openapi-changes` currently requires Go `1.26.10+`. The npm installer requires Node.js `20+`.
 
 The report UI uses Node.js `24.15+` in the Node 24 release line. Run `npm ci`,
 `npm run typecheck`, `npm test`, and `npm run build` in `html-report/ui` after
