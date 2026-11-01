@@ -379,7 +379,7 @@ func TestRenderSummary_UsesDoctorEngineWhenLegacyChangesMissing(t *testing.T) {
 	assert.True(t, hasChanges)
 	assert.NotEmpty(t, output)
 	assert.Contains(t, output, "Breaking Highlights")
-	assert.Contains(t, output, "Counts are deduplicated by JSONPath + property.")
+	assert.Contains(t, output, "Repeats of the same change are counted once.")
 	assert.Contains(t, output, "Document Element")
 	assert.Contains(t, output, "paths")
 	assert.Contains(t, output, "components")
@@ -707,15 +707,15 @@ func TestRenderSummary_UsesDeduplicatedHeadlineCounts(t *testing.T) {
 	)
 
 	require.NoError(t, err)
-	assert.Contains(t, output, "❌  18 Breaking changes out of 42")
-	assert.Contains(t, output, "Counts are deduplicated by JSONPath + property.")
-	assert.Contains(t, output, "│ components       │             9 │                2 │")
-	assert.Contains(t, output, "│ paths            │            28 │               16 │")
-	assert.Contains(t, output, "  Additions: 12")
+	assert.Contains(t, output, "❌  19 Breaking changes out of 45")
+	assert.Contains(t, output, "Repeats of the same change are counted once.")
+	assert.Contains(t, output, "│ components       │            10 │                3 │")
+	assert.Contains(t, output, "│ paths            │            30 │               16 │")
+	assert.Contains(t, output, "  Additions: 14")
 	assert.Contains(t, output, "  Modifications: 20")
-	assert.Contains(t, output, "  Removals: 10")
+	assert.Contains(t, output, "  Removals: 11")
 	assert.Contains(t, output, "  Breaking Modifications: 8")
-	assert.Contains(t, output, "  Breaking Removals: 10")
+	assert.Contains(t, output, "  Breaking Removals: 11")
 }
 
 func TestRenderSummary_WithLinesIncludesSourceLocations(t *testing.T) {

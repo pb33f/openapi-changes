@@ -56,7 +56,7 @@ All `cmd/` implementation files use their canonical names (e.g., `cmd/summary.go
 ### Counts and semantics
 
 - `summary` is the semantic human report.
-- `summary` headline, highlights, and visible summary counts are deduplicated by `JSONPath + property`.
+- `summary` headline, highlights, and visible summary counts count each edit once, matching on JSONPath, property, change type, and values.
 - `markdown-report` top summary and object stats are also deduplicated.
 - `report` is the machine-readable JSON interface and should prefer stable semantic identity over renderer-local structure.
 
@@ -139,20 +139,20 @@ After running `summary` on the petstore fixtures, the deduplicated counts must b
 
 | Document Element | Total Changes | Breaking Changes |
 |---|---|---|
-| components | 9 | 2 |
+| components | 10 | 3 |
 | info | 4 | 0 |
-| paths | 28 | 16 |
+| paths | 30 | 16 |
 | tags | 1 | 0 |
 
 **Summary totals (deduplicated):**
-- 42 total changes, 18 breaking
-- Additions: 12, Modifications: 20, Removals: 10
-- Breaking Modifications: 8, Breaking Removals: 10
+- 45 total changes, 19 breaking
+- Additions: 14, Modifications: 20, Removals: 11
+- Breaking Modifications: 8, Breaking Removals: 11
 
 **Report JSON totals (raw, not deduplicated):**
 - Components: 10 total / 3 breaking
 
-The `report` JSON numbers are intentionally higher than `summary` because summary deduplicates by `JSONPath + property`. This difference is correct behavior, not a bug. If these counts drift after a change, the change broke semantics.
+`summary` only removes repeats of one edit, matching on JSONPath, property, change type, and values. `report` JSON keeps every occurrence, so it can be higher when a shared reference repeats an edit; for petstore the two match. Never deduplicate on JSONPath and property alone: an enum addition and removal share both, and that key hid breaking changes, including the removal of `Pet.name`. If these counts drift after a change, the change broke semantics.
 
 ## Validation Workflow
 

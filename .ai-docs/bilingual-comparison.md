@@ -93,8 +93,8 @@ change. Use the locked public npm package when rebuilding these assets.
 
 ## Verification
 
-Keep the canonical petstore totals unchanged: summary 42 changes / 18 breaking;
-components summary 9/2 and raw JSON 10/3. Run cmd and full Go suites, race checks
+Keep the canonical petstore totals unchanged: summary 45 changes / 19 breaking;
+components 10/3 in both summary and raw JSON. Run cmd and full Go suites, race checks
 on dispatch/policy/history, and command smoke checks. Compare
 `BenchmarkOpenAPIReport` against the base branch with the same Go toolchain and
 hardware; use `-benchmem` and multiple samples. The model-window test verifies

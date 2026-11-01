@@ -88,7 +88,7 @@ func generateMarkdownReport(commits []*model.Commit, breakingConfig *whatChanged
 	successCount := 0
 	comparedCount := 0
 	var renderErrors []error
-	headerWritten := false
+	apiLabel := ""
 	includeCommitMetadata := true
 
 	for i, commit := range commits {
@@ -105,13 +105,7 @@ func generateMarkdownReport(commits []*model.Commit, breakingConfig *whatChanged
 			continue
 		}
 
-		// Write header on first success
-		if !headerWritten {
-			sb.WriteString("# " + commit.APILabel() + " Changes Report\n\n")
-			sb.WriteString(fmt.Sprintf("*Generated: %s*\n\n", time.Now().Format(time.RFC3339)))
-			headerWritten = true
-		}
-
+		apiLabel = mergeAPILabel(apiLabel, commit.APILabel())
 		successCount++
 		if successCount == 1 {
 			includeCommitMetadata = !isSyntheticLeftRightCommit(commit)
@@ -156,7 +150,17 @@ func generateMarkdownReport(commits []*model.Commit, breakingConfig *whatChanged
 	if successCount == 0 {
 		return nil, nil
 	}
-	return []byte(sb.String()), nil
+	// The title waits for every commit because history can change format between revisions.
+	header := fmt.Sprintf("# %s Changes Report\n\n*Generated: %s*\n\n", apiLabel, time.Now().Format(time.RFC3339))
+	return []byte(header + sb.String()), nil
+}
+
+// mergeAPILabel keeps a shared format label and falls back to a neutral one when formats mix.
+func mergeAPILabel(current, next string) string {
+	if current == "" || current == next {
+		return next
+	}
+	return "API"
 }
 
 func GetMarkdownReportCommand() *cobra.Command {

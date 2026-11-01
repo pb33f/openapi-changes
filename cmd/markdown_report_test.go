@@ -110,7 +110,7 @@ func TestMarkdownReport_SingleCommitLeftRight(t *testing.T) {
 	content := string(report)
 	assert.True(t, strings.HasPrefix(content, "# OpenAPI Changes Report"))
 	assert.NotContains(t, content, "## Commit 1:")
-	assert.Contains(t, content, "**42** changes detected, **18** are **(💔 breaking)**.")
+	assert.Contains(t, content, "**45** changes detected, **19** are **(💔 breaking)**.")
 }
 
 func TestMarkdownReport_UsesDeduplicatedCounts(t *testing.T) {
@@ -127,10 +127,10 @@ func TestMarkdownReport_UsesDeduplicatedCounts(t *testing.T) {
 	require.NotNil(t, report)
 
 	content := string(report)
-	assert.Contains(t, content, "**42** changes detected, **18** are **(💔 breaking)**.")
-	assert.Contains(t, content, "- Additions: **12**")
+	assert.Contains(t, content, "**45** changes detected, **19** are **(💔 breaking)**.")
+	assert.Contains(t, content, "- Additions: **14**")
 	assert.Contains(t, content, "- Modifications: **20**")
-	assert.Contains(t, content, "- Removals: **10**")
+	assert.Contains(t, content, "- Removals: **11**")
 }
 
 func TestMarkdownReport_UsesDeduplicatedObjectStats(t *testing.T) {
@@ -150,8 +150,8 @@ func TestMarkdownReport_UsesDeduplicatedObjectStats(t *testing.T) {
 	assert.Contains(t, content, "| Operation | 5 | 2 |")
 	assert.Contains(t, content, "| PathItem | 9 | 5 |")
 	assert.Contains(t, content, "| Responses | 3 | 2 |")
-	assert.Contains(t, content, "| Schema | 10 | 4 |")
-	assert.Contains(t, content, "| Tag | 3 | 1 |")
+	assert.Contains(t, content, "| Schema | 11 | 5 |")
+	assert.Contains(t, content, "| Tag | 5 | 1 |")
 	assert.NotContains(t, content, "| Operation | 9 |")
 	assert.NotContains(t, content, "| PathItem | 9 | 6 |")
 }
@@ -174,7 +174,7 @@ func TestMarkdownReport_LeftRightOmitsSyntheticCommitMetadata(t *testing.T) {
 	assert.NotContains(t, content, "- **Hash**:")
 	assert.NotContains(t, content, "- **Author**:")
 	assert.NotContains(t, content, "- **Date**:")
-	assert.Contains(t, content, "**42** changes detected, **18** are **(💔 breaking)**.")
+	assert.Contains(t, content, "**45** changes detected, **19** are **(💔 breaking)**.")
 }
 
 func TestMarkdownReport_PartialFailureReturnsPartialResults(t *testing.T) {

@@ -114,7 +114,7 @@ func summarizeTopLevelElement(path string) string {
 }
 
 func renderDedupedCountsNote(markdown bool, styles summaryStyles) string {
-	note := "Counts are deduplicated by JSONPath + property."
+	note := "Repeats of the same change are counted once."
 	if markdown {
 		return note + "\n\n"
 	}

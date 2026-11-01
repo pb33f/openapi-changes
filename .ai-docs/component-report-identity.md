@@ -2,7 +2,9 @@
 
 `summary`, `markdown-report`, and `html-report` use the shared
 `internal/changecounts.Deduplicate` helper for their counts and change lists.
-The helper keeps one change per semantic JSONPath and property.
+The helper keeps one change per semantic edit: the JSONPath, property, change
+type, and values together. Two edits to one property, such as an enum addition
+and removal, stay separate so a breaking change is never hidden.
 
 Doctor reports component additions and removals at `$.components`, with the
 category in `property` and the component name in `new` or `original`. Before
@@ -15,6 +17,6 @@ list use this same list. The raw doctor tree remains intact for the document
 view and the separate explorer graph. Machine-readable `report` output is
 unchanged and retains the original engine paths.
 
-The canonical petstore fixture still has 42 deduplicated changes, including 18
+The canonical petstore fixture has 45 deduplicated changes, including 19
 breaking changes. `cmd/component_report_test.go` covers additions and removals
 across component categories through HTML, summary, and Markdown reports.
