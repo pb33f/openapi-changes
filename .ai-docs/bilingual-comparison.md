@@ -82,6 +82,14 @@ left edge in both regular Doctor and change views.
 SVG node wrappers permit decoration overflow so selected borders do not clip
 the annotation badges or active arrow. The explorer viewport remains clipped.
 
+## Build runtime
+
+CI and publication read Node 26.13.0 from the root `.nvmrc`, matching Cowboy
+Components. The report UI lockfile retains its Mermaid, UUID, and KaTeX
+overrides; dependency overrides in Cowboy do not propagate to consumers.
+Rebuild both embedded bundles whenever the Cowboy pin or build dependencies
+change. Replace the private Git pin with the public package after release.
+
 ## Verification
 
 Keep the canonical petstore totals unchanged: summary 42 changes / 18 breaking;

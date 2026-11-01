@@ -25,7 +25,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: .nvmrc
 
       - name: Build report UI
         run: npm ci && npm run build
@@ -66,10 +66,10 @@ jobs:
       - name: Check version
         run: echo "Version ${{ github.event.client_payload.new-tag }}"
 
-      - name: Use Node.js 24
+      - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           registry-url: https://registry.npmjs.org/
 
       - name: Bump NPM version
