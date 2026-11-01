@@ -54,7 +54,9 @@ retain the unpruned graph for the document and explorer views.
 The shared UI renders native AsyncAPI document labels and send/receive actions.
 Action badges use `--primary-color` for send and `--terminal-text` for receive,
 matching the method badge palette, with vertically centered badges and spaced labels in the
-document tree, explorer, and detail views.
+document tree, explorer, and detail views. Cowboy's shared external
+`native-labels.css.ts` supplies these rules in each component's shadow root,
+using Cowboy palette tokens directly instead of inline Shoelace color overrides.
 Channels use hash icons in the document tree and explorer. Icons are embedded
 in the offline report bundle; the UI dependency is pinned to a reviewed Git
 commit until the corresponding package release.
