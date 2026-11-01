@@ -20,8 +20,8 @@ func TestCompactReportPetstore(t *testing.T) {
 	require.NoError(t, err)
 	report, outcome, err := generateCompactMarkdown(commits, nil)
 	require.NoError(t, err)
-	assert.Equal(t, compactOutcome{Total: 42, Breaking: 18}, outcome)
-	assert.Contains(t, string(report), "**Total changes: 42. Breaking changes: 18.**")
+	assert.Equal(t, compactOutcome{Total: 45, Breaking: 19}, outcome)
+	assert.Contains(t, string(report), "**Total changes: 45. Breaking changes: 19.**")
 	assert.Contains(t, string(report), "### Breaking highlights")
 	assert.Contains(t, string(report), "https://pb33f.io/doctor/")
 	assert.NotContains(t, string(report), "Commit")
@@ -100,7 +100,7 @@ func TestCompactReportCommandBreakingHasCompletedOutcome(t *testing.T) {
 	require.NoError(t, command.Execute())
 	data, err := os.ReadFile(result)
 	require.NoError(t, err)
-	assert.JSONEq(t, `{"total":42,"breaking":18}`, string(data))
+	assert.JSONEq(t, `{"total":45,"breaking":19}`, string(data))
 }
 
 func TestCompactReportRejectsAliasedOutputs(t *testing.T) {

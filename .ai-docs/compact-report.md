@@ -16,7 +16,7 @@ The report contains the total and breaking change counts, up to eight semantic
 breaking highlights from Doctor, and a link to the public Doctor page. Each
 highlight is limited to 300 characters. If Doctor supplies no highlight for a
 whole-object removal, the report shows its changed path and property. Spec text cannot inject Markdown links,
-HTML, or mentions. Counts use the same JSONPath + property deduplication as
+HTML, or mentions. Counts use the same deduplication as
 `summary`. Existing detailed Markdown and raw JSON reports do not change.
 
 A successful comparison always writes the compact report, including when no
@@ -28,7 +28,7 @@ The optional `--result-file` requires `--compact`. It writes this JSON only afte
 the comparison and Markdown write succeed:
 
 ```json
-{"total":42,"breaking":18}
+{"total":45,"breaking":19}
 ```
 
 Use a fresh result path for each run and require command success before reading

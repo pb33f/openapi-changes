@@ -9,11 +9,28 @@ import (
 	wcModel "github.com/pb33f/libopenapi/what-changed/model"
 )
 
-// Deduplicate keeps one change per semantic JSONPath and property. Component
-// additions and removals use the component name, since doctor reports those
-// changes at the shared $.components path. The input changes are not modified.
+// identity separates distinct edits to one property, such as an enum addition and
+// removal, so a repeat is only ever a second report of the same edit.
+type identity struct {
+	path, property, original, modified     string
+	originalEncoded, newEncoded, reference string
+	changeType                             int
+	breaking                               bool
+	// Changes without a semantic path are identified by their source position, or
+	// by the change itself when that is unknown too.
+	position  sourcePosition
+	unlocated *wcModel.Change
+}
+
+type sourcePosition struct {
+	document                                         string
+	originalLine, originalColumn, newLine, newColumn int
+}
+
+// Deduplicate keeps one change per semantic edit. Component additions and removals
+// use the component name, since doctor reports those changes at the shared
+// $.components path. The input changes are not modified.
 func Deduplicate(changes []*wcModel.Change) []*wcModel.Change {
-	type identity struct{ path, property string }
 	seen := make(map[identity]struct{}, len(changes))
 	result := make([]*wcModel.Change, 0, len(changes))
 	for _, change := range changes {
@@ -21,7 +38,18 @@ func Deduplicate(changes []*wcModel.Change) []*wcModel.Change {
 			continue
 		}
 		path := componentPath(change)
-		key := identity{path, change.Property}
+		key := identity{
+			path: path, property: change.Property, original: change.Original, modified: change.New,
+			originalEncoded: change.OriginalEncoded, newEncoded: change.NewEncoded,
+			reference: change.Reference, changeType: change.ChangeType, breaking: change.Breaking,
+		}
+		if path == "" {
+			if position, ok := changePosition(change.Context); ok {
+				key.position = position
+			} else {
+				key.unlocated = change
+			}
+		}
 		if _, ok := seen[key]; ok {
 			continue
 		}
@@ -34,6 +62,25 @@ func Deduplicate(changes []*wcModel.Change) []*wcModel.Change {
 		result = append(result, change)
 	}
 	return result
+}
+
+func changePosition(context *wcModel.ChangeContext) (sourcePosition, bool) {
+	if context == nil || (context.OriginalLine == nil && context.NewLine == nil) {
+		return sourcePosition{}, false
+	}
+	value := func(number *int) int {
+		if number == nil {
+			return -1
+		}
+		return *number
+	}
+	return sourcePosition{
+		document:       context.DocumentLocation,
+		originalLine:   value(context.OriginalLine),
+		originalColumn: value(context.OriginalColumn),
+		newLine:        value(context.NewLine),
+		newColumn:      value(context.NewColumn),
+	}, true
 }
 
 func componentPath(change *wcModel.Change) string {

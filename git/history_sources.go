@@ -7,6 +7,16 @@ import (
 	"path/filepath"
 )
 
+// historyRoot returns the canonical virtual root, because the path rewriter compares
+// canonical paths and macOS temp directories are symlinks.
+func historyRoot() string {
+	root := filepath.Join(os.TempDir(), "openapi-changes-history")
+	if canonical, err := CanonicalizePath(root); err == nil {
+		return canonical
+	}
+	return root
+}
+
 // buildHistorySources defers model construction to the consumer's two-document
 // window. Source bytes and revision-scoped configurations remain available for
 // interactive navigation without retaining every document graph.
@@ -40,7 +50,7 @@ func buildHistorySources(commits []*model.Commit, opts HistoryOptions) (*History
 			config := cloneDocumentConfiguration(base)
 			config.SpecFilePath = commits[0].FilePath
 			if opts.ReadRevision != nil {
-				root := filepath.Join(os.TempDir(), "openapi-changes-history")
+				root := historyRoot()
 				config.BasePath = root
 				config.SpecFilePath = filepath.Join(root, commits[0].FilePath)
 				config.AllowFileReferences = true
@@ -87,7 +97,7 @@ func buildHistorySources(commits []*model.Commit, opts HistoryOptions) (*History
 			commit.DocumentRewriters = []model.DocumentPathRewriter{context.DocumentRewriter}
 		}
 		if context == nil && opts.ReadRevision != nil {
-			root := filepath.Join(os.TempDir(), "openapi-changes-history")
+			root := historyRoot()
 			commit.DocumentRewriters = []model.DocumentPathRewriter{NewRepoRelativeDocumentPathRewriter(root, root)}
 		}
 		previous = source

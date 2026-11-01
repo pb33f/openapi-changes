@@ -53,11 +53,11 @@ func TestPetstoreRegressionCounts(t *testing.T) {
 
 	counts := changecounts.FromChanges(deduped)
 
-	assert.Equal(t, 42, counts.Total, "total deduplicated changes")
-	assert.Equal(t, 18, counts.Breaking, "breaking changes")
-	assert.Equal(t, 12, counts.Additions, "additions")
+	assert.Equal(t, 45, counts.Total, "total deduplicated changes")
+	assert.Equal(t, 19, counts.Breaking, "breaking changes")
+	assert.Equal(t, 14, counts.Additions, "additions")
 	assert.Equal(t, 20, counts.Modifications, "modifications")
-	assert.Equal(t, 10, counts.Removals, "removals")
+	assert.Equal(t, 11, counts.Removals, "removals")
 	assert.Equal(t, 8, counts.BreakingModifications, "breaking modifications")
-	assert.Equal(t, 10, counts.BreakingRemovals, "breaking removals")
+	assert.Equal(t, 11, counts.BreakingRemovals, "breaking removals")
 }

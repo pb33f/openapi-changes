@@ -87,7 +87,7 @@ func renderCompactMarkdown(outcome compactOutcome, highlights []string) []byte {
 	default:
 		fmt.Fprintf(&sb, "**Total changes: %d. Breaking changes: %d.**\n\n", outcome.Total, outcome.Breaking)
 	}
-	sb.WriteString("Counts are deduplicated by JSONPath + property.\n\n")
+	sb.WriteString("Repeats of the same change are counted once.\n\n")
 	if len(highlights) > 0 {
 		sb.WriteString("### Breaking highlights\n\n")
 		for _, item := range highlights {

@@ -20,9 +20,15 @@ It can render the same semantic change model as:
 - a markdown report
 - a self-contained offline HTML report
 
-The same commands accept both formats, including git history and revision-scoped
-references. Each comparison must use the same format on both sides. AsyncAPI 2.x
-and mixed OpenAPI/AsyncAPI comparisons are rejected.
+It works well for local exploration, CI/CD checks, release notes, and API review workflows.
+
+---
+
+## AsyncAPI has landed
+
+Event-driven APIs break too. They just do it quietly, in a consumer nobody remembers subscribing to that topic.
+
+`openapi-changes` now speaks **AsyncAPI 3.x** natively. Same commands, same reports, same time machine.
 
 ```sh
 openapi-changes summary previous-asyncapi.yaml asyncapi.yaml
@@ -30,8 +36,10 @@ openapi-changes report HEAD~1:asyncapi.yaml HEAD:asyncapi.yaml
 openapi-changes html-report --report-file changes.html previous-asyncapi.yaml asyncapi.yaml
 ```
 
-Existing breaking-rule files retain their OpenAPI meaning. To configure both
-engines, use named sections:
+The format is detected from the document, including across git history and revision-scoped references. Both sides of
+a comparison must use the same format, and AsyncAPI 2.x is not supported.
+
+Existing rule files keep their OpenAPI meaning. To configure both engines, use named sections:
 
 ```yaml
 openapiRules:
@@ -41,21 +49,14 @@ openapiRules:
 asyncapiRules:
   channel:
     address:
-      modified: true
-  multiFormatSchema:
-    modified: true
+      modified: false
 schemaRules:
   schema:
-    description:
+    type:
       modified: false
 ```
 
-`schemaRules` applies to JSON Schemas in AsyncAPI. Foreign schema languages are
-compared as opaque content; changing their format or content is breaking by
-default. JSON and HTML report items include format and version metadata in
-`specification`. Human counts remain deduplicated; JSON retains raw changes.
-
-It works well for local exploration, CI/CD checks, release notes, and API review workflows.
+**[Read the AsyncAPI docs >](https://pb33f.io/openapi-changes/asyncapi/)**
 
 ## How is it the 'most powerful and complete?'?
 
@@ -194,6 +195,7 @@ multi-file specs with `$ref` references resolved from the same revision.
 Full docs: https://pb33f.io/openapi-changes/
 
 - [Installing openapi-changes](https://pb33f.io/openapi-changes/installing/)
+- [Comparing AsyncAPI specifications](https://pb33f.io/openapi-changes/asyncapi/)
 - [Configuring breaking changes](https://pb33f.io/openapi-changes/configuring/)
 - [Command arguments](https://pb33f.io/openapi-changes/command-arguments/)
 - Commands:

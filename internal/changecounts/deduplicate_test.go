@@ -44,6 +44,18 @@ func TestDeduplicate_PreservesPropertyIdentity(t *testing.T) {
 	assert.Same(t, changes[3], result[2])
 }
 
+func TestDeduplicate_KeepsDistinctEditsToOneProperty(t *testing.T) {
+	addition := &wcModel.Change{Path: "$.components.schemas['S'].enum", Property: "enum", ChangeType: wcModel.PropertyAdded, New: "c"}
+	removal := &wcModel.Change{Path: "$.components.schemas['S'].enum", Property: "enum", ChangeType: wcModel.PropertyRemoved, Original: "b", Breaking: true}
+	repeat := *removal
+
+	result := Deduplicate([]*wcModel.Change{addition, removal, &repeat})
+
+	require.Len(t, result, 2)
+	assert.Same(t, addition, result[0])
+	assert.Same(t, removal, result[1])
+}
+
 func TestDeduplicate_ComponentPathBoundaries(t *testing.T) {
 	for _, tt := range []struct {
 		name   string
