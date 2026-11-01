@@ -5,6 +5,11 @@ uses libopenapi's strict YAML/JSON parser once, checks the root version marker,
 and transfers the parsed AsyncAPI tree to libasyncapi. Mixed formats, ambiguous
 markers, unsupported AsyncAPI versions and partial AsyncAPI models fail clearly.
 
+The stack uses libopenapi v0.42.0. Its default YAML alias expansion limit remains
+enabled for both formats. Excessive alias expansion fails during loading; normal
+aliases retain bounded HTML previews. Doctor tests opt in to trusted excessive
+aliases through libasyncapi to exercise graph bounds independently of this limit.
+
 `cmd.runChangerator` selects doctor's native engine. Both engines return the
 existing change primitives and node graph. Commands share count, flattening,
 rendering, exit-code and report-file code. Native OpenAPI `Commit.Changes` remains

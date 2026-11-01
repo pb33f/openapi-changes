@@ -77,10 +77,10 @@ func TestAsyncAPIHTMLExplorerConnectivityAndCounts(t *testing.T) {
 }
 
 func TestAsyncAPIHTMLPreservesAliasBounds(t *testing.T) {
-	var source strings.Builder
-	source.WriteString("asyncapi: 3.0.0\ninfo: {title: Events, version: 1.0.0}\nx-data:\n  a0: &a0 {value: data}\n")
 	var sizes []int
-	for _, levels := range []int{0, 8} {
+	for _, levels := range []int{0, 2, 8} {
+		var source strings.Builder
+		source.WriteString("asyncapi: 3.0.0\ninfo: {title: Events, version: 1.0.0}\nx-data:\n  a0: &a0 {value: data}\n")
 		for i := 1; i <= levels; i++ {
 			aliases := strings.TrimSuffix(strings.Repeat(fmt.Sprintf("*a%d, ", i-1), 8), ", ")
 			fmt.Fprintf(&source, "  a%d: &a%d [%s]\n", i, i, aliases)
@@ -90,6 +90,10 @@ func TestAsyncAPIHTMLPreservesAliasBounds(t *testing.T) {
 		require.NoError(t, os.WriteFile(left, []byte(source.String()), 0600))
 		require.NoError(t, os.WriteFile(right, []byte(strings.Replace(source.String(), "title: Events", "title: Events v2", 1)), 0600))
 		commits, err := loadLeftRightCommits(left, right, summaryOpts{})
+		if levels == 8 {
+			require.ErrorContains(t, err, "excessive aliasing")
+			continue
+		}
 		require.NoError(t, err)
 		report, err := generateHTMLReport(commits, nil, false, left, right)
 		require.NoError(t, err)
