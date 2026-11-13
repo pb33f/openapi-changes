@@ -57,4 +57,6 @@ jobs:
           repository: pb33f/openapi-changes
 
           event-type: publish-event
-          client-payload: '{"new-tag": "${{ steps.bump-semver.outputs.new_version }}", "release-notes": "${{ steps.regex-match.outputs.group1 }}"}'
+          client-payload: >-
+            {"new-tag": ${{ toJSON(steps.bump-semver.outputs.new_version) }},
+             "release-notes": ${{ toJSON(steps.regex-match.outputs.group1 || '') }}}
