@@ -84,6 +84,58 @@ func TestAsyncAPIRulesAreScoped(t *testing.T) {
 	}
 }
 
+func TestAsyncAPIExternalRequiredChanges(t *testing.T) {
+	const spec = `asyncapi: 3.1.0
+info: {title: Orders, version: 1.0.0}
+components:
+  messages:
+    OrderCreated:
+      payload:
+        $ref: './schemas.yaml#/Order'
+`
+	writeVersion := func(required string) (string, string) {
+		t.Helper()
+		dir := t.TempDir()
+		root, schema := filepath.Join(dir, "asyncapi.yaml"), filepath.Join(dir, "schemas.yaml")
+		require.NoError(t, os.WriteFile(root, []byte(spec), 0600))
+		data := "Order:\n  type: object\n  required: [" + required + "]\n  properties:\n    currency: {type: string}\n    id: {type: string}\n"
+		require.NoError(t, os.WriteFile(schema, []byte(data), 0600))
+		return root, schema
+	}
+	left, _ := writeVersion("id")
+	right, schema := writeVersion("id, currency")
+	for _, tc := range []struct {
+		name, from, to, wantRow string
+	}{
+		{"added", left, right, "[+] required/currency {X}"},
+		{"removed", right, left, "[-] required/currency"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			report, err := runLeftRightReport(tc.from, tc.to, summaryOpts{}, nil)
+			require.NoError(t, err)
+			require.Len(t, report.Changes, 1)
+			change := report.Changes[0]
+			require.Equal(t, "$.components.messages.OrderCreated.payload.required", change.Path)
+			require.NotNil(t, change.Context)
+			require.Equal(t, schema, change.Context.DocumentLocation)
+			if tc.name == "added" {
+				require.Equal(t, "currency", change.New)
+				require.True(t, change.Breaking)
+				require.Equal(t, new(3), change.Context.NewLine)
+			} else {
+				require.Equal(t, "currency", change.Original)
+				require.Equal(t, new(3), change.Context.OriginalLine)
+			}
+
+			commits, err := loadLeftRightCommits(tc.from, tc.to, summaryOpts{})
+			require.NoError(t, err)
+			summary, _, _, err := renderSummary(commits, nil, false, true, false, summaryStyles{})
+			require.NoError(t, err)
+			require.Contains(t, summary, tc.wantRow)
+		})
+	}
+}
+
 func TestAsyncAPIInputBoundaries(t *testing.T) {
 	left, _ := asyncPair(t)
 	for _, spec := range []string{"openapi: 3.0.0\ninfo: {title: API, version: 1.0.0}\npaths: {}\n", "asyncapi: 2.6.0\ninfo: {title: API, version: 1.0.0}\n", "asyncapi: 3.0.0\nopenapi: 3.0.0\ninfo: {title: API, version: 1.0.0}\n"} {

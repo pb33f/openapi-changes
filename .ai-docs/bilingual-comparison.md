@@ -5,7 +5,7 @@ uses libopenapi's strict YAML/JSON parser once, checks the root version marker,
 and transfers the parsed AsyncAPI tree to libasyncapi. Mixed formats, ambiguous
 markers, unsupported AsyncAPI versions and partial AsyncAPI models fail clearly.
 
-The stack uses libopenapi v0.42.3. Its default YAML alias expansion limit remains
+The stack uses libopenapi's default YAML alias expansion limit. It remains
 enabled for both formats. Excessive alias expansion fails during loading; normal
 aliases retain bounded HTML previews. Doctor tests opt in to trusted excessive
 aliases through libasyncapi to exercise graph bounds independently of this limit.
@@ -27,6 +27,9 @@ defaults afterwards, including comparisons without a custom policy.
 ## Source and resource ownership
 
 Direct file, URL and revision inputs use the same source loader for both formats.
+For an AsyncAPI payload that references an external schema, changes to its
+`required` list appear under the payload in `summary`. The JSON report records
+the external file and source line for each added or removed entry.
 Local revision references use GitRevisionFS. GitHub references use that virtual
 filesystem with doctor's GitHub file service, pinned to the same commit SHA.
 The working tree is never used to supply a historical sibling reference.
