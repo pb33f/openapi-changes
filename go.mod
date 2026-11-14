@@ -17,7 +17,7 @@ require (
 	github.com/pb33f/doctor v0.0.88
 	github.com/pb33f/go-yaml v0.1.1
 	github.com/pb33f/libasyncapi v0.0.7
-	github.com/pb33f/libopenapi v0.42.6-0.20261114224342-59995a2bfa8f
+	github.com/pb33f/libopenapi v0.42.6-0.20261114224705-db27aae96380
 	github.com/pb33f/testify v0.1.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/spf13/cobra v1.10.2
