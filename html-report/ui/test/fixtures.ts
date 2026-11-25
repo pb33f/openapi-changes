@@ -59,7 +59,7 @@ export function createMultiCommitPayload(count = 3): ReportPayload {
             violationData: null,
             changeIds: items.map(it => it.changeId),
             changeData: {
-                labels: items.map(it => it.commit.date),
+                labels: items.map(it => it.commit!.date),
                 datasets: [
                     { label: 'Additions', data: items.map(() => 2), borderColor: '#0f0' },
                     { label: 'Modifications', data: items.map(() => 3), borderColor: '#ff0' },

@@ -190,6 +190,8 @@ export class ReportShell extends ReportShellBase {
                         ${this._changePanelExpanded && item ? html`
                             <pb33f-focused-diff-panel compact
                                 .changes=${this.selectedNodeChanges}
+                                .originalSources=${item.originalSources}
+                                .modifiedSources=${item.modifiedSources}
                                 .originalSpec=${item.originalSpec || ''}
                                 .modifiedSpec=${item.modifiedSpec || ''}
                                 .originalHighlighted=${item.originalHighlighted || {}}

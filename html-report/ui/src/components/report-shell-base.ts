@@ -456,7 +456,7 @@ export abstract class ReportShellBase extends LitElement {
                                                 @click=${() => this.selectItem(i)}>
                                                 <div slot="time"
                                                     class="time ${hasBreaking ? 'heart-breaker' : 'dream-maker'} ${i === this.activeItemIndex ? 'selected-bar' : ''}">
-                                                    <sl-relative-time date="${item.commit.date}" format="narrow"></sl-relative-time>
+                                                    ${item.commit ? html`<sl-relative-time date="${item.commit.date}" format="narrow"></sl-relative-time>` : nothing}
                                                 </div>
                                                 <div slot="content">
                                                     <div class="change-content ${hasBreaking ? 'heart-breaker' : 'dream-maker'} ${i === this.activeItemIndex ? 'selected-bar' : ''}">
@@ -536,7 +536,7 @@ export abstract class ReportShellBase extends LitElement {
 
         return html`
             <div class="overview-content">
-                <div class="commit-info">
+                ${item.commit ? html`<div class="commit-info">
                     <span class="commit-hash">${item.commit.hash.substring(0, 8)}</span>
                     <span class="commit-message">${item.commit.message || 'No message'}</span>
                     <span class="commit-meta">
@@ -546,7 +546,7 @@ export abstract class ReportShellBase extends LitElement {
                             hour: '2-digit', minute: '2-digit',
                         })}</span>
                     </span>
-                </div>
+                </div>` : nothing}
                 ${this.renderSummary()}
                 ${this.renderHistoryChart()}
             </div>
@@ -621,6 +621,8 @@ export abstract class ReportShellBase extends LitElement {
 
                 <sl-tab-panel name="diff">
                     <pb33f-diff-viewer
+                        .originalSources=${item.originalSources}
+                        .modifiedSources=${item.modifiedSources}
                         .originalSpec=${item.originalSpec}
                         .modifiedSpec=${item.modifiedSpec}
                         .originalHighlighted=${item.originalHighlighted || {}}

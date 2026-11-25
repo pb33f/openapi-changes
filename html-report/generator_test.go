@@ -4,10 +4,15 @@
 package html_report
 
 import (
+	"encoding/json"
 	"testing"
+	"testing/fstest"
 	"time"
 
+	"github.com/pb33f/doctor/changerator"
 	v3 "github.com/pb33f/doctor/model/high/v3"
+	"github.com/pb33f/libopenapi/datamodel"
+	"github.com/pb33f/libopenapi/jsonschema"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/pb33f/testify/assert"
@@ -84,6 +89,43 @@ func TestNewReportData_Lite(t *testing.T) {
 
 	assert.Equal(t, bundledLiteJS, rd.BundledJS)
 	assert.NotEqual(t, bundledJS, rd.BundledJS, "lite should use the lite bundle")
+}
+
+func TestStandaloneSchemaReportItem(t *testing.T) {
+	root := []byte("{\"title\":\"Order\",\"properties\":{\"amount\":{\"$ref\":\"money.yaml\"}}}")
+	load := func(body string) *jsonschema.Document {
+		cfg := datamodel.NewDocumentConfiguration()
+		cfg.BasePath = "/snapshot"
+		cfg.LocalFS = fstest.MapFS{"money.yaml": {Data: []byte(body)}}
+		doc, err := jsonschema.Load(root, "order.json", cfg, true)
+		require.NoError(t, err)
+		t.Cleanup(doc.Release)
+		return doc
+	}
+	left, right := load("minLength: 2"), load("minLength: 3")
+	result, err := changerator.CompareJSONSchema(left, right, nil)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	defer result.Release()
+	commit := &model.Commit{OldData: root, Data: root, Synthetic: true, Hash: "synthetic", Message: "placeholder",
+		Specification:   &model.ComparisonSpecification{Kind: "jsonschema", OriginalVersion: jsonschema.Dialect, ModifiedVersion: jsonschema.Dialect},
+		OriginalSchemas: model.NewSchemaSources(left), ModifiedSchemas: model.NewSchemaSources(right)}
+	item, err := BuildReportItem(commit, result.Changerator, result.Changes, nil, "0")
+	require.NoError(t, err)
+	require.Equal(t, 1, item.Summary.TotalChanges)
+	require.Equal(t, 1, item.Summary.BreakingChanges)
+	require.Equal(t, string(root), item.OriginalSpec)
+	require.Equal(t, string(root), item.ModifiedSpec)
+	require.Equal(t, map[string]string{"money.yaml": "minLength: 2"}, item.OriginalSources)
+	require.Equal(t, map[string]string{"money.yaml": "minLength: 3"}, item.ModifiedSources)
+	require.Nil(t, item.Commit)
+	require.Nil(t, BuildHistoryData([]*ReportItem{item}))
+	encoded, err := json.Marshal(item)
+	require.NoError(t, err)
+	assert.NotContains(t, string(encoded), "\"commit\":")
+	assert.NotContains(t, string(encoded), "gitCommitSha")
+	assert.Contains(t, string(item.Graph.Nodes), "\"documentKind\":\"jsonschema\"")
+	assert.Contains(t, string(item.Graph.Nodes), "\"modifiedDocument\":\"money.yaml\"")
 }
 
 func TestBuildHistoryData(t *testing.T) {

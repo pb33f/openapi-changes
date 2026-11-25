@@ -80,11 +80,13 @@ type ReportPayload struct {
 	OriginalPath  string        `json:"originalPath,omitempty"`
 	ModifiedPath  string        `json:"modifiedPath,omitempty"`
 	Items         []*ReportItem `json:"items"`
-	History       *HistoryData  `json:"history"`
+	History       *HistoryData  `json:"history,omitempty"`
 }
 
 // ReportItem represents a single commit/comparison in the report.
 type ReportItem struct {
+	OriginalSources     map[string]string              `json:"originalSources,omitempty"`
+	ModifiedSources     map[string]string              `json:"modifiedSources,omitempty"`
 	Specification       *model.ComparisonSpecification `json:"specification,omitempty"`
 	ChangeId            string                         `json:"changeId"`
 	Graph               *GraphData                     `json:"graph"`
@@ -95,7 +97,7 @@ type ReportItem struct {
 	ModifiedSpec        string                         `json:"modifiedSpec"`
 	OriginalHighlighted map[int]string                 `json:"originalHighlighted,omitempty"`
 	ModifiedHighlighted map[int]string                 `json:"modifiedHighlighted,omitempty"`
-	Commit              *CommitInfo                    `json:"commit"`
+	Commit              *CommitInfo                    `json:"commit,omitempty"`
 }
 
 // highlightSpecLines uses Chroma to syntax-highlight each line of a spec,
@@ -171,7 +173,7 @@ type GraphData struct {
 // SummaryData mirrors the cowboy-components SpecSummary interface (no vacuum fields).
 type SummaryData struct {
 	ChangeId        string `json:"changeId"`
-	Created         string `json:"created"`
+	Created         string `json:"created,omitempty"`
 	TotalChanges    int    `json:"totalChanges"`
 	BreakingChanges int    `json:"breakingChanges"`
 	Additions       int    `json:"additions"`
@@ -256,6 +258,7 @@ func BuildReportItem(
 	htmlRenderer := renderer.NewHTMLRenderer(htmlConfig)
 	htmlReport, err := htmlRenderer.RenderHTML(&renderer.RenderInput{
 		ChangeReport:        docChanges,
+		SchemaLabels:        result.SchemaLabels,
 		Doctor:              rightDrDoc,
 		RightDocContent:     commit.Data,
 		Config:              htmlConfig,
@@ -272,7 +275,7 @@ func BuildReportItem(
 		graphMap = rightDrDoc.BuildGraphMap()
 	} else {
 		for _, node := range result.ChangedNodes {
-			if node.ValueLine > 0 {
+			if node.ValueLine > 0 && (commit.ModifiedSchemas == nil || commit.ModifiedSchemas.Root == node.OriginLocation) {
 				graphMap[node.ValueLine] = node.Id
 			}
 		}
@@ -297,15 +300,18 @@ func BuildReportItem(
 
 	summary := &SummaryData{
 		ChangeId:        changeId,
-		Created:         commit.CommitDate.Format(time.RFC3339),
 		TotalChanges:    counts.Total,
 		BreakingChanges: counts.Breaking,
 		Additions:       counts.Additions,
 		Modifications:   counts.Modifications,
 		Removals:        counts.Removals,
-		GitCommitSha:    commit.Hash,
-		GitAuthor:       commit.Author,
-		GitMessage:      commit.Message,
+	}
+	commitInfo := buildCommitInfo(commit)
+	if commitInfo != nil {
+		summary.Created = commit.CommitDate.Format(time.RFC3339)
+		summary.GitCommitSha = commit.Hash
+		summary.GitAuthor = commit.Author
+		summary.GitMessage = commit.Message
 	}
 
 	item := &ReportItem{
@@ -315,11 +321,13 @@ func BuildReportItem(
 		ExplorerGraph:       explorerGraph,
 		Summary:             summary,
 		HtmlReport:          htmlReport,
+		OriginalSources:     commit.OriginalSchemas.Extra(),
+		ModifiedSources:     commit.ModifiedSchemas.Extra(),
 		OriginalSpec:        string(commit.OldData),
 		ModifiedSpec:        string(commit.Data),
 		OriginalHighlighted: highlightSpecLines(string(commit.OldData)),
 		ModifiedHighlighted: highlightSpecLines(string(commit.Data)),
-		Commit:              buildCommitInfo(commit),
+		Commit:              commitInfo,
 	}
 
 	return item, nil
@@ -459,6 +467,9 @@ func cloneNodeTree(node *v3.Node) *v3.Node {
 }
 
 func buildCommitInfo(commit *model.Commit) *CommitInfo {
+	if commit.Synthetic && commit.Specification != nil && commit.Specification.Kind == "jsonschema" {
+		return nil
+	}
 	return &CommitInfo{
 		Hash:        commit.Hash,
 		Date:        commit.CommitDate.Format(time.RFC3339),
@@ -472,15 +483,27 @@ func buildCommitInfo(commit *model.Commit) *CommitInfo {
 // for the history line charts. Items are reversed so the chart reads
 // oldest (left) to newest (right).
 func BuildHistoryData(items []*ReportItem) *HistoryData {
-	n := len(items)
+	n := 0
+	for _, item := range items {
+		if item.Commit != nil {
+			n++
+		}
+	}
+	if n == 0 && len(items) > 0 {
+		return nil
+	}
 	labels := make([]string, n)
 	additions := make([]float64, n)
 	modifications := make([]float64, n)
 	removals := make([]float64, n)
 	changeIds := make([]string, n)
 
-	for i, item := range items {
-		j := n - 1 - i
+	j := n
+	for _, item := range items {
+		if item.Commit == nil {
+			continue
+		}
+		j--
 		labels[j] = item.Commit.Date
 		additions[j] = float64(item.Summary.Additions)
 		modifications[j] = float64(item.Summary.Modifications)

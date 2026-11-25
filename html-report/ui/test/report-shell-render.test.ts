@@ -40,6 +40,23 @@ function tabTexts(el: ShellElement): string[] {
 
 describe('ReportShellLite render structure', () => {
     describe('single-item mode', () => {
+        it('passes both authored source maps to the offline diff viewer', async () => {
+            const payload = createMinimalPayload();
+            const item = payload.items[0];
+            item.originalSources = {'money.yaml': 'minLength: 2'};
+            item.modifiedSources = {'money.yaml': 'minLength: 3'};
+            item.specification = {kind: 'jsonschema', originalVersion: '2020-12', modifiedVersion: '2020-12'};
+            delete item.commit;
+            delete payload.history;
+            const shell = await createShell(payload);
+            const viewer = queryOne(shell, 'pb33f-diff-viewer') as HTMLElement & {
+                originalSources: Record<string,string>; modifiedSources: Record<string,string>;
+            };
+            expect(viewer.originalSources).toEqual(item.originalSources);
+            expect(viewer.modifiedSources).toEqual(item.modifiedSources);
+            expect(shell.shadowRoot?.querySelector('.commit-info')).toBeNull();
+        });
+
         it('renders correct tab labels', async () => {
             const el = await createShell(createMinimalPayload());
             const tabs = tabTexts(el);
