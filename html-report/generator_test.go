@@ -128,19 +128,19 @@ func TestStandaloneSchemaReportItem(t *testing.T) {
 	assert.Contains(t, string(item.Graph.Nodes), "\"modifiedDocument\":\"money.yaml\"")
 }
 
-func TestCollectionReportKeepsBothReferencesToRemovedConstraint(t *testing.T) {
-	load := func(money string) *jsonschema.Document {
+func TestCollectionReportKeepsBothReferencesToMovedSchemaWithRemovedConstraint(t *testing.T) {
+	load := func(name, money string) *jsonschema.Document {
 		doc, err := jsonschema.LoadCollection(map[string][]byte{
-			"order.yaml":   []byte("title: Order\nproperties:\n  total:\n    $ref: money.yaml\n"),
-			"invoice.yaml": []byte("title: Invoice\nproperties:\n  amount:\n    $ref: money.yaml\n"),
-			"money.yaml":   []byte(money),
+			"order.yaml":   []byte("title: Order\nproperties:\n  total:\n    $ref: urn:money\n"),
+			"invoice.yaml": []byte("title: Invoice\nproperties:\n  amount:\n    $ref: urn:money\n"),
+			name:           []byte(money),
 		}, t.TempDir(), nil)
 		require.NoError(t, err)
 		t.Cleanup(doc.Release)
 		return doc
 	}
-	const money = "title: Money\nproperties:\n  currency:\n    type: string\n"
-	left, right := load(money+"    minLength: 3\n"), load(money)
+	const money = "$id: urn:money\ntitle: Money\nproperties:\n  currency:\n    type: string\n"
+	left, right := load("a/money.yaml", money+"    minLength: 3\n"), load("b/money.yaml", money)
 	result, err := changerator.CompareJSONSchema(left, right, nil)
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -157,8 +157,8 @@ func TestCollectionReportKeepsBothReferencesToRemovedConstraint(t *testing.T) {
 	require.Empty(t, item.ModifiedSpec)
 	require.Len(t, item.OriginalSources, 3)
 	require.Len(t, item.ModifiedSources, 3)
-	require.Equal(t, money+"    minLength: 3\n", item.OriginalSources["money.yaml"])
-	require.Equal(t, money, item.ModifiedSources["money.yaml"])
+	require.Equal(t, money+"    minLength: 3\n", item.OriginalSources["a/money.yaml"])
+	require.Equal(t, money, item.ModifiedSources["b/money.yaml"])
 
 	for _, graph := range []*GraphData{item.Graph, item.ExplorerGraph} {
 		require.NotNil(t, graph)
@@ -176,13 +176,15 @@ func TestCollectionReportKeepsBothReferencesToRemovedConstraint(t *testing.T) {
 		}
 		require.Equal(t, "Schemas", byID["root"].Label)
 		require.Len(t, edits, 1)
-		require.Equal(t, "money.yaml", edits[0].Context.OriginalDocument)
-		require.Equal(t, 5, *edits[0].Context.OriginalLine)
+		require.Equal(t, "a/money.yaml", edits[0].Context.OriginalDocument)
+		require.Equal(t, "b/money.yaml", edits[0].Context.ModifiedDocument)
+		require.Equal(t, 6, *edits[0].Context.OriginalLine)
+		require.Nil(t, edits[0].Context.NewLine)
 		var edges []v3.Edge
 		require.NoError(t, json.Unmarshal(graph.Edges, &edges))
 		var uses []string
 		for _, edge := range edges {
-			if edge.Ref == "money.yaml" {
+			if edge.Ref == "urn:money" {
 				require.Len(t, edge.Sources, 1)
 				require.Len(t, edge.Targets, 1)
 				use := byID[edge.Sources[0]]

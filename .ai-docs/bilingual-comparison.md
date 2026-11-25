@@ -116,8 +116,9 @@ referenced content. The global `schemaRules` policy lock covers the native compa
 override the default widening and narrowing classification. `libasyncapi` continues to compare embedded payloads.
 
 A schema change has a defining `schemaResource`, a resource-relative JSONPath, and available source locations in
-`context.originalDocument` and `context.modifiedDocument`. These names match the source bodies supplied to the
-console and static HTML views. The schema hash uses semantic fields, including the resource, so line movement alone
+`context.originalDocument` and `context.modifiedDocument`. Matched resources carry both filenames, including when a file moves.
+Line and column coordinates identify only the sides where the edited value exists. The console and HTML views
+use the filenames for source lookup. The schema hash uses semantic fields, including the resource, so line movement alone
 does not change it. The root source is stored once per side. Additional files use the optional `originalSources`
 and `modifiedSources` report maps. Renderers request those source views while the result is pinned. Flat reports
 retain change values and copied coordinates. The console keeps per-file line tables in its bounded result cache.
