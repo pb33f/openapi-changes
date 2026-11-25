@@ -1,11 +1,13 @@
 package model
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
 
+	"github.com/buger/jsonparser"
 	"github.com/pb33f/libasyncapi"
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel"
@@ -127,7 +129,9 @@ type SchemaInputOptions struct {
 
 // ParseInput selects the native engine. Explicit schema mode also accepts unmarked roots.
 func ParseInput(data []byte, source string, config *datamodel.DocumentConfiguration, schema SchemaInputOptions) (ParsedSpecification, error) {
-	if !schema.Explicit {
+	apiConfig := config
+	marked := !schema.Explicit && schemaMarker(data)
+	if !schema.Explicit && !marked {
 		api, async, err := ParseSpecification(data, config)
 		if !errors.Is(err, datamodel.ErrUnsupportedSpecType) {
 			return ParsedSpecification{OpenAPI: api, AsyncAPI: async}, err
@@ -144,7 +148,46 @@ func ParseInput(data []byte, source string, config *datamodel.DocumentConfigurat
 		config = &adjusted
 	}
 	doc, err := jsonschema.Load(data, source, config, schema.Explicit)
+	if marked && err != nil {
+		// The hint only selects the first parser. Preserve native API diagnostics
+		// if a document with an embedded declaration was directed here.
+		api, async, apiErr := ParseSpecification(data, apiConfig)
+		if !errors.Is(apiErr, datamodel.ErrUnsupportedSpecType) {
+			return ParsedSpecification{OpenAPI: api, AsyncAPI: async}, apiErr
+		}
+	}
 	return ParsedSpecification{Schema: doc}, err
+}
+
+// schemaMarker finds the common top-level declaration without building a second
+// syntax tree. Escaped keys and other YAML forms still use the native fallback.
+func schemaMarker(data []byte) bool {
+	if !bytes.Contains(data, []byte("$schema")) {
+		return false
+	}
+	data = bytes.TrimSpace(data)
+	if data[0] == '{' {
+		dialect, err := jsonparser.GetString(data, "$schema")
+		return err == nil && strings.TrimSuffix(dialect, "#") == jsonschema.Dialect
+	}
+	indent := -1
+	for raw := range bytes.Lines(data) {
+		content := bytes.TrimLeft(raw, " \t")
+		line := bytes.TrimSpace(content)
+		if len(line) == 0 || line[0] == '#' || line[0] == '%' || bytes.Equal(line, []byte("---")) {
+			continue
+		}
+		if indent == -1 {
+			indent = len(raw) - len(content)
+		}
+		if len(raw)-len(content) == indent {
+			key, value, ok := bytes.Cut(line, []byte(":"))
+			if ok && bytes.Equal(bytes.Trim(bytes.TrimSpace(key), "'\""), []byte("$schema")) {
+				return bytes.Contains(value, []byte(jsonschema.Dialect))
+			}
+		}
+	}
+	return false
 }
 
 // Kind reports the native document label for diagnostics.

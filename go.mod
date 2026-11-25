@@ -9,15 +9,16 @@ require (
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
+	github.com/buger/jsonparser v1.6.1
 	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/charmbracelet/x/ansi v0.11.9
 	github.com/charmbracelet/x/term v0.2.2
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-runewidth v0.0.31
-	github.com/pb33f/doctor v0.0.90-0.20261125170939-3275f0737a7e
+	github.com/pb33f/doctor v0.0.90-0.20261125172239-6e8497f16045
 	github.com/pb33f/go-yaml v0.2.0
 	github.com/pb33f/libasyncapi v0.0.7
-	github.com/pb33f/libopenapi v0.44.1-0.20261125170651-15ccd8485acd
+	github.com/pb33f/libopenapi v0.44.1-0.20261125172038-be735a18d4d2
 	github.com/pb33f/testify v0.1.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/spf13/cobra v1.10.2
@@ -29,7 +30,6 @@ require (
 	github.com/a-h/templ v0.3.1070 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
-	github.com/buger/jsonparser v1.6.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charmbracelet/harmonica v0.2.0 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20261008173134-6b8d4baf91b4 // indirect
