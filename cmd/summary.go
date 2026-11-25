@@ -79,10 +79,19 @@ func buildElementSummaries(changes []*whatChangedModel.Change, labels map[string
 		}
 	}
 
+	labelCount := make(map[string]int)
+	if len(labels) > 0 {
+		for id := range grouped {
+			labelCount[labels[id]]++
+		}
+	}
 	summaries := make([]elementSummary, 0, len(grouped))
 	for name, stats := range grouped {
 		if label := labels[name]; label != "" && label != name {
-			name = label + " (" + name + ")"
+			if labelCount[label] > 1 {
+				label += " (" + name + ")"
+			}
+			name = label
 		}
 		summaries = append(summaries, elementSummary{name: name, total: stats.total, breaking: stats.breaking})
 	}
@@ -498,12 +507,9 @@ func GetSummaryCommand() *cobra.Command {
 			input.Opts.errorOnDiff, _ = cmd.Flags().GetBool("error-on-diff")
 			styles := summaryStylesForPalette(input.Opts.palette)
 
-			if len(input.Commits) == 0 && len(args) == 2 {
-				firstArgInfo, statErr := os.Stat(args[0])
-				if statErr == nil && firstArgInfo.IsDir() {
-					printNoPriorVersionText()
-					return nil
-				}
+			if len(input.Commits) == 0 && comparisonMode(args, input.Opts.schema) == localHistory {
+				printNoPriorVersionText()
+				return nil
 			}
 
 			output, hasBreaking, hasChanges, renderErr := renderSummaryWithTheme(

@@ -74,7 +74,7 @@ func init() {
 	rootCmd.AddCommand(GetReportCommand())
 	rootCmd.AddCommand(GetSummaryCommand())
 	rootCmd.AddCommand(GetVersionCommand())
-	rootCmd.PersistentFlags().Bool("schema", false, "Compare JSON Schema Draft 2020-12 inputs, including unmarked objects and booleans")
+	rootCmd.PersistentFlags().Bool("schema", false, "Compare JSON Schema Draft 2020-12 inputs, including unmarked schemas and directory collections")
 	rootCmd.PersistentFlags().BoolP("top", "t", false, "Only show latest changes (last git revision against HEAD)")
 	rootCmd.PersistentFlags().IntP("limit", "l", 5, "Limit history to number of revisions (default is 5)")
 	rootCmd.PersistentFlags().BoolP("global-revisions", "R", false, "Consider all revisions in limit, not just the ones for the file")

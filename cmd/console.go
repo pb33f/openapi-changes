@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/pb33f/doctor/changerator"
@@ -98,8 +97,7 @@ func GetConsoleCommand() *cobra.Command {
 			defer releaseHistoryWindows(input.Commits)
 
 			if len(input.Commits) == 0 {
-				firstArgInfo, statErr := os.Stat(args[0])
-				if len(args) == 2 && statErr == nil && firstArgInfo.IsDir() {
+				if comparisonMode(args, input.Opts.schema) == localHistory {
 					printNoPriorVersionText()
 					return nil
 				}

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.test/invoice",
+  "title": "Invoice",
+  "type": "object",
+  "properties": {
+    "amount": {
+      "$ref": "https://schemas.example.test/money"
+    }
+  }
+}

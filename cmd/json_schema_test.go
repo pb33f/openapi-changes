@@ -4,11 +4,8 @@
 package cmd
 
 import (
-	"charm.land/bubbletea/v2"
 	"encoding/json"
 	"fmt"
-	"github.com/charmbracelet/x/ansi"
-	tui "github.com/pb33f/openapi-changes/tui/v2"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -204,17 +201,9 @@ func TestJSONSchemaConsoleOpensAuthoredLine(t *testing.T) {
 			commits, err := loadLeftRightCommits(tc.left, tc.right, summaryOpts{})
 			require.NoError(t, err)
 			t.Cleanup(func() { releaseDirectInputs(commits[0]) })
-			var console tea.Model = tui.NewConsoleModel(commits, nil, false, "", bridgeRunChangerator)
-			console, _ = console.Update(tea.WindowSizeMsg{Width: 140, Height: 44})
-			console, _ = console.Update(tea.KeyPressMsg{Code: tea.KeyHome})
-			console, _ = console.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
-			view := ansi.Strip(console.View().Content)
+			view := openSchemaConsoleChange(t, commits, false)
 			require.Contains(t, view, "RECENTER")
 			require.Regexp(t, `12[│ ┃]*"id"`, view)
-			console, _ = console.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
-			_, quit := console.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
-			require.NotNil(t, quit)
-			require.IsType(t, tea.QuitMsg{}, quit())
 		})
 	}
 }
@@ -256,14 +245,58 @@ func TestJSONSchemaExplicitLocalBase(t *testing.T) {
 	for _, explicit := range []bool{false, true} {
 		flat, err := runLeftRightReport(filepath.Join(dir, "before/root.yaml"), filepath.Join(dir, "after/root.yaml"), summaryOpts{schema: explicit, base: base}, nil)
 		require.NoError(t, err)
+		found := false
 		for _, ch := range flat.Changes {
 			if ch.Property == "minLength" {
 				require.Equal(t, "2", ch.Original)
 				require.Equal(t, "3", ch.New)
-				goto found
+				found = true
 			}
 		}
-		t.Fatal("missing change to minLength in the explicit base directory")
-	found:
+		require.True(t, found, "missing change to minLength in the explicit base directory")
 	}
+}
+
+func TestJSONSchemaPoliciesAreIsolated(t *testing.T) {
+	dir := t.TempDir()
+	left := writeSchemaFile(t, dir, "old.yaml", "minLength: 3\n")
+	right := writeSchemaFile(t, dir, "new.yaml", "minLength: 2\n")
+	for _, flag := range []bool{false, true} {
+		t.Run(fmt.Sprint(flag), func(t *testing.T) {
+			cfg := writeSchemaFile(t, dir, fmt.Sprintf("policy-%t.yaml", flag), fmt.Sprintf("schemaRules:\n  schema:\n    minLength: {modified: %t}\n", flag))
+			rules, err := loadComparisonRules(cfg)
+			require.NoError(t, err)
+			t.Parallel()
+			for range 5 {
+				flat, err := runLeftRightReport(left, right, summaryOpts{schema: true, rules: rules}, nil)
+				require.NoError(t, err)
+				require.Len(t, flat.Changes, 1)
+				require.Equal(t, flag, flat.Changes[0].Breaking)
+			}
+		})
+	}
+}
+
+func TestJSONSchemaPureMoveAndLineShiftPreserveIdentity(t *testing.T) {
+	before, after := t.TempDir(), t.TempDir()
+	const schema = "$id: urn:money\ntype: string\nminLength: %d\n"
+	writeSchemaFile(t, before, "old/money.yaml", fmt.Sprintf(schema, 2))
+	writeSchemaFile(t, after, "new/money.yaml", fmt.Sprintf(schema, 2))
+	opts := summaryOpts{schema: true}
+	flat, err := runLeftRightReport(before, after, opts, nil)
+	require.NoError(t, err)
+	require.Nil(t, flat)
+	writeSchemaFile(t, after, "new/money.yaml", fmt.Sprintf(schema, 3))
+	flat, err = runLeftRightReport(before, after, opts, nil)
+	require.NoError(t, err)
+	require.Len(t, flat.Changes, 1)
+	initial := flat.Changes[0]
+	require.Equal(t, "old/money.yaml", initial.Context.OriginalDocument)
+	require.Equal(t, "new/money.yaml", initial.Context.ModifiedDocument)
+	writeSchemaFile(t, after, "new/money.yaml", "\n\n"+fmt.Sprintf(schema, 3))
+	flat, err = runLeftRightReport(before, after, opts, nil)
+	require.NoError(t, err)
+	require.Len(t, flat.Changes, 1)
+	require.NotEqual(t, *initial.Context.NewLine, *flat.Changes[0].Context.NewLine)
+	require.Equal(t, initial.ChangeHash, flat.Changes[0].ChangeHash)
 }

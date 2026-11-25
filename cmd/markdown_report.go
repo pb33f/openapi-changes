@@ -260,7 +260,8 @@ func GetMarkdownReportCommand() *cobra.Command {
 			resultFile, _ := cmd.Flags().GetString("result-file")
 			reportFile, _ := cmd.Flags().GetString("report-file")
 			includeDiff, _ := cmd.Flags().GetBool("include-diff")
-			if err := validateCompactOptions(args, compact, includeDiff, reportFile, resultFile); err != nil {
+			schema, _ := cmd.Flags().GetBool("schema")
+			if err := validateCompactOptions(args, compact, includeDiff, schema, reportFile, resultFile); err != nil {
 				return err
 			}
 			input, err := prepareCommandRun(cmd, args, printMarkdownReportUsage)
@@ -311,7 +312,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 	return cmd
 }
 
-func validateCompactOptions(args []string, compact, includeDiff bool, reportFile, resultFile string) error {
+func validateCompactOptions(args []string, compact, includeDiff, schema bool, reportFile, resultFile string) error {
 	if resultFile != "" && !compact {
 		return errors.New("--result-file requires --compact")
 	}
@@ -321,7 +322,7 @@ func validateCompactOptions(args []string, compact, includeDiff bool, reportFile
 	if len(args) != 2 {
 		return errors.New("--compact requires two direct comparison inputs; history is not supported")
 	}
-	if info, err := os.Stat(args[0]); err == nil && info.IsDir() {
+	if comparisonMode(args, schema) == localHistory {
 		return errors.New("--compact does not support repository history")
 	}
 	if includeDiff {

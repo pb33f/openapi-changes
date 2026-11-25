@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.test/money",
+  "title": "Money",
+  "type": "object",
+  "properties": {
+    "currency": {
+      "type": "string",
+      "minLength": 2
+    }
+  }
+}

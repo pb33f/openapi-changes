@@ -108,7 +108,7 @@ func TestCompactReportRejectsAliasedOutputs(t *testing.T) {
 	report, result := filepath.Join(dir, "report"), filepath.Join(dir, "result")
 	require.NoError(t, os.WriteFile(report, []byte("existing"), 0600))
 	require.NoError(t, os.Link(report, result))
-	require.Error(t, validateCompactOptions([]string{"a", "b"}, true, false, report, result))
+	require.Error(t, validateCompactOptions([]string{"a", "b"}, true, false, false, report, result))
 }
 
 func TestCompactReportHighlightsRemovedPath(t *testing.T) {

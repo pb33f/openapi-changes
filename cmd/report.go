@@ -245,28 +245,19 @@ func GetReportCommand() *cobra.Command {
 				return printReportJSON(flat)
 			}
 
-			if !isHTTPURL(args[0]) {
-				if _, _, ok := parseGitRef(args[0]); ok {
-					return printReportJSONOrNoChanges(args, opts, breakingConfig, reproducible)
+			if comparisonMode(args, opts.schema) == localHistory {
+				flat, err := runGitHistoryReport(args[0], args[1], opts, breakingConfig)
+				if err != nil {
+					return err
 				}
-				f, statErr := os.Stat(args[0])
-				if statErr == nil && f.IsDir() {
-					flat, reportErr := runGitHistoryReport(args[0], args[1], opts, breakingConfig)
-					if reportErr != nil {
-						return reportErr
-					}
-					if flat == nil {
-						printNoChangesJSON()
-						return nil
-					}
-					if reproducible {
-						makeReportOutputReproducible(flat)
-					}
-					return printReportJSON(flat)
+				if flat == nil {
+					printNoChangesJSON()
+					return nil
 				}
-				if _, _, ok := parseGitRef(args[1]); ok {
-					return printReportJSONOrNoChanges(args, opts, breakingConfig, reproducible)
+				if reproducible {
+					makeReportOutputReproducible(flat)
 				}
+				return printReportJSON(flat)
 			}
 
 			return printReportJSONOrNoChanges(args, opts, breakingConfig, reproducible)
