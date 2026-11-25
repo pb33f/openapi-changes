@@ -345,6 +345,11 @@ func (t treeModel) renderNode(entry treeEntry, styles consoleStyles) string {
 	if label == "" {
 		label = entry.node.Type
 	}
+	if entry.depth == 1 && t.root != nil && t.root.DocumentKind == "jsonschema" && entry.node.Type == "schema" {
+		if source := entry.node.OriginLocation; source != "" && source != label {
+			label += " (" + source + ")"
+		}
+	}
 	return styles.info.Render(label)
 }
 
