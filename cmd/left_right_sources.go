@@ -251,22 +251,22 @@ func attachLazyLocalFS(docConfig *datamodel.DocumentConfiguration) error {
 	return nil
 }
 
-func buildLeftRightCommit(left, right comparisonSource) (*model.Commit, error) {
-	leftDoc, leftAsync, err := model.ParseSpecification(left.RootBytes, left.DocConfig)
+func buildLeftRightCommit(left, right comparisonSource, schema model.SchemaInputOptions) (*model.Commit, error) {
+	original, err := model.ParseInput(left.RootBytes, left.Display, left.DocConfig, schema)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse original document '%s': %w", left.Display, err)
 	}
-	rightDoc, rightAsync, err := model.ParseSpecification(right.RootBytes, right.DocConfig)
+	modified, err := model.ParseInput(right.RootBytes, right.Display, right.DocConfig, schema)
 	if err != nil {
-		if leftDoc != nil {
-			leftDoc.Release()
-		}
+		original.Release()
 		return nil, fmt.Errorf("unable to parse modified document '%s': %w", right.Display, err)
 	}
 
 	var rewriters []model.DocumentPathRewriter
-	if (leftAsync == nil) != (rightAsync == nil) {
-		return nil, fmt.Errorf("cannot compare OpenAPI and AsyncAPI documents")
+	if original.Kind() != modified.Kind() {
+		original.Release()
+		modified.Release()
+		return nil, fmt.Errorf("cannot compare %s and %s documents", original.Kind(), modified.Kind())
 	}
 	if left.RewriteDocumentPath != nil {
 		rewriters = append(rewriters, left.RewriteDocumentPath)
@@ -281,10 +281,12 @@ func buildLeftRightCommit(left, right comparisonSource) (*model.Commit, error) {
 		CommitDate:        time.Now(),
 		OldData:           left.RootBytes,
 		Data:              right.RootBytes,
-		OldDocument:       leftDoc,
-		Document:          rightDoc,
-		OldAsyncDocument:  leftAsync,
-		AsyncDocument:     rightAsync,
+		OldSchemaDocument: original.Schema,
+		SchemaDocument:    modified.Schema,
+		OldDocument:       original.OpenAPI,
+		Document:          modified.OpenAPI,
+		OldAsyncDocument:  original.AsyncAPI,
+		AsyncDocument:     modified.AsyncAPI,
 		OriginalSource:    left.Display,
 		ModifiedSource:    right.Display,
 		Synthetic:         true,
@@ -305,7 +307,11 @@ func buildLeftRightCommitAndSources(left, right string, opts summaryOpts) (*mode
 	}
 	defer rightSource.Cleanup()
 
-	commit, err := buildLeftRightCommit(leftSource, rightSource)
+	schema := model.SchemaInputOptions{Explicit: opts.schema}
+	if opts.base != "" && !isHTTPURL(opts.base) {
+		schema.BasePath = leftSource.DocConfig.BasePath
+	}
+	commit, err := buildLeftRightCommit(leftSource, rightSource, schema)
 	if err != nil {
 		return nil, err
 	}

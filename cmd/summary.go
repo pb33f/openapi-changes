@@ -49,7 +49,7 @@ type elementSummary struct {
 	breaking int
 }
 
-func buildElementSummaries(changes []*whatChangedModel.Change) []elementSummary {
+func buildElementSummaries(changes []*whatChangedModel.Change, labels map[string]string) []elementSummary {
 	if len(changes) == 0 {
 		return nil
 	}
@@ -64,6 +64,9 @@ func buildElementSummaries(changes []*whatChangedModel.Change) []elementSummary 
 			continue
 		}
 		name := summarizeTopLevelElement(change.Path)
+		if change.SchemaResource != "" {
+			name = change.SchemaResource
+		}
 		if name == "" {
 			name = "document"
 		}
@@ -78,6 +81,9 @@ func buildElementSummaries(changes []*whatChangedModel.Change) []elementSummary 
 
 	summaries := make([]elementSummary, 0, len(grouped))
 	for name, stats := range grouped {
+		if label := labels[name]; label != "" && label != name {
+			name = label + " (" + name + ")"
+		}
 		summaries = append(summaries, elementSummary{name: name, total: stats.total, breaking: stats.breaking})
 	}
 	sort.Slice(summaries, func(i, j int) bool {
@@ -369,7 +375,7 @@ func renderSummaryWithTheme(
 			}
 
 			sb.WriteString(renderDedupedCountsNote(markdown, styles))
-			sb.WriteString(renderElementSummaryTable(buildElementSummaries(deduplicatedChanges), markdown, styles))
+			sb.WriteString(renderElementSummaryTable(buildElementSummaries(deduplicatedChanges, result.Changerator.SchemaLabels), markdown, styles))
 
 			counts := changecounts.FromChanges(deduplicatedChanges)
 			breaking := counts.Breaking
@@ -487,6 +493,7 @@ func GetSummaryCommand() *cobra.Command {
 			if input == nil {
 				return nil
 			}
+			defer input.releaseDirectInputs()
 			input.Opts.markdown, _ = cmd.Flags().GetBool("markdown")
 			input.Opts.errorOnDiff, _ = cmd.Flags().GetBool("error-on-diff")
 			styles := summaryStylesForPalette(input.Opts.palette)

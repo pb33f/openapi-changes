@@ -22,7 +22,7 @@ import (
 
 func printHTMLReportUsage(palette terminal.Palette) {
 	printCommandUsage("html-report",
-		"Generates an interactive HTML report of API changes.\nThe report is fully self-contained and works offline.",
+		"Generates an interactive HTML change report.\nThe report is fully self-contained and works offline.",
 		palette)
 }
 
@@ -50,9 +50,11 @@ func buildHTMLReportItems(commits []*model.Commit, breakingConfig *whatChangedMo
 			continue
 		}
 
+		renderCommit := *commit
+		renderCommit.OriginalSchemas, renderCommit.ModifiedSchemas = result.sourceViews()
 		changeId := strconv.Itoa(i)
 		item, err := htmlReport.BuildReportItem(
-			commit,
+			&renderCommit,
 			result.Changerator,
 			result.DocChanges,
 			result.RightDrDoc,
@@ -151,6 +153,7 @@ func GetHTMLReportCommand() *cobra.Command {
 			if input == nil {
 				return nil
 			}
+			defer input.releaseDirectInputs()
 			reportFile, _ := cmd.Flags().GetString("report-file")
 			noExplorer, _ := cmd.Flags().GetBool("no-explorer")
 			styles := commandStylesFor(input.Opts.palette)

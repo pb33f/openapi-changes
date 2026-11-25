@@ -20,9 +20,12 @@ func createReport(commit *model.Commit) *model.Report {
 	}
 	summary := make(map[string]*reports.Changed)
 	for _, change := range commit.AllChanges().GetAllChanges() {
-		name := strings.TrimPrefix(change.Path, "$.")
-		if i := strings.IndexAny(name, ".["); i >= 0 {
-			name = name[:i]
+		name := change.SchemaResource
+		if name == "" {
+			name = strings.TrimPrefix(change.Path, "$.")
+			if i := strings.IndexAny(name, ".["); i >= 0 {
+				name = name[:i]
+			}
 		}
 		if summary[name] == nil {
 			summary[name] = &reports.Changed{}

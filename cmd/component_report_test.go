@@ -69,7 +69,7 @@ func TestComponentReports_PreserveEachComponent(t *testing.T) {
 			assert.Contains(t, item.HtmlReport, "<strong>8</strong> changes detected")
 			assert.Contains(t, string(item.Graph.NodeChangeTree), "$.components")
 
-			markdown, err := renderCommitMarkdown(commits[0], nil)
+			markdown, err := renderCommitMarkdown(commits[0], nil, false)
 			require.NoError(t, err)
 			assert.Contains(t, markdown, "**8** changes detected")
 			assert.Contains(t, markdown, "| Component | 8 |")

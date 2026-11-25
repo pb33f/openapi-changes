@@ -12,10 +12,10 @@ import (
 // identity separates distinct edits to one property, such as an enum addition and
 // removal, so a repeat is only ever a second report of the same edit.
 type identity struct {
-	path, property, original, modified     string
-	originalEncoded, newEncoded, reference string
-	changeType                             int
-	breaking                               bool
+	resource, path, property, original, modified string
+	originalEncoded, newEncoded, reference       string
+	changeType                                   int
+	breaking                                     bool
 	// Changes without a semantic path are identified by their source position, or
 	// by the change itself when that is unknown too.
 	position  sourcePosition
@@ -39,7 +39,7 @@ func Deduplicate(changes []*wcModel.Change) []*wcModel.Change {
 		}
 		path := componentPath(change)
 		key := identity{
-			path: path, property: change.Property, original: change.Original, modified: change.New,
+			resource: change.SchemaResource, path: path, property: change.Property, original: change.Original, modified: change.New,
 			originalEncoded: change.OriginalEncoded, newEncoded: change.NewEncoded,
 			reference: change.Reference, changeType: change.ChangeType, breaking: change.Breaking,
 		}

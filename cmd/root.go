@@ -19,9 +19,9 @@ var (
 	rootCmd = &cobra.Command{
 		SilenceUsage: true,
 		Use:          "openapi-changes",
-		Short:        "Detect and explore changes between OpenAPI and AsyncAPI specifications.",
-		Long: `openapi-changes detects changes within OpenAPI or AsyncAPI 3.x specifications.
-	it can compare between two files, or a single file, over time.
+		Short:        "Compare OpenAPI, AsyncAPI and JSON Schema documents.",
+		Long: `Compare OpenAPI, AsyncAPI 3.x and JSON Schema Draft 2020-12 documents.
+	Supply two files or compare revisions of a file in Git.
 
 	The comparison and reporting commands use the current doctor-based engine.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -74,6 +74,7 @@ func init() {
 	rootCmd.AddCommand(GetReportCommand())
 	rootCmd.AddCommand(GetSummaryCommand())
 	rootCmd.AddCommand(GetVersionCommand())
+	rootCmd.PersistentFlags().Bool("schema", false, "Compare JSON Schema Draft 2020-12 inputs, including unmarked objects and booleans")
 	rootCmd.PersistentFlags().BoolP("top", "t", false, "Only show latest changes (last git revision against HEAD)")
 	rootCmd.PersistentFlags().IntP("limit", "l", 5, "Limit history to number of revisions (default is 5)")
 	rootCmd.PersistentFlags().BoolP("global-revisions", "R", false, "Consider all revisions in limit, not just the ones for the file")

@@ -86,6 +86,7 @@ func runLeftRightReport(left, right string, opts summaryOpts, breakingConfig *wh
 	if err != nil {
 		return nil, err
 	}
+	defer releaseDirectInputs(commit)
 	result, err := changerateCommit(commit, breakingConfig)
 	if err != nil {
 		return nil, err
@@ -212,7 +213,7 @@ func GetReportCommand() *cobra.Command {
 			if len(args) == 0 {
 				maybePrintBanner(cmd, opts.palette)
 				printCommandUsage("report",
-					"The report command generates a machine-readable JSON report of all API changes\nusing the doctor changerator engine.",
+					"The report command generates a machine-readable JSON report of document changes\nusing the doctor changerator engine.",
 					opts.palette)
 				return nil
 			}

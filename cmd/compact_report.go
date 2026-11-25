@@ -20,7 +20,7 @@ import (
 // compactOutcome is written only after a complete direct comparison.
 // Counts use the same semantic identity as the human summary.
 type compactOutcome struct {
-	async    bool
+	label    string
 	Total    int `json:"total"`
 	Breaking int `json:"breaking"`
 }
@@ -31,7 +31,9 @@ func generateCompactMarkdown(commits []*model.Commit, config *whatChangedModel.B
 		return nil, outcome, errors.New("compact report requires one complete direct comparison")
 	}
 	result, err := runChangerator(commits[0], config)
-	outcome.async = commits[0].APILabel() == "AsyncAPI"
+	if label := commits[0].APILabel(); label != "OpenAPI" {
+		outcome.label = label
+	}
 	if err != nil {
 		return nil, outcome, err
 	}
@@ -75,8 +77,8 @@ func generateCompactMarkdown(commits []*model.Commit, config *whatChangedModel.B
 func renderCompactMarkdown(outcome compactOutcome, highlights []string) []byte {
 	var sb strings.Builder
 	label := "OpenAPI"
-	if outcome.async {
-		label = "AsyncAPI"
+	if outcome.label != "" {
+		label = outcome.label
 	}
 	sb.WriteString("## " + label + " changes\n\n")
 	switch {
@@ -97,7 +99,11 @@ func renderCompactMarkdown(outcome compactOutcome, highlights []string) []byte {
 		}
 		sb.WriteString("\nUp to 8 highlights are shown. See the full report for all changes.\n\n")
 	}
-	sb.WriteString("Use [OpenAPI Doctor](https://pb33f.io/doctor/) for workspace history, diagnostics, and pipeline controls.\n")
+	product := "OpenAPI Doctor"
+	if outcome.label == "JSON Schema" {
+		product = "Doctor"
+	}
+	sb.WriteString("Use [" + product + "](https://pb33f.io/doctor/) for workspace history, diagnostics, and pipeline controls.\n")
 	return []byte(sb.String())
 }
 

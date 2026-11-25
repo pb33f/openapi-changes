@@ -14,6 +14,7 @@ import (
 	v3 "github.com/pb33f/doctor/model/high/v3"
 	"github.com/pb33f/go-yaml"
 	asyncRules "github.com/pb33f/libasyncapi/what-changed/model"
+	"github.com/pb33f/libopenapi/jsonschema"
 	whatChanged "github.com/pb33f/libopenapi/what-changed"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/internal/breakingrules"
@@ -25,15 +26,25 @@ import (
 // Callers must call Release() exactly once when they are done reading Changerator,
 // DocChanges, and the doctor document tree.
 type changeratorResult struct {
-	releaseSources func()
-	Changerator    *changerator.Changerator
-	DocChanges     whatChanged.Changed
-	AsyncResult    *changerator.AsyncAPIResult
-	RightDrDoc     *drModel.DrDocument
-	LeftDrDoc      *drModel.DrDocument
+	originalSchema, modifiedSchema *jsonschema.Document
+	releaseSources                 func()
+	Changerator                    *changerator.Changerator
+	DocChanges                     whatChanged.Changed
+	SchemaResult                   *changerator.SchemaResult
+	AsyncResult                    *changerator.AsyncAPIResult
+	RightDrDoc                     *drModel.DrDocument
+	LeftDrDoc                      *drModel.DrDocument
+}
+
+// sourceViews shares bytes only with renderers that navigate to source files.
+func (r *changeratorResult) sourceViews() (*model.SchemaSources, *model.SchemaSources) {
+	return model.NewSchemaSources(r.originalSchema), model.NewSchemaSources(r.modifiedSchema)
 }
 
 func (r *changeratorResult) root() *v3.Node {
+	if r.SchemaResult != nil {
+		return r.SchemaResult.Right.Root
+	}
 	if r.AsyncResult != nil {
 		return r.AsyncResult.Right.Root
 	}
@@ -41,9 +52,13 @@ func (r *changeratorResult) root() *v3.Node {
 }
 
 func (r *changeratorResult) Release() {
+	r.originalSchema, r.modifiedSchema = nil, nil
 	if r.releaseSources != nil {
 		defer r.releaseSources()
 		r.releaseSources = nil
+	}
+	if r.SchemaResult != nil {
+		r.SchemaResult.Release()
 	}
 	if r.AsyncResult != nil {
 		r.AsyncResult.Release()
@@ -76,6 +91,25 @@ func runChangerator(commit *model.Commit, breakingConfig *whatChangedModel.Break
 			result.releaseSources = release
 		}
 		return result, err
+	}
+	if commit.SchemaDocument != nil && commit.OldSchemaDocument != nil {
+		var rules *whatChangedModel.BreakingRulesConfig
+		if commit.Rules != nil {
+			if commit.Rules.Legacy {
+				return nil, fmt.Errorf("use schemaRules to configure standalone JSON Schema")
+			}
+			rules = commit.Rules.Schema
+		}
+		release := breakingrules.Acquire(rules)
+		defer release()
+		result, err := changerator.CompareJSONSchema(commit.OldSchemaDocument, commit.SchemaDocument, rules)
+		if err != nil || result == nil {
+			return nil, err
+		}
+		return &changeratorResult{
+			Changerator: result.Changerator, DocChanges: result.Changes, SchemaResult: result,
+			originalSchema: commit.OldSchemaDocument, modifiedSchema: commit.SchemaDocument,
+		}, nil
 	}
 	if commit.AsyncDocument != nil && commit.OldAsyncDocument != nil {
 		if commit.Rules != nil && commit.Rules.Legacy {

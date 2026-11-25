@@ -42,10 +42,10 @@ func renderSpecLines(lines []string, hl highlightRange, changeType, width int, s
 	return diffview.RenderSource(lines, diffview.Range{Start: hl.start, End: hl.end}, changeType, width, styles.diffStyles())
 }
 
-// resolveChangeSource accepts root coordinates only. A missing candidate
-// coordinate cannot be replaced by an original coordinate after edits.
+// Native schema coordinates refer to the supplied per-side buffers. Other
+// formats supply root text, so external locations have no local excerpt.
 func resolveChangeSource(ch *whatChangedModel.Change, newLines, oldLines []string) diffview.Source {
-	if ch == nil || ch.Context == nil || ch.Context.DocumentLocation != "" {
+	if ch == nil || ch.Context == nil || ch.Context.DocumentLocation != "" && ch.SchemaResource == "" {
 		return diffview.Source{}
 	}
 	source := diffview.Source{Lines: newLines, Side: diffview.Candidate}

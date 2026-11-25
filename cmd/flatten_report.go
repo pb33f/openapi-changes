@@ -114,6 +114,15 @@ func cloneChange(change *wcModel.Change) *wcModel.Change {
 	cloned := *change
 	if change.Context != nil {
 		ctx := *change.Context
+		// A line pointer can refer to a YAML node. Flat history outlives its parser.
+		copyPosition := func(value *int) *int {
+			if value == nil {
+				return nil
+			}
+			return new(*value)
+		}
+		ctx.OriginalLine, ctx.OriginalColumn = copyPosition(ctx.OriginalLine), copyPosition(ctx.OriginalColumn)
+		ctx.NewLine, ctx.NewColumn = copyPosition(ctx.NewLine), copyPosition(ctx.NewColumn)
 		cloned.Context = &ctx
 	}
 	return &cloned
@@ -133,6 +142,11 @@ func sortFlatReportChanges(changes []*model.HashedChange) {
 }
 
 func compareHashedChanges(left, right *model.HashedChange) int {
+	if left != nil && right != nil && left.Change != nil && right.Change != nil {
+		if diff := cmp.Compare(left.SchemaResource, right.SchemaResource); diff != 0 {
+			return diff
+		}
+	}
 	if diff := cmp.Compare(changePath(left), changePath(right)); diff != 0 {
 		return diff
 	}

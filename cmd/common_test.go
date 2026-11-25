@@ -8,14 +8,15 @@ import (
 	"testing"
 
 	"github.com/pb33f/doctor/terminal"
-	"github.com/spf13/cobra"
 	"github.com/pb33f/testify/assert"
 	"github.com/pb33f/testify/require"
+	"github.com/spf13/cobra"
 )
 
 // testRootCmd creates a root command with standard persistent flags and a subcommand for testing.
 func testRootCmd(sub *cobra.Command, args ...string) *cobra.Command {
 	root := &cobra.Command{Use: "openapi-changes"}
+	root.PersistentFlags().Bool("schema", false, "")
 	root.PersistentFlags().BoolP("no-logo", "b", false, "")
 	root.PersistentFlags().BoolP("top", "t", false, "")
 	root.PersistentFlags().IntP("limit", "l", 5, "")

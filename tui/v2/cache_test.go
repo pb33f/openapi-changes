@@ -6,6 +6,8 @@ package v2
 import (
 	"testing"
 
+	wc "github.com/pb33f/libopenapi/what-changed/model"
+	"github.com/pb33f/openapi-changes/model"
 	"github.com/pb33f/testify/assert"
 )
 
@@ -102,23 +104,23 @@ func TestCommitCache_GetLines(t *testing.T) {
 		oldLines: []string{"old1"},
 	})
 
-	newL, oldL := c.getLines("x")
+	newL, oldL := c.changeLines("x", nil)
 	assert.Equal(t, []string{"new1", "new2"}, newL)
 	assert.Equal(t, []string{"old1"}, oldL)
 }
 
 func TestCommitCache_GetLinesMiss(t *testing.T) {
 	c := newCommitCache(3)
-	newL, oldL := c.getLines("missing")
+	newL, oldL := c.changeLines("missing", nil)
 	assert.Nil(t, newL)
 	assert.Nil(t, oldL)
 }
 
 func TestClampRange(t *testing.T) {
 	tests := []struct {
-		name   string
+		name            string
 		ln, b, a, total int
-		wantS, wantE   int
+		wantS, wantE    int
 	}{
 		{"middle", 10, 5, 5, 20, 5, 16},
 		{"near start", 2, 5, 5, 20, 0, 8},
@@ -138,4 +140,27 @@ func TestSplitLines(t *testing.T) {
 	assert.Nil(t, splitLines(nil))
 	assert.Nil(t, splitLines([]byte{}))
 	assert.Equal(t, []string{"a", "b"}, splitLines([]byte("a\nb")))
+}
+
+func TestCommitCacheOpensDefiningSchemaOnEachSide(t *testing.T) {
+	cache := newCommitCache(1)
+	entry := &cacheEntry{
+		newLines: []string{"modified root"}, oldLines: []string{"original root"},
+		originalSources: &model.SchemaSources{Root: "before.yaml", Files: map[string][]byte{"old.yaml": []byte("original line\nold value")}},
+		modifiedSources: &model.SchemaSources{Root: "after.yaml", Files: map[string][]byte{"new.yaml": []byte("modified line\nnew value")}},
+	}
+	cache.put("commit", entry)
+	ch := &wc.Change{SchemaResource: "urn:money", ChangeType: wc.Modified, Context: &wc.ChangeContext{DocumentLocation: "new.yaml", OriginalDocument: "old.yaml", ModifiedDocument: "new.yaml", OriginalLine: new(2), NewLine: new(2)}}
+	newer, old := cache.changeLines("commit", ch)
+	source := resolveChangeSource(ch, newer, old)
+	assert.Equal(t, "new value", source.Lines[source.Line-1])
+	ch.ChangeType = wc.PropertyRemoved
+	source = resolveChangeSource(ch, newer, old)
+	assert.Equal(t, "old value", source.Lines[source.Line-1])
+	ch.Context.OriginalDocument = "before.yaml"
+	_, old = cache.changeLines("commit", ch)
+	assert.Equal(t, []string{"original root"}, old)
+	ch.Context.ModifiedDocument = "missing.yaml"
+	newer, _ = cache.changeLines("commit", ch)
+	assert.Empty(t, newer)
 }

@@ -136,6 +136,7 @@ func loadGitHubCommitsDetailed(rawURL string, opts summaryOpts, breakingConfig *
 	d := makeProgressDrainer()
 	result, errs := processGithubRepoDetailed(user, repo, filePath,
 		d.ProgressChan, d.ErrorChan, git.HistoryOptions{
+			Schema:         opts.schema,
 			Lazy:           true,
 			BaseCommit:     opts.baseCommit,
 			Limit:          opts.limit,
@@ -189,6 +190,7 @@ func loadGitHistoryCommitsDetailed(gitPath, filePath string, opts summaryOpts, b
 
 	extractDrainer := makeProgressDrainer()
 	extractOpts := git.HistoryOptions{
+		Schema:          opts.schema,
 		BaseCommit:      opts.baseCommit,
 		GlobalRevisions: opts.globalRevisions,
 		Limit:           opts.limit,
@@ -206,6 +208,7 @@ func loadGitHistoryCommitsDetailed(gitPath, filePath string, opts summaryOpts, b
 	populateDrainer := makeProgressDrainer()
 	result, errs := populateHistoryDetailed(commits,
 		populateDrainer.ProgressChan, populateDrainer.ErrorChan, git.HistoryOptions{
+			Schema:         opts.schema,
 			LimitTime:      opts.limitTime,
 			Base:           opts.base,
 			Remote:         opts.remote,

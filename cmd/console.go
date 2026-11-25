@@ -19,7 +19,7 @@ import (
 
 func printConsoleUsage(palette terminal.Palette) {
 	printCommandUsage("console",
-		"The console command renders an interactive terminal user interface.\nExplore OpenAPI and AsyncAPI contract changes in your terminal.",
+		"The console command renders an interactive terminal user interface.\nExplore OpenAPI, AsyncAPI and JSON Schema changes in your terminal.",
 		palette)
 }
 
@@ -42,6 +42,7 @@ func bridgeRunChangerator(commit *model.Commit, breakingConfig *whatChangedModel
 	if result == nil {
 		return nil, nil, nil, nil
 	}
+	commit.OriginalSchemas, commit.ModifiedSchemas = result.sourceViews()
 	root := result.root()
 	releaseFn := func() { result.Release() }
 	return result.Changerator, root, releaseFn, nil
@@ -93,6 +94,7 @@ func GetConsoleCommand() *cobra.Command {
 			if input == nil {
 				return nil
 			}
+			defer input.releaseDirectInputs()
 			defer releaseHistoryWindows(input.Commits)
 
 			if len(input.Commits) == 0 {

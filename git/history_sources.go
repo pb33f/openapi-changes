@@ -43,7 +43,7 @@ func buildHistorySources(commits []*model.Commit, opts HistoryOptions) (*History
 	base.IgnorePolymorphicCircularReferences = true
 	window := new(model.HistoryWindow)
 	makeSource := func(data []byte, revision string) *model.HistorySource {
-		return &model.HistorySource{Data: data, Revision: revision, Config: func() (*datamodel.DocumentConfiguration, error) {
+		return &model.HistorySource{Schema: opts.Schema, SchemaBasePath: basePath, Data: data, Revision: revision, Config: func() (*datamodel.DocumentConfiguration, error) {
 			if context != nil {
 				return BuildRevisionDocumentConfiguration(context, revision, base)
 			}
@@ -75,7 +75,7 @@ func buildHistorySources(commits []*model.Commit, opts HistoryOptions) (*History
 				break
 			}
 			candidate := makeSource(bits, revision)
-			_, _, release, err := window.Acquire(candidate)
+			_, release, err := window.AcquireInput(candidate)
 			if err != nil {
 				continue
 			}

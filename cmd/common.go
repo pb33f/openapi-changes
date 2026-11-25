@@ -24,6 +24,7 @@ const (
 
 // summaryOpts holds the flags shared by the current doctor-based command family.
 type summaryOpts struct {
+	schema          bool
 	rules           *model.ComparisonRules
 	noColor         bool
 	tektronix       bool
@@ -111,6 +112,7 @@ func readCommonFlags(cmd *cobra.Command) (opts summaryOpts, configFlag string, e
 	opts.limitTime, _ = cmd.Flags().GetInt("limit-time")
 	opts.base, _ = cmd.Flags().GetString("base")
 	opts.baseCommit, _ = cmd.Flags().GetString("base-commit")
+	opts.schema, _ = cmd.Flags().GetBool("schema")
 	opts.remote, _ = cmd.Flags().GetBool("remote")
 	opts.extRefs, _ = cmd.Flags().GetBool("ext-refs")
 	opts.globalRevisions, _ = cmd.Flags().GetBool("global-revisions")
@@ -263,6 +265,7 @@ func printCommandUsage(commandName, description string, palette terminal.Palette
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" ./specs/old.yaml ./specs/new.yaml"))
+	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" --schema before/customer.json after/customer.json"))
 	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" HEAD~1:openapi.yaml ./openapi.yaml"))
 	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" https://github.com/user/repo/blob/main/openapi.yaml"))
 	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" /path/to/git/repo path/to/openapi.yaml"))

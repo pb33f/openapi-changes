@@ -30,3 +30,21 @@ func TestHistoryWindowBoundsModelsAndReusesAdjacentSources(t *testing.T) {
 	w.Close()
 	require.Empty(t, w.entries)
 }
+
+func TestHistoryWindowSchemaPinsAndNilConfig(t *testing.T) {
+	w := new(HistoryWindow)
+	source := &HistorySource{Schema: true, Data: []byte("true"), Config: func() (*datamodel.DocumentConfiguration, error) { return nil, nil }}
+	a, release, err := w.AcquireInput(source)
+	require.NoError(t, err)
+	b, releaseAgain, err := w.AcquireInput(source)
+	require.NoError(t, err)
+	require.Same(t, a.Schema, b.Schema)
+	w.Close()
+	release()
+	release()
+	require.Len(t, w.entries, 1)
+	require.NotNil(t, a.Schema.Root)
+	releaseAgain()
+	require.Empty(t, w.entries)
+	require.Nil(t, a.Schema.Root)
+}

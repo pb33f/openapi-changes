@@ -456,12 +456,14 @@ func (m *ConsoleModel) loadActiveCommit() {
 			RightRoot:   root,
 			releaseFn:   releaseFn,
 		},
-		treeRoot:       root,
-		stats:          stats,
-		nodeStatsCache: statsMap,
-		newLines:       splitLines(commit.Data),
-		oldLines:       splitLines(commit.OldData),
+		treeRoot:        root,
+		stats:           stats,
+		nodeStatsCache:  statsMap,
+		originalSources: commit.OriginalSchemas, modifiedSources: commit.ModifiedSchemas,
+		newLines: splitLines(commit.Data),
+		oldLines: splitLines(commit.OldData),
 	}
+	commit.OriginalSchemas, commit.ModifiedSchemas = nil, nil
 	m.cache.put(commit.Hash, entry)
 	m.applyCache(entry)
 }
@@ -535,7 +537,7 @@ func (m *ConsoleModel) updateDiffContent() {
 		return
 	}
 
-	newLines, oldLines := m.cache.getLines(m.activeHash)
+	newLines, oldLines := m.cache.changeLines(m.activeHash, m.activeChange)
 	lines, changeLn := resolveSpecAndLine(m.activeChange, newLines, oldLines)
 
 	// Fallback: no spec lines or no line info — use renderDiff which includes its own header
@@ -598,7 +600,7 @@ func (m *ConsoleModel) updateDiffContent() {
 // For removals the relevant content is in the old spec; for additions/modifications
 // it is in the new spec. The line number is chosen to match.
 func (m *ConsoleModel) openCodeModal(ch *whatChangedModel.Change) {
-	newLines, oldLines := m.cache.getLines(m.activeHash)
+	newLines, oldLines := m.cache.changeLines(m.activeHash, ch)
 	lines, changeLn := resolveSpecAndLine(ch, newLines, oldLines)
 	if len(lines) == 0 {
 		return
@@ -619,7 +621,7 @@ func (m *ConsoleModel) rebuildCodeModal() {
 	if m.activeChange == nil {
 		return
 	}
-	newLines, oldLines := m.cache.getLines(m.activeHash)
+	newLines, oldLines := m.cache.changeLines(m.activeHash, m.activeChange)
 	lines, changeLn := resolveSpecAndLine(m.activeChange, newLines, oldLines)
 	if len(lines) == 0 {
 		return

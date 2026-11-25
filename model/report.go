@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/libopenapi/what-changed/reports"
+	"strconv"
 	"time"
 )
 
@@ -50,20 +51,21 @@ func getIntValue(pointer *int) int {
 }
 
 func (hc *HashedChange) HashChange() {
-
-	context := hc.Context
-	contextString := fmt.Sprintf("%d-%d-%d-%d",
-		getIntValue(context.OriginalLine),
-		getIntValue(context.OriginalColumn),
-		getIntValue(context.NewLine),
-		getIntValue(context.NewColumn))
-
-	changeString := fmt.Sprintf("%d-%s-%s-%s-%s", hc.ChangeType, hc.Property, hc.Original, hc.New, contextString)
-
-	hasher := sha256.New()
-	hasher.Write([]byte(changeString))
-
-	hc.ChangeHash = base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+	var data []byte
+	if hc.SchemaResource != "" {
+		data, _ = json.Marshal([]string{hc.SchemaResource, hc.Path, hc.Property, hc.Original, hc.New,
+			hc.OriginalEncoded, hc.NewEncoded, strconv.Itoa(hc.ChangeType)})
+	} else {
+		context := hc.Context
+		if context == nil {
+			context = &model.ChangeContext{}
+		}
+		data = fmt.Appendf(nil, "%d-%s-%s-%s-%d-%d-%d-%d", hc.ChangeType, hc.Property, hc.Original, hc.New,
+			getIntValue(context.OriginalLine), getIntValue(context.OriginalColumn),
+			getIntValue(context.NewLine), getIntValue(context.NewColumn))
+	}
+	sum := sha256.Sum256(data)
+	hc.ChangeHash = base64.URLEncoding.EncodeToString(sum[:])
 }
 
 type Report struct {
