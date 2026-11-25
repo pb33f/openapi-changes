@@ -233,6 +233,17 @@ func TestJSONSchemaHTTPSources(t *testing.T) {
 	}
 }
 
+func TestJSONSchemaCollectionUsesExternalBase(t *testing.T) {
+	root := t.TempDir()
+	common := filepath.Join(root, "common")
+	writeSchemaFile(t, common, "shared.yaml", "type: string\n")
+	writeSchemaFile(t, root, "before/root.yaml", "title: Before\n$ref: shared.yaml\n")
+	writeSchemaFile(t, root, "after/root.yaml", "title: After\n$ref: shared.yaml\n")
+	report := testRootCmd(GetReportCommand(), "--schema", "--base", common, filepath.Join(root, "before"), filepath.Join(root, "after"))
+	output := captureStdout(t, func() { require.NoError(t, report.Execute()) })
+	require.Contains(t, output, `"path": "$.title"`)
+}
+
 func TestJSONSchemaExplicitLocalBase(t *testing.T) {
 	dir := t.TempDir()
 	base := filepath.Join(dir, "shared")
