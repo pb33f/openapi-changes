@@ -73,20 +73,26 @@ func (t *treeModel) rebuild() {
 	children := t.root.Children
 	totalItems := len(rootChanges) + len(children)
 	idx := 0
+	var guides []bool
+	if t.root.DocumentKind == "jsonschema" {
+		t.entries = append(t.entries, treeEntry{node: t.root, isLast: true, hasKids: totalItems > 0})
+		guides = []bool{false}
+	}
 
 	for _, change := range rootChanges {
 		idx++
 		t.entries = append(t.entries, treeEntry{
 			node:   t.root,
 			change: change,
-			depth:  0,
+			depth:  len(guides),
+			guides: guides,
 			isLast: idx == totalItems,
 		})
 	}
 
 	for _, child := range children {
 		idx++
-		t.flattenNode(child, 0, idx == totalItems, nil)
+		t.flattenNode(child, len(guides), idx == totalItems, guides)
 	}
 	// Clamp cursor
 	if t.cursor >= len(t.entries) {
