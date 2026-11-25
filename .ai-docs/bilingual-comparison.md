@@ -141,3 +141,6 @@ A collection produces one report item. The graph has a `Schemas` root. Source lo
 names, and change paths are local to the resource in `schemaResource`. The summary, compact counts, and Markdown
 use the same resource-aware identity as the console and the HTML views. `--include-diff` includes one unified
 diff per changed file pair. A moved resource can have different original and modified filenames.
+
+Selecting a reference site in either HTML report shows edits authored at the site and in the definitions reached
+through its unchanged references. A changed `$ref` or `$dynamicRef` shows the edit to that keyword at its source.

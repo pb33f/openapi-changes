@@ -12,7 +12,7 @@ import {
     ThemeSwitcher, ModelTreeNodeClicked, DiffViewer, isReferenceEdge, sourceText,
 } from '@pb33f/cowboy-components/static-report';
 import type {
-    NodeClickedEvent, ReportPayload, ReportItem, Change, Node, ChangeHistory,
+    NodeClickedEvent, ReportPayload, ReportItem, Change, Node, Edge, ChangeHistory,
 } from '@pb33f/cowboy-components/static-report';
 // Ensure components are registered (tree-shaking guard)
 void HeaderComponent;
@@ -137,7 +137,7 @@ export abstract class ReportShellBase extends LitElement {
     }
 
     private _graphNodeMap: Map<string, Node> = new Map();
-    private _schemaReferences = new Map<string, string[]>();
+    private _schemaReferences = new Map<string, Edge[]>();
     private _cachedChartIndex: number = -1;
     private _cachedData: ReportPayload | null = null;
     protected _changeDataset: ChartDataset[] = [];
@@ -212,19 +212,27 @@ export abstract class ReportShellBase extends LitElement {
 
     protected selectNode(nodeId: string): void {
         this.selectedNodeId = nodeId;
-        const direct = this._graphNodeMap.get(nodeId)?.timeline;
-        const changes = direct?.length ? direct : this.referencedChanges(nodeId);
+        const changes = this.changesForNode(nodeId);
         this.selectedNodeChanges = changes;
         this.selectedDiffChanges = changes;
     }
 
-    private referencedChanges(nodeId: string): Change[] {
-        const targets = this._schemaReferences.get(nodeId);
-        if (!targets) return [];
+    private changesForNode(nodeId: string): Change[] {
+        const local = this._graphNodeMap.get(nodeId)?.timeline || [];
+        if (!this._schemaReferences.has(nodeId)) return local;
 
-        // Each edit belongs to one definition. Follow nested and recursive uses once.
-        const changes: Change[] = [];
-        const pending = [...targets];
+        const changes = [...local];
+        const pending: string[] = [];
+        const addReferences = (id: string, timeline: Change[]) => {
+            for (const edge of this._schemaReferences.get(id) || []) {
+                const keyword = edge.id.startsWith('ref:$dynamicRef:') ? '$dynamicRef' : '$ref';
+                if (timeline.some(change => change.property === keyword)) continue;
+                for (const target of edge.targets) pending.push(target);
+            }
+        };
+        addReferences(nodeId, local);
+
+        // A recursive use can reach this node again. Its local edits are already present.
         const visited = new Set<string>();
         for (let i = 0; i < pending.length; i++) {
             const id = pending[i];
@@ -232,9 +240,12 @@ export abstract class ReportShellBase extends LitElement {
             visited.add(id);
             const node = this._graphNodeMap.get(id);
             if (!node) continue;
-            for (const change of node.timeline || []) changes.push(change);
+            const timeline = node.timeline || [];
+            if (id !== nodeId) {
+                for (const change of timeline) changes.push(change);
+            }
             for (const child of node.nodes || []) pending.push(child);
-            for (const reference of this._schemaReferences.get(id) || []) pending.push(reference);
+            addReferences(id, timeline);
         }
         return changes;
     }
@@ -253,12 +264,9 @@ export abstract class ReportShellBase extends LitElement {
             for (const edge of item.graph.edges || []) {
                 if (!isReferenceEdge(edge)) continue;
                 for (const source of edge.sources) {
-                    const targets = this._schemaReferences.get(source);
-                    if (targets) {
-                        for (const target of edge.targets) targets.push(target);
-                    } else {
-                        this._schemaReferences.set(source, [...edge.targets]);
-                    }
+                    const references = this._schemaReferences.get(source);
+                    if (references) references.push(edge);
+                    else this._schemaReferences.set(source, [edge]);
                 }
             }
         }
@@ -449,7 +457,8 @@ export abstract class ReportShellBase extends LitElement {
     protected handleTreeNodeClicked(evt: CustomEvent<NodeClickedEvent>): void {
         const { nodeId, changes } = evt.detail;
         if (nodeId) this.selectNode(nodeId);
-        const selected = changes?.length ? changes : nodeId ? this.selectedNodeChanges : [];
+        const referenceSite = nodeId && this._schemaReferences.has(nodeId);
+        const selected = changes?.length && !referenceSite ? changes : nodeId ? this.selectedNodeChanges : [];
         if (selected.length) {
             this.navigateToDiffForChanges(selected);
         } else if (nodeId && this.isSchemaCollection && this._graphNodeMap.get(nodeId)?.origin) {

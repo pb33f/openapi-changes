@@ -137,6 +137,7 @@ describe('ReportShellLite state management', () => {
                 context: {originalDocument: 'money.yaml', originalLine: 1, originalColumn: 1},
             };
             const own = createMinimalChange({property: '$ref', schemaResource: 'invoice.yaml'});
+            const description = createMinimalChange({property: 'description', schemaResource: 'invoice.yaml'});
             item.graph = {
                 nodes: [
                     createMinimalNode('root', {nodes: ['order', 'invoice', 'money']}),
@@ -145,7 +146,7 @@ describe('ReportShellLite state management', () => {
                     createMinimalNode('money', {origin: 'money.yaml', nodes: ['currency', 'recursive']}),
                     createMinimalNode('currency', {origin: 'money.yaml', timeline: [removed]}),
                     createMinimalNode('order.total', {origin: 'order.yaml'}),
-                    createMinimalNode('invoice.total', {origin: 'invoice.yaml'}),
+                    createMinimalNode('invoice.total', {origin: 'invoice.yaml', timeline: [description]}),
                     createMinimalNode('invoice.tax', {origin: 'invoice.yaml', timeline: [own]}),
                     createMinimalNode('recursive', {origin: 'money.yaml'}),
                 ],
@@ -153,17 +154,17 @@ describe('ReportShellLite state management', () => {
                     id: 'ref:' + id, ref: id === 'recursive' ? '' : 'money.yaml',
                     sources: [id], targets: ['money'],
                 })),
-                changes: [removed, own],
+                changes: [removed, own, description],
             };
             const el = await createShell(payload);
             const viewer = el.shadowRoot!.querySelector('pb33f-diff-viewer') as any;
             expect(viewer.originalSpec).toBe('minLength: 3');
             expect(viewer.modifiedSpec).toBe('type: string');
             const show = vi.spyOn(el.mainTabGroup, 'show');
-            const click = (nodeId: string) => el.dispatchEvent(new CustomEvent('model-tree-node-clicked', {
-                detail: {nodeId, changes: []},
+            const click = (nodeId: string, changes: Change[] = []) => el.dispatchEvent(new CustomEvent('model-tree-node-clicked', {
+                detail: {nodeId, changes},
             }));
-            for (const use of ['order.total', 'invoice.total', 'recursive']) {
+            for (const use of ['order.total', 'recursive']) {
                 click(use);
                 await el.updateComplete;
                 expect(el.selectedNodeId).toBe(use);
@@ -171,7 +172,11 @@ describe('ReportShellLite state management', () => {
                 expect(viewer.selectedChanges).toEqual([removed]);
                 expect(show).toHaveBeenLastCalledWith('diff');
             }
-            click('invoice.tax');
+            click('invoice.total', [description]);
+            await el.updateComplete;
+            expect(el.selectedNodeChanges).toEqual([description, removed]);
+            expect(viewer.selectedChanges).toEqual([description, removed]);
+            click('invoice.tax', [own]);
             expect(el.selectedDiffChanges).toEqual([own]);
             click('invoice');
             await el.updateComplete;
@@ -206,6 +211,10 @@ describe('ReportShellLite state management', () => {
             const el = await createShell(payload);
             el.selectNode('use');
             expect(el.selectedNodeChanges).toEqual(edits);
+            const retarget = createMinimalChange({property: '$ref'});
+            el._graphNodeMap.get('use').timeline = [retarget];
+            el.selectNode('use');
+            expect(el.selectedNodeChanges).toEqual([retarget, edits[1]]);
         });
     });
 
