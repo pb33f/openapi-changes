@@ -1,7 +1,8 @@
 # Compact Markdown reports
 
 `markdown-report --compact` compares two direct inputs and writes a short report.
-Inputs can be files, URLs, or git revision paths. Repository history is not
+Inputs can be files, URLs, or git revision paths for OpenAPI, AsyncAPI, or JSON Schema.
+Use `--schema` for unmarked Draft 2020-12 inputs. Repository history is not
 supported in this mode. `--include-diff` cannot be used with `--compact`.
 
 Example:

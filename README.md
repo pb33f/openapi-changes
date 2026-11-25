@@ -9,7 +9,7 @@
 
 ## The world's **_most powerful and complete_** OpenAPI diff tool.
 
-`openapi-changes` lets you inspect what changed in an OpenAPI or AsyncAPI 3.x specification between two files,
+`openapi-changes` lets you inspect what changed in an OpenAPI, AsyncAPI 3.x, or JSON Schema Draft 2020-12 document between two files,
 between git revisions of the same file, across local git history, or directly from a GitHub-hosted file URL.
 
 It can render the same semantic change model as:
@@ -23,6 +23,20 @@ It can render the same semantic change model as:
 It works well for local exploration, CI/CD checks, release notes, and API review workflows.
 
 ---
+
+## Compare JSON Schemas
+
+Supply a pair of schemas to any of the five commands. A Draft 2020-12 `$schema` declaration selects the schema engine.
+Pass `--schema` for an unmarked object or boolean.
+
+```sh
+openapi-changes summary sample-specs/json-schema/before/customer.json sample-specs/json-schema/after/customer.json
+openapi-changes report --schema HEAD~1:schemas/customer.yaml HEAD:schemas/customer.yaml
+```
+
+The Customer example adds `id` to `required`. The report records one breaking change at `$.required`.
+The `schemaResource` field identifies the defining schema. The console and the offline HTML report open the source
+that owns the change, including referenced files. Use the `schemaRules` configuration section for schema policy.
 
 ## AsyncAPI has landed
 

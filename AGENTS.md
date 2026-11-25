@@ -10,7 +10,7 @@ Public documentation:
 
 ## What This Repo Is
 
-`openapi-changes` is a Go CLI for comparing OpenAPI specifications across:
+`openapi-changes` is a Go CLI for comparing OpenAPI, AsyncAPI 3.x, and JSON Schema Draft 2020-12 documents across:
 
 - direct left/right file, URL, or git-revision comparison
 - local git history for a file in a repository
@@ -62,6 +62,7 @@ All `cmd/` implementation files use their canonical names (e.g., `cmd/summary.go
 
 ### Machine-readable JSON
 
+- Standalone schema edits carry a resource-relative `path` and a `schemaResource`. Include both in count and hash identity.
 - `report` should emit semantic `path` values whenever possible.
 - If semantic normalization rewrites an engine path, preserve the original path in `rawPath`.
 - Parameter identity must not depend on array index positions when a stable semantic name exists.
@@ -123,6 +124,13 @@ All `cmd/` implementation files use their canonical names (e.g., `cmd/summary.go
 - libopenapi breaking-rule configuration is global. `cmd/engine.go` guards this with `breakingConfigMu`, but `git/read_local.go` also writes to the global config via `SetActiveBreakingRulesConfig` — if the `git` layer is ever parallelized, it needs its own guard.
 - The residual `tui/` package still exists in-repo, but it is not the canonical console implementation. The canonical console is `tui/v2/` (Bubbletea).
 - **Dependency version sensitivity**: `doctor` and `libopenapi` version bumps can silently change comparison output, count semantics, or tree structure. After upgrading either dependency, always re-run the petstore regression fixtures and verify counts match expectations.
+
+## JSON Schema inputs
+
+`model.ParseInput` dispatches the parsed document by its native format. The shared `--schema` flag enables
+unmarked schemas, including booleans. `libopenapi/jsonschema` owns schema resources and reference resolution.
+Doctor attaches edits to its native schema graph. The CLI uses the same report and console paths as the API formats.
+Use `sample-specs/json-schema/{before,after}/customer.json` to check one breaking addition at `$.required`.
 
 ## Regression Fixtures
 

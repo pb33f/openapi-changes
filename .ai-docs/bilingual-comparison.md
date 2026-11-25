@@ -102,3 +102,27 @@ on dispatch/policy/history, and command smoke checks. Compare
 `BenchmarkOpenAPIReport` against the base branch with the same Go toolchain and
 hardware; use `-benchmem` and multiple samples. The model-window test verifies
 that 30 adjacent revisions parse once each and retain at most two idle models.
+
+
+## Standalone JSON Schema
+
+All five commands accept Draft 2020-12 JSON Schemas. A root with the supported `$schema` declaration selects
+this engine automatically. `--schema` also accepts unmarked JSON and YAML objects, `true`, and `false`.
+Both sides must have the same native format. Unsupported dialects, unresolved references, duplicate resource IDs,
+and unsupported dynamic references return errors with source details.
+
+`model.ParseInput` and `HistoryWindow.AcquireInput` carry a single native model through direct comparisons and history.
+The Git and GitHub loaders give each schema its revision filesystem. Equal root bytes can still have different
+referenced content. The global `schemaRules` policy lock covers the native comparison. Explicit property rules
+override the default widening and narrowing classification. `libasyncapi` continues to compare embedded payloads.
+
+A schema change has a defining `schemaResource`, a resource-relative JSONPath, and available source locations in
+`context.originalDocument` and `context.modifiedDocument`. These names match the source bodies supplied to the
+console and static HTML views. The schema hash uses semantic fields, including the resource, so line movement alone
+does not change it. The root source is stored once per side. Additional files use the optional `originalSources`
+and `modifiedSources` report maps. Renderers request those source views while the result is pinned. Flat reports
+retain change values and copied coordinates. The console keeps per-file line tables in its bounded result cache.
+
+For the Customer fixture, the required-list addition has `path = $.required`, `property = required`, and `new = id`.
+The human reports show the Customer title, and the flat report groups by its canonical resource ID.
+`markdown-report --include-diff` includes the physical file pair that owns the edit.
