@@ -122,6 +122,62 @@ describe('ReportShellLite state management', () => {
             expect(el.selectedNodeChanges).toEqual([]);
             expect(el.selectedDiffChanges).toEqual([]);
         });
+
+        it('opens the defining file and old line from either use of a shared schema', async () => {
+            const payload = createMinimalPayload();
+            const item = payload.items[0];
+            item.specification = {kind: 'jsonschema', originalVersion: '2020-12', modifiedVersion: '2020-12'};
+            item.originalSpec = item.modifiedSpec = '';
+            item.originalSources = {'money.yaml': 'minLength: 3', 'invoice.yaml': 'title: Invoice', 'order.yaml': 'title: Order'};
+            item.modifiedSources = {...item.originalSources, 'money.yaml': 'type: string'};
+            const removed = createMinimalChange({
+                property: 'minLength', change: 4, schemaResource: 'money.yaml',
+                context: {originalDocument: 'money.yaml', originalLine: 1, originalColumn: 1, newLine: 0, newColumn: 0},
+            });
+            const own = createMinimalChange({property: '$ref', schemaResource: 'invoice.yaml'});
+            item.graph = {
+                nodes: [
+                    createMinimalNode('root', {nodes: ['order', 'invoice', 'money']}),
+                    createMinimalNode('order', {origin: 'order.yaml', nodes: ['order.total']}),
+                    createMinimalNode('invoice', {origin: 'invoice.yaml', nodes: ['invoice.total', 'invoice.tax']}),
+                    createMinimalNode('money', {origin: 'money.yaml', nodes: ['currency', 'recursive']}),
+                    createMinimalNode('currency', {origin: 'money.yaml', timeline: [removed]}),
+                    createMinimalNode('order.total', {origin: 'order.yaml'}),
+                    createMinimalNode('invoice.total', {origin: 'invoice.yaml'}),
+                    createMinimalNode('invoice.tax', {origin: 'invoice.yaml', timeline: [own]}),
+                    createMinimalNode('recursive', {origin: 'money.yaml'}),
+                ],
+                edges: ['order.total', 'invoice.total', 'invoice.tax', 'recursive'].map(id => ({
+                    id: 'ref:' + id, ref: id === 'recursive' ? '' : 'money.yaml',
+                    sources: [id], targets: ['money'],
+                })),
+                changes: [removed, own],
+            };
+            const el = await createShell(payload);
+            const viewer = el.shadowRoot!.querySelector('pb33f-diff-viewer') as any;
+            expect(viewer.originalSpec).toBe('minLength: 3');
+            expect(viewer.modifiedSpec).toBe('type: string');
+            const show = vi.spyOn(el.mainTabGroup, 'show');
+            const click = (nodeId: string) => el.dispatchEvent(new CustomEvent('model-tree-node-clicked', {
+                detail: {nodeId, changes: []},
+            }));
+            for (const use of ['order.total', 'invoice.total', 'recursive']) {
+                click(use);
+                await el.updateComplete;
+                expect(el.selectedNodeId).toBe(use);
+                expect(el.selectedNodeChanges).toEqual([removed]);
+                expect(viewer.selectedChanges).toEqual([removed]);
+                expect(show).toHaveBeenLastCalledWith('diff');
+            }
+            click('invoice.tax');
+            expect(el.selectedDiffChanges).toEqual([own]);
+            click('invoice');
+            await el.updateComplete;
+            expect(viewer.selectedChanges).toEqual([]);
+            expect(viewer.originalSpec).toBe('title: Invoice');
+            expect(viewer.modifiedSpec).toBe('title: Invoice');
+            expect(show).toHaveBeenLastCalledWith('diff');
+        });
     });
 
     describe('updateChartData()', () => {

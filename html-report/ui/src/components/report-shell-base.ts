@@ -137,6 +137,7 @@ export abstract class ReportShellBase extends LitElement {
     }
 
     private _graphNodeMap: Map<string, Node> = new Map();
+    private _schemaReferences = new Map<string, string>();
     private _cachedChartIndex: number = -1;
     private _cachedData: ReportPayload | null = null;
     protected _changeDataset: ChartDataset[] = [];
@@ -197,6 +198,11 @@ export abstract class ReportShellBase extends LitElement {
         return (this.data?.items?.length ?? 0) > 1;
     }
 
+    private get isSchemaCollection(): boolean {
+        const item = this.activeItem;
+        return item?.specification?.kind === 'jsonschema' && !item.originalSpec && !item.modifiedSpec;
+    }
+
     protected selectItem(index: number): void {
         this.activeItemIndex = index;
         this.selectedDiffChanges = [];
@@ -206,14 +212,32 @@ export abstract class ReportShellBase extends LitElement {
 
     protected selectNode(nodeId: string): void {
         this.selectedNodeId = nodeId;
-        const node = this._graphNodeMap.get(nodeId);
-        if (node) {
-            this.selectedNodeChanges = node.timeline || [];
-            this.selectedDiffChanges = node.timeline || [];
-        } else {
-            this.selectedNodeChanges = [];
-            this.selectedDiffChanges = [];
+        const direct = this._graphNodeMap.get(nodeId)?.timeline;
+        const changes = direct?.length ? direct : this.referencedChanges(nodeId);
+        this.selectedNodeChanges = changes;
+        this.selectedDiffChanges = changes;
+    }
+
+    private referencedChanges(nodeId: string): Change[] {
+        const target = this._schemaReferences.get(nodeId);
+        if (!target) return [];
+
+        // Each edit belongs to one definition. Follow nested and recursive uses once.
+        const changes: Change[] = [];
+        const pending = [target];
+        const visited = new Set<string>();
+        for (let i = 0; i < pending.length; i++) {
+            const id = pending[i];
+            if (visited.has(id)) continue;
+            visited.add(id);
+            const node = this._graphNodeMap.get(id);
+            if (!node) continue;
+            for (const change of node.timeline || []) changes.push(change);
+            for (const child of node.nodes || []) pending.push(child);
+            const reference = this._schemaReferences.get(id);
+            if (reference) pending.push(reference);
         }
+        return changes;
     }
 
     protected updateModelTree(): void {
@@ -225,6 +249,14 @@ export abstract class ReportShellBase extends LitElement {
             nodeMap.set(node.id, node);
         }
         this._graphNodeMap = nodeMap;
+        this._schemaReferences.clear();
+        if (item.specification?.kind === 'jsonschema') {
+            for (const edge of item.graph.edges || []) {
+                if (edge.id.startsWith('ref:') && edge.sources[0] && edge.targets[0]) {
+                    this._schemaReferences.set(edge.sources[0], edge.targets[0]);
+                }
+            }
+        }
         this.modelTree.nodeMap = nodeMap;
         this.modelTree.node = nodeMap.get('root') || null;
         this.modelTree.changesEnabled = true;
@@ -410,9 +442,13 @@ export abstract class ReportShellBase extends LitElement {
      * when the graph tab is active (e.g. to reveal nodes in the explorer).
      */
     protected handleTreeNodeClicked(evt: CustomEvent<NodeClickedEvent>): void {
-        const { changes } = evt.detail;
-        if (changes && changes.length > 0) {
-            this.navigateToDiffForChanges(changes as Change[]);
+        const { nodeId, changes } = evt.detail;
+        if (nodeId) this.selectNode(nodeId);
+        const selected = changes?.length ? changes : nodeId ? this.selectedNodeChanges : [];
+        if (selected.length) {
+            this.navigateToDiffForChanges(selected);
+        } else if (nodeId && this.isSchemaCollection && this._graphNodeMap.get(nodeId)?.origin) {
+            this.mainTabGroup?.show('diff');
         }
     }
 
@@ -584,6 +620,14 @@ export abstract class ReportShellBase extends LitElement {
     }
 
     protected renderContentTabs(item: ReportItem): TemplateResult {
+        const origin = this.selectedNodeId ? this._graphNodeMap.get(this.selectedNodeId)?.origin : undefined;
+        const context = item.graph.changes?.[0]?.context;
+        const source = (files: Record<string, string> | undefined, name?: string): string =>
+            name && files && Object.prototype.hasOwnProperty.call(files, name) ? files[name] : '';
+        const original = this.isSchemaCollection
+            ? source(item.originalSources, origin || context?.originalDocument || context?.modifiedDocument) : item.originalSpec;
+        const modified = this.isSchemaCollection
+            ? source(item.modifiedSources, origin || context?.modifiedDocument || context?.originalDocument) : item.modifiedSpec;
         return html`
             <sl-tab-group @sl-tab-show=${this.handleTabShow}>
                 ${this.isMultiCommit ? html`
@@ -623,8 +667,8 @@ export abstract class ReportShellBase extends LitElement {
                     <pb33f-diff-viewer
                         .originalSources=${item.originalSources}
                         .modifiedSources=${item.modifiedSources}
-                        .originalSpec=${item.originalSpec}
-                        .modifiedSpec=${item.modifiedSpec}
+                        .originalSpec=${original}
+                        .modifiedSpec=${modified}
                         .originalHighlighted=${item.originalHighlighted || {}}
                         .modifiedHighlighted=${item.modifiedHighlighted || {}}
                         .selectedChanges=${this.selectedDiffChanges}

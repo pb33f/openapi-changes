@@ -389,6 +389,7 @@ func buildChangeExplorerGraph(
 
 	rootCopy := cloneNodeTree(rootNode)
 	changeResult := changerator.NewChangerator(result.Config)
+	changeResult.ChangedEdges = result.ChangedEdges
 	changeResult.PrepareChangeViewGraph(rootCopy)
 	filteredEdges := filterEdgesForNodes(result.ChangedEdges, changeResult.ChangedNodes)
 	drModel.SanitizeGraph(changeResult.ChangedNodes, nil)

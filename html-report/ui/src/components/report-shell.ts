@@ -150,8 +150,8 @@ export class ReportShell extends ReportShellBase {
     protected override handleTreeNodeClicked(evt: CustomEvent<NodeClickedEvent>): void {
         const { nodeId } = evt.detail;
         if (!nodeId) return;
-        this.selectNode(nodeId);
         if (this.activeMainTab === 'graph' && this.explorer) {
+            this.selectNode(nodeId);
             this.explorer.revealPathToNode(nodeId);
             return;
         }

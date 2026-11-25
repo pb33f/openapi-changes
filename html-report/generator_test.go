@@ -128,6 +128,73 @@ func TestStandaloneSchemaReportItem(t *testing.T) {
 	assert.Contains(t, string(item.Graph.Nodes), "\"modifiedDocument\":\"money.yaml\"")
 }
 
+func TestCollectionReportKeepsBothReferencesToRemovedConstraint(t *testing.T) {
+	load := func(money string) *jsonschema.Document {
+		doc, err := jsonschema.LoadCollection(map[string][]byte{
+			"order.yaml":   []byte("title: Order\nproperties:\n  total:\n    $ref: money.yaml\n"),
+			"invoice.yaml": []byte("title: Invoice\nproperties:\n  amount:\n    $ref: money.yaml\n"),
+			"money.yaml":   []byte(money),
+		}, t.TempDir(), nil)
+		require.NoError(t, err)
+		t.Cleanup(doc.Release)
+		return doc
+	}
+	const money = "title: Money\nproperties:\n  currency:\n    type: string\n"
+	left, right := load(money+"    minLength: 3\n"), load(money)
+	result, err := changerator.CompareJSONSchema(left, right, nil)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	t.Cleanup(result.Release)
+	commit := &model.Commit{
+		Synthetic: true, Specification: &model.ComparisonSpecification{Kind: "jsonschema"},
+		OriginalSchemas: model.NewSchemaSources(left), ModifiedSchemas: model.NewSchemaSources(right),
+	}
+	item, err := BuildReportItem(commit, result.Changerator, result.Changes, nil, "0")
+	require.NoError(t, err)
+	require.Equal(t, 1, item.Summary.TotalChanges)
+	require.Equal(t, 1, item.Summary.Removals)
+	require.Empty(t, item.OriginalSpec)
+	require.Empty(t, item.ModifiedSpec)
+	require.Len(t, item.OriginalSources, 3)
+	require.Len(t, item.ModifiedSources, 3)
+	require.Equal(t, money+"    minLength: 3\n", item.OriginalSources["money.yaml"])
+	require.Equal(t, money, item.ModifiedSources["money.yaml"])
+
+	for _, graph := range []*GraphData{item.Graph, item.ExplorerGraph} {
+		require.NotNil(t, graph)
+		type graphNode struct {
+			ID, Label, Origin string
+			Timeline          []*whatChangedModel.Change
+		}
+		var nodes []graphNode
+		require.NoError(t, json.Unmarshal(graph.Nodes, &nodes))
+		byID := make(map[string]graphNode, len(nodes))
+		var edits []*whatChangedModel.Change
+		for _, node := range nodes {
+			byID[node.ID] = node
+			edits = append(edits, node.Timeline...)
+		}
+		require.Equal(t, "Schemas", byID["root"].Label)
+		require.Len(t, edits, 1)
+		require.Equal(t, "money.yaml", edits[0].Context.OriginalDocument)
+		require.Equal(t, 5, *edits[0].Context.OriginalLine)
+		var edges []v3.Edge
+		require.NoError(t, json.Unmarshal(graph.Edges, &edges))
+		var uses []string
+		for _, edge := range edges {
+			if edge.Ref == "money.yaml" {
+				require.Len(t, edge.Sources, 1)
+				require.Len(t, edge.Targets, 1)
+				use := byID[edge.Sources[0]]
+				require.Empty(t, use.Timeline)
+				require.Equal(t, "Money", byID[edge.Targets[0]].Label)
+				uses = append(uses, use.Origin)
+			}
+		}
+		require.ElementsMatch(t, []string{"order.yaml", "invoice.yaml"}, uses)
+	}
+}
+
 func TestBuildHistoryData(t *testing.T) {
 	items := []*ReportItem{
 		{
