@@ -178,6 +178,33 @@ describe('ReportShellLite state management', () => {
             expect(viewer.modifiedSpec).toBe('title: Invoice');
             expect(show).toHaveBeenLastCalledWith('diff');
         });
+
+        it('follows distinct static and dynamic references from one node only once per definition', async () => {
+            const payload = createMinimalPayload();
+            const item = payload.items[0];
+            item.specification = {kind: 'jsonschema', originalVersion: '2020-12', modifiedVersion: '2020-12'};
+            const edits = ['a.yaml', 'b.yaml'].map(schemaResource => createMinimalChange({
+                schemaResource, path: '$.minLength', property: 'minLength',
+                context: {originalDocument: schemaResource, modifiedDocument: schemaResource,
+                    originalLine: 2, originalColumn: 1, newLine: 2, newColumn: 1},
+            }));
+            item.graph = {
+                nodes: [
+                    createMinimalNode('root', {nodes: ['use', 'a', 'b']}),
+                    createMinimalNode('use'), createMinimalNode('a', {timeline: [edits[0]]}),
+                    createMinimalNode('b', {timeline: [edits[1]]}),
+                ],
+                edges: [
+                    {id: 'ref:use', ref: 'a.yaml', sources: ['use'], targets: ['a']},
+                    {id: 'ref:$dynamicRef:use', ref: 'b.yaml', sources: ['use'], targets: ['b']},
+                    {id: 'ref:a', ref: 'b.yaml', sources: ['a'], targets: ['b']},
+                ],
+                changes: edits,
+            };
+            const el = await createShell(payload);
+            el.selectNode('use');
+            expect(el.selectedNodeChanges).toEqual(edits);
+        });
     });
 
     describe('updateChartData()', () => {

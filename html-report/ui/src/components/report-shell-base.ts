@@ -137,7 +137,7 @@ export abstract class ReportShellBase extends LitElement {
     }
 
     private _graphNodeMap: Map<string, Node> = new Map();
-    private _schemaReferences = new Map<string, string>();
+    private _schemaReferences = new Map<string, string[]>();
     private _cachedChartIndex: number = -1;
     private _cachedData: ReportPayload | null = null;
     protected _changeDataset: ChartDataset[] = [];
@@ -219,12 +219,12 @@ export abstract class ReportShellBase extends LitElement {
     }
 
     private referencedChanges(nodeId: string): Change[] {
-        const target = this._schemaReferences.get(nodeId);
-        if (!target) return [];
+        const targets = this._schemaReferences.get(nodeId);
+        if (!targets) return [];
 
         // Each edit belongs to one definition. Follow nested and recursive uses once.
         const changes: Change[] = [];
-        const pending = [target];
+        const pending = [...targets];
         const visited = new Set<string>();
         for (let i = 0; i < pending.length; i++) {
             const id = pending[i];
@@ -234,8 +234,7 @@ export abstract class ReportShellBase extends LitElement {
             if (!node) continue;
             for (const change of node.timeline || []) changes.push(change);
             for (const child of node.nodes || []) pending.push(child);
-            const reference = this._schemaReferences.get(id);
-            if (reference) pending.push(reference);
+            for (const reference of this._schemaReferences.get(id) || []) pending.push(reference);
         }
         return changes;
     }
@@ -252,8 +251,14 @@ export abstract class ReportShellBase extends LitElement {
         this._schemaReferences.clear();
         if (item.specification?.kind === 'jsonschema') {
             for (const edge of item.graph.edges || []) {
-                if (isReferenceEdge(edge) && edge.sources[0] && edge.targets[0]) {
-                    this._schemaReferences.set(edge.sources[0], edge.targets[0]);
+                if (!isReferenceEdge(edge)) continue;
+                for (const source of edge.sources) {
+                    const targets = this._schemaReferences.get(source);
+                    if (targets) {
+                        for (const target of edge.targets) targets.push(target);
+                    } else {
+                        this._schemaReferences.set(source, [...edge.targets]);
+                    }
                 }
             }
         }
