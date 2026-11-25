@@ -7,6 +7,20 @@ import (
 )
 
 func ptrInt(n int) *int { return &n }
+
+func TestSchemaDiffSummaryIdentifiesTheSelectedSource(t *testing.T) {
+	ch := &whatChangedModel.Change{
+		ChangeType: whatChangedModel.Modified, Property: "minLength", SchemaResource: "urn:price",
+		Context: &whatChangedModel.ChangeContext{
+			OriginalDocument: "left/price.yaml", OriginalLine: ptrInt(3),
+			ModifiedDocument: "right/price.yaml", NewLine: ptrInt(7),
+		},
+	}
+	assert.Contains(t, renderDiffSummary(ch, 80, consoleStyles{}), "Modified right/price.yaml:7")
+	ch.ChangeType = whatChangedModel.ObjectRemoved
+	assert.Contains(t, renderDiffSummary(ch, 80, consoleStyles{}), "Original left/price.yaml:3")
+}
+
 func TestResolveSpecAndLine_Removed(t *testing.T) {
 	newLines := []string{"new1", "new2"}
 	oldLines := []string{"old1", "old2"}

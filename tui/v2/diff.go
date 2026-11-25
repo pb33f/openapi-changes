@@ -3,6 +3,8 @@
 package v2
 
 import (
+	"fmt"
+
 	"github.com/pb33f/doctor/terminal/diffview"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 )
@@ -28,7 +30,19 @@ func (s consoleStyles) diffStyles() diffview.Styles {
 type highlightRange struct{ start, end int }
 
 func renderDiffSummary(ch *whatChangedModel.Change, width int, styles consoleStyles) string {
-	return diffview.RenderSummary(ch, width, styles.diffStyles())
+	summary := diffview.RenderSummary(ch, width, styles.diffStyles())
+	if ch == nil || ch.SchemaResource == "" || ch.Context == nil {
+		return summary
+	}
+	side, file, line := "Modified", ch.Context.ModifiedDocument, ch.Context.NewLine
+	if ch.ChangeType == whatChangedModel.PropertyRemoved || ch.ChangeType == whatChangedModel.ObjectRemoved {
+		side, file, line = "Original", ch.Context.OriginalDocument, ch.Context.OriginalLine
+	}
+	if file == "" || line == nil {
+		return summary
+	}
+	location := fmt.Sprintf("%s %s:%d", side, file, *line)
+	return styles.detail.Render(truncateToWidth(location, width)) + "\n" + summary
 }
 func renderDiff(ch *whatChangedModel.Change, newLines, oldLines []string, width int, styles consoleStyles) string {
 	source := resolveChangeSource(ch, newLines, oldLines)
