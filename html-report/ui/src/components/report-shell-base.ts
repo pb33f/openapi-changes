@@ -9,7 +9,7 @@ import reportCss from '../css/report.css.js';
 import {
     HeaderComponent, FooterComponent, HttpMethodComponent, PathRenderComponent, RenderJSONPathComponent,
     TimelineComponent, TimelineItemComponent, SpecSummaryTimelineItem,
-    ThemeSwitcher, ModelTreeNodeClicked, DiffViewer,
+    ThemeSwitcher, ModelTreeNodeClicked, DiffViewer, isReferenceEdge, sourceText,
 } from '@pb33f/cowboy-components/static-report';
 import type {
     NodeClickedEvent, ReportPayload, ReportItem, Change, Node, ChangeHistory,
@@ -252,7 +252,7 @@ export abstract class ReportShellBase extends LitElement {
         this._schemaReferences.clear();
         if (item.specification?.kind === 'jsonschema') {
             for (const edge of item.graph.edges || []) {
-                if (edge.id.startsWith('ref:') && edge.sources[0] && edge.targets[0]) {
+                if (isReferenceEdge(edge) && edge.sources[0] && edge.targets[0]) {
                     this._schemaReferences.set(edge.sources[0], edge.targets[0]);
                 }
             }
@@ -622,12 +622,10 @@ export abstract class ReportShellBase extends LitElement {
     protected renderContentTabs(item: ReportItem): TemplateResult {
         const origin = this.selectedNodeId ? this._graphNodeMap.get(this.selectedNodeId)?.origin : undefined;
         const context = item.graph.changes?.[0]?.context;
-        const source = (files: Record<string, string> | undefined, name?: string): string =>
-            name && files && Object.prototype.hasOwnProperty.call(files, name) ? files[name] : '';
         const original = this.isSchemaCollection
-            ? source(item.originalSources, origin || context?.originalDocument || context?.modifiedDocument) : item.originalSpec;
+            ? sourceText(item.originalSources, origin || context?.originalDocument || context?.modifiedDocument) ?? '' : item.originalSpec;
         const modified = this.isSchemaCollection
-            ? source(item.modifiedSources, origin || context?.modifiedDocument || context?.originalDocument) : item.modifiedSpec;
+            ? sourceText(item.modifiedSources, origin || context?.modifiedDocument || context?.originalDocument) ?? '' : item.modifiedSpec;
         return html`
             <sl-tab-group @sl-tab-show=${this.handleTabShow}>
                 ${this.isMultiCommit ? html`
