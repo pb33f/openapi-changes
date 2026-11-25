@@ -33,9 +33,13 @@ type HistoryWindow struct {
 	clock       uint64
 }
 
-// Acquire parses or reuses one revision and pins it until the returned release.
+// Acquire pins an OpenAPI or AsyncAPI revision. Use AcquireInput for all supported formats.
 func (w *HistoryWindow) Acquire(source *HistorySource) (libopenapi.Document, libasyncapi.Document, func(), error) {
 	input, release, err := w.AcquireInput(source)
+	if input.Schema != nil {
+		release()
+		return nil, nil, nil, fmt.Errorf("standalone JSON Schema requires AcquireInput")
+	}
 	return input.OpenAPI, input.AsyncAPI, release, err
 }
 

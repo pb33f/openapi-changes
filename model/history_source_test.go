@@ -34,6 +34,9 @@ func TestHistoryWindowBoundsModelsAndReusesAdjacentSources(t *testing.T) {
 func TestHistoryWindowSchemaPinsAndNilConfig(t *testing.T) {
 	w := new(HistoryWindow)
 	source := &HistorySource{Schema: true, Data: []byte("true"), Config: func() (*datamodel.DocumentConfiguration, error) { return nil, nil }}
+	_, _, legacyRelease, err := w.Acquire(source)
+	require.ErrorContains(t, err, "AcquireInput")
+	require.Nil(t, legacyRelease)
 	a, release, err := w.AcquireInput(source)
 	require.NoError(t, err)
 	b, releaseAgain, err := w.AcquireInput(source)
