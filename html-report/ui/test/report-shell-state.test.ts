@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { Change } from '@pb33f/cowboy-components/static-report';
 import { createMinimalPayload, createMultiCommitPayload, createMinimalNode, createMinimalChange } from './fixtures.js';
 
 import '../src/components/report-shell-lite.js';
@@ -130,10 +131,11 @@ describe('ReportShellLite state management', () => {
             item.originalSpec = item.modifiedSpec = '';
             item.originalSources = {'money.yaml': 'minLength: 3', 'invoice.yaml': 'title: Invoice', 'order.yaml': 'title: Order'};
             item.modifiedSources = {...item.originalSources, 'money.yaml': 'type: string'};
-            const removed = createMinimalChange({
-                property: 'minLength', change: 4, schemaResource: 'money.yaml',
-                context: {originalDocument: 'money.yaml', originalLine: 1, originalColumn: 1, newLine: 0, newColumn: 0},
-            });
+            const removed: Change = {
+                property: 'minLength', change: 5, changeText: 'property_removed', schemaResource: 'money.yaml',
+                path: '$.minLength', type: 'schema', breaking: false, original: '3',
+                context: {originalDocument: 'money.yaml', originalLine: 1, originalColumn: 1},
+            };
             const own = createMinimalChange({property: '$ref', schemaResource: 'invoice.yaml'});
             item.graph = {
                 nodes: [
