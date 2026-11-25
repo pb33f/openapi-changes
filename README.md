@@ -38,6 +38,21 @@ The Customer example adds `id` to `required`. The report records one breaking ch
 The `schemaResource` field identifies the defining schema. The console and the offline HTML report open the source
 that owns the change, including referenced files. Use the `schemaRules` configuration section for schema policy.
 
+### Compare schema collections
+
+Pass two local directories with `--schema`. The CLI reads JSON and YAML files recursively, skips Git metadata
+and symbolic links, and registers each resource before resolving references. An empty directory is a valid snapshot.
+
+```sh
+openapi-changes html-report --schema --report-file changes.html \
+  sample-specs/json-schema/collections/before sample-specs/json-schema/collections/after
+```
+
+Order and Invoice both reference Money in this example. Raising the minimum currency length from 2 to 3 produces
+one breaking change at `$.properties.currency.minLength`. The graph shows both references. The source view
+opens line 9 of `money.json`. Run the same pair with `report` for JSON or `markdown-report --include-diff`
+for the file diff.
+
 ## AsyncAPI has landed
 
 Event-driven APIs break too. They just do it quietly, in a consumer nobody remembers subscribing to that topic.

@@ -132,6 +132,10 @@ unmarked schemas, including booleans. `libopenapi/jsonschema` owns schema resour
 Doctor attaches edits to its native schema graph. The CLI uses the same report and console paths as the API formats.
 Use `sample-specs/json-schema/{before,after}/customer.json` to check one breaking addition at `$.required`.
 
+With `--schema`, two local directories select a direct collection comparison. A repository and a file path still select file history.
+Use `sample-specs/json-schema/collections/{before,after}` to verify one edit at `$.properties.currency.minLength` in `money.json`,
+two incoming references, and source selection in both the console and the offline HTML report.
+
 ## Regression Fixtures
 
 Use these files whenever you change semantics, counts, report rendering, or UI payload shape:

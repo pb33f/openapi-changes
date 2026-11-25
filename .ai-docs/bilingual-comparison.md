@@ -1,6 +1,6 @@
-# OpenAPI and AsyncAPI comparisons
+# Document and schema comparisons
 
-One command family supports OpenAPI and AsyncAPI 3.x. `model.ParseSpecification`
+One command family supports OpenAPI, AsyncAPI 3.x, and standalone JSON Schema Draft 2020-12. `model.ParseSpecification`
 uses libopenapi's strict YAML/JSON parser once, checks the root version marker,
 and transfers the parsed AsyncAPI tree to libasyncapi. Mixed formats, ambiguous
 markers, unsupported AsyncAPI versions and partial AsyncAPI models fail clearly.
@@ -19,7 +19,7 @@ available; `Commit.AllChanges` selects the additive neutral report when present.
 
 Existing unscoped rule files remain OpenAPI-only. A combined file has optional
 `openapiRules`, `asyncapiRules`, and `schemaRules` sections. The last section
-configures JSON Schemas embedded in AsyncAPI; it does not change OpenAPI policy.
+configures standalone JSON Schemas and schemas embedded in AsyncAPI; it does not change OpenAPI policy.
 Unknown sections are rejected. Rules are merged into fresh defaults. The CLI's
 shared breakingrules lock covers the entire delegated comparison and restores
 defaults afterwards, including comparisons without a custom policy.
@@ -103,7 +103,6 @@ on dispatch/policy/history, and command smoke checks. Compare
 hardware; use `-benchmem` and multiple samples. The model-window test verifies
 that 30 adjacent revisions parse once each and retain at most two idle models.
 
-
 ## Standalone JSON Schema
 
 All five commands accept Draft 2020-12 JSON Schemas. A root with the supported `$schema` declaration selects
@@ -126,3 +125,18 @@ retain change values and copied coordinates. The console keeps per-file line tab
 For the Customer fixture, the required-list addition has `path = $.required`, `property = required`, and `new = id`.
 The human reports show the Customer title, and the flat report groups by its canonical resource ID.
 `markdown-report --include-diff` includes the physical file pair that owns the edit.
+
+## JSON Schema collections
+
+`cmd.comparisonMode` selects a direct comparison when both arguments are local directories and `--schema` is set.
+The existing repository and file path form selects local Git history. The one-URL GitHub history form is unchanged.
+
+The directory loader enumerates regular `.json`, `.yaml`, and `.yml` files, including uppercase extensions,
+using slash-separated relative names. It skips Git metadata and symlinks. The library registers every member before
+resolving references and matching resources by ID, then by relative file and embedded pointer. Either directory may
+be empty. A malformed member aborts that direct comparison with its side and filename.
+
+A collection produces one report item. The graph has a `Schemas` root. Source lookup keys are the physical member
+names, and change paths are local to the resource in `schemaResource`. The summary, compact counts, and Markdown
+use the same resource-aware identity as the console and the HTML views. `--include-diff` includes one unified
+diff per changed file pair. A moved resource can have different original and modified filenames.
