@@ -98,6 +98,18 @@ type ReportItem struct {
 	OriginalHighlighted map[int]string                 `json:"originalHighlighted,omitempty"`
 	ModifiedHighlighted map[int]string                 `json:"modifiedHighlighted,omitempty"`
 	Commit              *CommitInfo                    `json:"commit,omitempty"`
+	// Highlighted lines for each extra source, keyed like the source maps.
+	OriginalSourcesHighlighted map[string]map[int]string `json:"originalSourcesHighlighted,omitempty"`
+	ModifiedSourcesHighlighted map[string]map[int]string `json:"modifiedSourcesHighlighted,omitempty"`
+}
+
+// highlightSources highlights every extra source under its own name.
+func highlightSources(sources map[string]string) map[string]map[int]string {
+	highlighted := make(map[string]map[int]string, len(sources))
+	for name, text := range sources {
+		highlighted[name] = highlightSpecLines(text)
+	}
+	return highlighted
 }
 
 // highlightSpecLines uses Chroma to syntax-highlight each line of a spec,
@@ -274,6 +286,8 @@ func BuildReportItem(
 	if rightDrDoc != nil {
 		graphMap = rightDrDoc.BuildGraphMap()
 	} else {
+		// The map is keyed by line alone, so only the root file can use it.
+		// A collection has no root and gets no line-to-node lookup.
 		for _, node := range result.ChangedNodes {
 			if node.ValueLine > 0 && (commit.ModifiedSchemas == nil || commit.ModifiedSchemas.Root == node.OriginLocation) {
 				graphMap[node.ValueLine] = node.Id
@@ -329,6 +343,8 @@ func BuildReportItem(
 		ModifiedHighlighted: highlightSpecLines(string(commit.Data)),
 		Commit:              commitInfo,
 	}
+	item.OriginalSourcesHighlighted = highlightSources(item.OriginalSources)
+	item.ModifiedSourcesHighlighted = highlightSources(item.ModifiedSources)
 
 	return item, nil
 }
@@ -468,6 +484,8 @@ func cloneNodeTree(node *v3.Node) *v3.Node {
 }
 
 func buildCommitInfo(commit *model.Commit) *CommitInfo {
+	// Only native schema reports drop the synthetic commit. Direct OpenAPI and
+	// AsyncAPI reports keep theirs, because their payload contract is unchanged.
 	if commit.Synthetic && commit.Specification != nil && commit.Specification.Kind == "jsonschema" {
 		return nil
 	}

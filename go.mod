@@ -15,10 +15,10 @@ require (
 	github.com/charmbracelet/x/term v0.2.2
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-runewidth v0.0.31
-	github.com/pb33f/doctor v0.0.90-0.20261126153131-ae1c8c2c39eb
+	github.com/pb33f/doctor v0.0.90-0.20261126200916-3c7eb54b1d55
 	github.com/pb33f/go-yaml v0.2.0
 	github.com/pb33f/libasyncapi v0.0.7
-	github.com/pb33f/libopenapi v0.44.1-0.20261126152905-3b07cb139b1b
+	github.com/pb33f/libopenapi v0.44.1-0.20261126200719-18eb8107c9d0
 	github.com/pb33f/testify v0.1.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/spf13/cobra v1.10.2

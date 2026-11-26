@@ -191,4 +191,31 @@ func TestSchemaCollectionModePreservesNamedFileHistory(t *testing.T) {
 	require.Equal(t, localHistory, comparisonMode([]string{left, "schemas/customer.json"}, true))
 	require.Equal(t, githubHistory, comparisonMode([]string{"https://github.com/owner/repo/blob/main/schema.json"}, true))
 	require.Equal(t, directInputs, comparisonMode([]string{"HEAD~1:schema.json", "HEAD:schema.json"}, true))
+	_, err := loadCommitsFromArgs([]string{left, right}, summaryOpts{}, nil)
+	require.ErrorContains(t, err, "are both directories; pass --schema")
+}
+
+func TestSchemaDirectorySkipsToolingAndExplainsStrayFiles(t *testing.T) {
+	before, after := t.TempDir(), t.TempDir()
+	opts := summaryOpts{schema: true}
+	for dir, value := range map[string]string{before: "2", after: "3"} {
+		writeSchemaFile(t, dir, "money.json", `{"minLength":`+value+`}`)
+		writeSchemaFile(t, dir, "node_modules/dep/package.json", `{"version":"`+value+`.0.0"}`)
+		writeSchemaFile(t, dir, ".github/workflows/ci.yml", "on: push\nretries: "+value+"\n")
+	}
+	flat, err := runLeftRightReport(before, after, opts, nil)
+	require.NoError(t, err)
+	require.Len(t, flat.Changes, 1)
+	require.Equal(t, "money.json", flat.Changes[0].SchemaResource)
+
+	stray := writeSchemaFile(t, after, "package.json", `{"dependencies":{"a":"1"}}`)
+	_, err = runLeftRightReport(before, after, opts, nil)
+	require.ErrorContains(t, err, "package.json does not look like a JSON Schema")
+	require.ErrorContains(t, err, "move it out of the directory")
+
+	require.NoError(t, os.Remove(stray))
+	writeSchemaFile(t, after, "order.json", `{"$ref":"missing.json"}`)
+	_, err = runLeftRightReport(before, after, opts, nil)
+	require.ErrorContains(t, err, "missing.json")
+	require.NotContains(t, err.Error(), "does not look like")
 }

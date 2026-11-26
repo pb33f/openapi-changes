@@ -118,6 +118,8 @@ func TestStandaloneSchemaReportItem(t *testing.T) {
 	require.Equal(t, string(root), item.ModifiedSpec)
 	require.Equal(t, map[string]string{"money.yaml": "minLength: 2"}, item.OriginalSources)
 	require.Equal(t, map[string]string{"money.yaml": "minLength: 3"}, item.ModifiedSources)
+	require.Contains(t, item.OriginalSourcesHighlighted["money.yaml"][1], "minLength")
+	require.Contains(t, item.ModifiedSourcesHighlighted["money.yaml"][1], "minLength")
 	require.Nil(t, item.Commit)
 	require.Nil(t, BuildHistoryData([]*ReportItem{item}))
 	encoded, err := json.Marshal(item)
@@ -157,6 +159,8 @@ func TestCollectionReportKeepsBothReferencesToMovedSchemaWithRemovedConstraint(t
 	require.Empty(t, item.ModifiedSpec)
 	require.Len(t, item.OriginalSources, 3)
 	require.Len(t, item.ModifiedSources, 3)
+	require.Len(t, item.OriginalSourcesHighlighted, 3)
+	require.Len(t, item.ModifiedSourcesHighlighted, 3)
 	require.Equal(t, money+"    minLength: 3\n", item.OriginalSources["a/money.yaml"])
 	require.Equal(t, money, item.ModifiedSources["b/money.yaml"])
 

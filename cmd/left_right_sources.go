@@ -289,7 +289,8 @@ func (s comparisonSource) parse(schema model.SchemaInputOptions) (model.ParsedSp
 		if err != nil {
 			return err
 		}
-		if entry.IsDir() && entry.Name() == ".git" {
+		// Tooling and dependency directories hold JSON and YAML that are not schemas.
+		if entry.IsDir() && name != "." && (entry.Name() == "node_modules" || strings.HasPrefix(entry.Name(), ".")) {
 			return fs.SkipDir
 		}
 		if !entry.Type().IsRegular() {
@@ -309,7 +310,20 @@ func (s comparisonSource) parse(schema model.SchemaInputOptions) (model.ParsedSp
 		return model.ParsedSpecification{}, err
 	}
 	doc, err := jsonschema.LoadCollection(members, s.Directory, s.DocConfig)
-	return model.ParsedSpecification{Schema: doc}, err
+	if err != nil {
+		return model.ParsedSpecification{}, explainCollectionMember(err, members)
+	}
+	return model.ParsedSpecification{Schema: doc}, nil
+}
+
+// explainCollectionMember adds guidance when the rejected member carries no dialect
+// declaration. A schema directory is read whole, so a stray tooling file ends up here.
+func explainCollectionMember(err error, members map[string][]byte) error {
+	var member *jsonschema.MemberError
+	if errors.As(err, &member) && !model.DeclaresSchema(members[member.Name]) {
+		return fmt.Errorf("%s does not look like a JSON Schema (it has no Draft 2020-12 $schema declaration); move it out of the directory if it is not one: %w", member.Name, err)
+	}
+	return err
 }
 
 func buildLeftRightCommit(left, right comparisonSource, schema model.SchemaInputOptions) (*model.Commit, error) {

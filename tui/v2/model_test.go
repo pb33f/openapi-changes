@@ -377,8 +377,8 @@ func TestEmptyChangerator_ShowsMessage(t *testing.T) {
 	commits := makeTestCommits()
 	commits[0].Source = &model.HistorySource{}
 	commits[0].OldData = commits[1].Data
-	runFn := func(_ *model.Commit, _ *whatChangedModel.BreakingRulesConfig) (*changerator.Changerator, *v3.Node, func(), error) {
-		return nil, nil, nil, nil
+	runFn := func(_ *model.Commit, _ *whatChangedModel.BreakingRulesConfig) (*Comparison, error) {
+		return nil, nil
 	}
 	m := NewConsoleModel(commits, nil, true, "test", runFn)
 	assert.Equal(t, "No changes detected in this commit", m.emptyState)
@@ -389,14 +389,14 @@ func TestEmptyChangerator_ShowsMessage(t *testing.T) {
 func TestConsoleCountsSurviveGraphEviction(t *testing.T) {
 	commits := makeTestCommits()
 	calls, released := 0, 0
-	runFn := func(_ *model.Commit, _ *whatChangedModel.BreakingRulesConfig) (*changerator.Changerator, *v3.Node, func(), error) {
+	runFn := func(_ *model.Commit, _ *whatChangedModel.BreakingRulesConfig) (*Comparison, error) {
 		calls++
 		ctr := changerator.NewChangerator(&changerator.ChangeratorConfig{})
 		ctr.ChangeReport = changerator.ChangeList{
 			{ChangeType: whatChangedModel.Modified, Property: "title"},
 			{ChangeType: whatChangedModel.PropertyRemoved, Property: "address", Breaking: true},
 		}
-		return ctr, nil, func() { released++ }, nil
+		return &Comparison{Changerator: ctr, Release: func() { released++ }}, nil
 	}
 	m := NewConsoleModel(commits, nil, true, "test", runFn)
 	defer m.cache.releaseAll()
@@ -420,8 +420,8 @@ func TestConsoleCountsSurviveGraphEviction(t *testing.T) {
 }
 
 func TestConsoleFirstRevisionIsNotUnchanged(t *testing.T) {
-	runFn := func(_ *model.Commit, _ *whatChangedModel.BreakingRulesConfig) (*changerator.Changerator, *v3.Node, func(), error) {
-		return nil, nil, nil, nil
+	runFn := func(_ *model.Commit, _ *whatChangedModel.BreakingRulesConfig) (*Comparison, error) {
+		return nil, nil
 	}
 	m := NewConsoleModel(makeTestCommits(), nil, true, "test", runFn)
 	assert.Equal(t, "No prior version to compare against", m.emptyState)

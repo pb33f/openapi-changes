@@ -192,6 +192,8 @@ export class ReportShell extends ReportShellBase {
                                 .changes=${this.selectedNodeChanges}
                                 .originalSources=${item.originalSources}
                                 .modifiedSources=${item.modifiedSources}
+                                .originalSourcesHighlighted=${item.originalSourcesHighlighted}
+                                .modifiedSourcesHighlighted=${item.modifiedSourcesHighlighted}
                                 .originalSpec=${item.originalSpec || ''}
                                 .modifiedSpec=${item.modifiedSpec || ''}
                                 .originalHighlighted=${item.originalHighlighted || {}}

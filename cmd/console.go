@@ -7,8 +7,6 @@ import (
 	"fmt"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/pb33f/doctor/changerator"
-	v3 "github.com/pb33f/doctor/model/high/v3"
 	"github.com/pb33f/doctor/terminal"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
@@ -24,7 +22,7 @@ func printConsoleUsage(palette terminal.Palette) {
 
 // bridgeRunChangerator adapts cmd.runChangerator to the v2tui.RunChangeratorFn signature
 // to avoid import cycles between cmd and tui/v2 packages.
-func bridgeRunChangerator(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*changerator.Changerator, *v3.Node, func(), error) {
+func bridgeRunChangerator(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*v2tui.Comparison, error) {
 	comparison := commit
 	if commit.Source != nil {
 		copy := *commit
@@ -35,16 +33,17 @@ func bridgeRunChangerator(commit *model.Commit, breakingConfig *whatChangedModel
 	commit.OldData = comparison.OldData
 	commit.Specification = comparison.Specification
 	commit.OriginalRevision = comparison.OriginalRevision
-	if err != nil {
-		return nil, nil, nil, err
+	if err != nil || result == nil {
+		return nil, err
 	}
-	if result == nil {
-		return nil, nil, nil, nil
-	}
-	commit.OriginalSchemas, commit.ModifiedSchemas = result.sourceViews()
-	root := result.root()
-	releaseFn := func() { result.Release() }
-	return result.Changerator, root, releaseFn, nil
+	original, modified := result.sourceViews()
+	return &v2tui.Comparison{
+		Changerator:     result.Changerator,
+		Root:            result.root(),
+		OriginalSources: original,
+		ModifiedSources: modified,
+		Release:         result.Release,
+	}, nil
 }
 
 func hasRenderableDocuments(commits []*model.Commit) (bool, error) {

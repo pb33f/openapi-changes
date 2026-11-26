@@ -57,6 +57,13 @@ const HISTORY_COLOR_KEYS: Record<string, string> = {
     'Removals': 'error',
 };
 
+/** Reads one source's highlighted lines. A name such as "__proto__" is an ordinary key. */
+function highlightedSource(
+    sources: Record<string, Record<number, string>> | undefined, name?: string,
+): Record<number, string> | undefined {
+    return name && sources && Object.prototype.hasOwnProperty.call(sources, name) ? sources[name] : undefined;
+}
+
 function formatChartDate(iso: string): string {
     try {
         const d = new Date(iso);
@@ -225,7 +232,8 @@ export abstract class ReportShellBase extends LitElement {
         const pending: string[] = [];
         const addReferences = (id: string, timeline: Change[]) => {
             for (const edge of this._schemaReferences.get(id) || []) {
-                const keyword = edge.id.startsWith('ref:$dynamicRef:') ? '$dynamicRef' : '$ref';
+                // Reports written before edges carried their keyword encode it in the edge ID.
+                const keyword = edge.keyword ?? (edge.id.startsWith('ref:$dynamicRef:') ? '$dynamicRef' : '$ref');
                 if (timeline.some(change => change.property === keyword)) continue;
                 for (const target of edge.targets) pending.push(target);
             }
@@ -636,10 +644,15 @@ export abstract class ReportShellBase extends LitElement {
     protected renderContentTabs(item: ReportItem): TemplateResult {
         const origin = this.selectedNodeId ? this._graphNodeMap.get(this.selectedNodeId)?.origin : undefined;
         const context = item.graph.changes?.[0]?.context;
-        const original = this.isSchemaCollection
-            ? sourceText(item.originalSources, origin || context?.originalDocument || context?.modifiedDocument) ?? '' : item.originalSpec;
-        const modified = this.isSchemaCollection
-            ? sourceText(item.modifiedSources, origin || context?.modifiedDocument || context?.originalDocument) ?? '' : item.modifiedSpec;
+        const collection = this.isSchemaCollection;
+        const originalFile = origin || context?.originalDocument || context?.modifiedDocument;
+        const modifiedFile = origin || context?.modifiedDocument || context?.originalDocument;
+        const original = collection ? sourceText(item.originalSources, originalFile) ?? '' : item.originalSpec;
+        const modified = collection ? sourceText(item.modifiedSources, modifiedFile) ?? '' : item.modifiedSpec;
+        const originalHighlighted = collection
+            ? highlightedSource(item.originalSourcesHighlighted, originalFile) : item.originalHighlighted;
+        const modifiedHighlighted = collection
+            ? highlightedSource(item.modifiedSourcesHighlighted, modifiedFile) : item.modifiedHighlighted;
         return html`
             <sl-tab-group @sl-tab-show=${this.handleTabShow}>
                 ${this.isMultiCommit ? html`
@@ -679,10 +692,12 @@ export abstract class ReportShellBase extends LitElement {
                     <pb33f-diff-viewer
                         .originalSources=${item.originalSources}
                         .modifiedSources=${item.modifiedSources}
+                        .originalSourcesHighlighted=${item.originalSourcesHighlighted}
+                        .modifiedSourcesHighlighted=${item.modifiedSourcesHighlighted}
                         .originalSpec=${original}
                         .modifiedSpec=${modified}
-                        .originalHighlighted=${item.originalHighlighted || {}}
-                        .modifiedHighlighted=${item.modifiedHighlighted || {}}
+                        .originalHighlighted=${originalHighlighted || {}}
+                        .modifiedHighlighted=${modifiedHighlighted || {}}
                         .selectedChanges=${this.selectedDiffChanges}
                     ></pb33f-diff-viewer>
                 </sl-tab-panel>

@@ -40,8 +40,10 @@ that owns the change, including referenced files. Use the `schemaRules` configur
 
 ### Compare schema collections
 
-Pass two local directories with `--schema`. The CLI reads JSON and YAML files recursively, skips Git metadata
-and symbolic links, and registers each resource before resolving references. An empty directory is a valid snapshot.
+Pass two local directories with `--schema`. The CLI reads JSON and YAML files recursively and registers each
+resource before resolving references. It skips symbolic links, `node_modules`, and any directory whose name starts
+with a dot. Every other JSON or YAML file is read as a schema, so keep the directory to schemas only. An empty
+directory is a valid snapshot.
 
 ```sh
 openapi-changes html-report --schema --report-file changes.html \

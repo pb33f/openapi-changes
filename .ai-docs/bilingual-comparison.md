@@ -133,9 +133,14 @@ The human reports show the Customer title, and the flat report groups by its can
 The existing repository and file path form selects local Git history. The one-URL GitHub history form is unchanged.
 
 The directory loader enumerates regular `.json`, `.yaml`, and `.yml` files, including uppercase extensions,
-using slash-separated relative names. It skips Git metadata and symlinks. The library registers every member before
+using slash-separated relative names. It skips symlinks, `node_modules`, and dot-directories such as `.git`. Every
+other member is read as a schema, so a directory should hold schemas only. The library registers every member before
 resolving references and matching resources by ID, then by relative file and embedded pointer. Either directory may
-be empty. A malformed member aborts that direct comparison with its side and filename.
+be empty. A malformed member aborts that direct comparison with its side and filename. When that member has no
+Draft 2020-12 `$schema` declaration, the error also says it does not look like a JSON Schema.
+
+Two directories without `--schema` still select local Git history. That loader reports both arguments as
+directories and suggests `--schema`.
 
 A collection produces one report item. The graph has a `Schemas` root. Source lookup keys are the physical member
 names, and change paths are local to the resource in `schemaResource`. The summary, compact counts, and Markdown

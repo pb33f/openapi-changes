@@ -70,14 +70,14 @@ func renderCommitMarkdown(commit *model.Commit, breakingConfig *whatChangedModel
 func diffFence(diff string) string {
 	width, run := 3, 0
 	for _, ch := range diff {
-		if ch == 96 {
+		if ch == '`' {
 			run++
 			width = max(width, run)
 		} else {
 			run = 0
 		}
 	}
-	return strings.Repeat(string(rune(96)), width+1)
+	return strings.Repeat("`", width+1)
 }
 
 func comparisonDiff(commit *model.Commit, result *changeratorResult) string {

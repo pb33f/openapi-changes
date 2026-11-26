@@ -131,6 +131,8 @@ describe('ReportShellLite state management', () => {
             item.originalSpec = item.modifiedSpec = '';
             item.originalSources = {'money.yaml': 'minLength: 3', 'invoice.yaml': 'title: Invoice', 'order.yaml': 'title: Order'};
             item.modifiedSources = {...item.originalSources, 'money.yaml': 'type: string'};
+            item.originalSourcesHighlighted = {'money.yaml': {1: '<b>minLength: 3</b>'}, 'invoice.yaml': {1: '<b>title: Invoice</b>'}};
+            item.modifiedSourcesHighlighted = {'money.yaml': {1: '<b>type: string</b>'}};
             const removed: Change = {
                 property: 'minLength', change: 5, changeText: 'property_removed', schemaResource: 'money.yaml',
                 path: '$.minLength', type: 'schema', breaking: false, original: '3',
@@ -160,6 +162,8 @@ describe('ReportShellLite state management', () => {
             const viewer = el.shadowRoot!.querySelector('pb33f-diff-viewer') as any;
             expect(viewer.originalSpec).toBe('minLength: 3');
             expect(viewer.modifiedSpec).toBe('type: string');
+            expect(viewer.originalHighlighted).toEqual({1: '<b>minLength: 3</b>'});
+            expect(viewer.modifiedHighlighted).toEqual({1: '<b>type: string</b>'});
             const show = vi.spyOn(el.mainTabGroup, 'show');
             const click = (nodeId: string, changes: Change[] = []) => el.dispatchEvent(new CustomEvent('model-tree-node-clicked', {
                 detail: {nodeId, changes},
@@ -183,6 +187,8 @@ describe('ReportShellLite state management', () => {
             expect(viewer.selectedChanges).toEqual([]);
             expect(viewer.originalSpec).toBe('title: Invoice');
             expect(viewer.modifiedSpec).toBe('title: Invoice');
+            expect(viewer.originalHighlighted).toEqual({1: '<b>title: Invoice</b>'});
+            expect(viewer.modifiedHighlighted).toEqual({});
             expect(show).toHaveBeenLastCalledWith('diff');
         });
 
@@ -197,13 +203,14 @@ describe('ReportShellLite state management', () => {
             }));
             item.graph = {
                 nodes: [
-                    createMinimalNode('root', {nodes: ['use', 'a', 'b']}),
-                    createMinimalNode('use'), createMinimalNode('a', {timeline: [edits[0]]}),
+                    createMinimalNode('root', {nodes: ['use', 'keyed', 'a', 'b']}),
+                    createMinimalNode('use'), createMinimalNode('keyed'), createMinimalNode('a', {timeline: [edits[0]]}),
                     createMinimalNode('b', {timeline: [edits[1]]}),
                 ],
                 edges: [
                     {id: 'ref:use', ref: 'a.yaml', sources: ['use'], targets: ['a']},
                     {id: 'ref:$dynamicRef:use', ref: 'b.yaml', sources: ['use'], targets: ['b']},
+                    {id: 'ref:keyed', keyword: '$dynamicRef', ref: 'b.yaml', sources: ['keyed'], targets: ['b']},
                     {id: 'ref:a', ref: 'b.yaml', sources: ['a'], targets: ['b']},
                 ],
                 changes: edits,
@@ -214,6 +221,9 @@ describe('ReportShellLite state management', () => {
             const retarget = createMinimalChange({property: '$ref'});
             el._graphNodeMap.get('use').timeline = [retarget];
             el.selectNode('use');
+            expect(el.selectedNodeChanges).toEqual([retarget, edits[1]]);
+            el._graphNodeMap.get('keyed').timeline = [retarget];
+            el.selectNode('keyed');
             expect(el.selectedNodeChanges).toEqual([retarget, edits[1]]);
         });
     });

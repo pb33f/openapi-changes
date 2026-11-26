@@ -114,6 +114,9 @@ func (c *Commit) Comparable() bool {
 	return c != nil && ((c.SchemaDocument != nil && c.OldSchemaDocument != nil) || (c.Source != nil && len(c.OldData) > 0) || (c.Document != nil && c.OldDocument != nil) || (c.AsyncDocument != nil && c.OldAsyncDocument != nil))
 }
 
+// ErrUnrecognizedInput reports a root that declares none of the supported formats.
+var ErrUnrecognizedInput = errors.New("no openapi, swagger or asyncapi version field and no Draft 2020-12 $schema declaration (use --schema to compare an unmarked JSON Schema)")
+
 // ParsedSpecification holds the native model for one input.
 type ParsedSpecification struct {
 	OpenAPI  libopenapi.Document
@@ -130,7 +133,7 @@ type SchemaInputOptions struct {
 // ParseInput selects the native engine. Explicit schema mode also accepts unmarked roots.
 func ParseInput(data []byte, source string, config *datamodel.DocumentConfiguration, schema SchemaInputOptions) (ParsedSpecification, error) {
 	apiConfig := config
-	marked := !schema.Explicit && schemaMarker(data)
+	marked := !schema.Explicit && DeclaresSchema(data)
 	if !schema.Explicit && !marked {
 		api, async, err := ParseSpecification(data, config)
 		if !errors.Is(err, datamodel.ErrUnsupportedSpecType) {
@@ -156,12 +159,16 @@ func ParseInput(data []byte, source string, config *datamodel.DocumentConfigurat
 			return ParsedSpecification{OpenAPI: api, AsyncAPI: async}, apiErr
 		}
 	}
+	if errors.Is(err, jsonschema.ErrNotSchema) {
+		// Neither engine recognized the root, so name every marker that was looked for.
+		err = ErrUnrecognizedInput
+	}
 	return ParsedSpecification{Schema: doc}, err
 }
 
-// schemaMarker finds the common top-level declaration without building a second
+// DeclaresSchema finds the common top-level declaration without building a second
 // syntax tree. Escaped keys and other YAML forms still use the native fallback.
-func schemaMarker(data []byte) bool {
+func DeclaresSchema(data []byte) bool {
 	if !bytes.Contains(data, []byte("$schema")) {
 		return false
 	}

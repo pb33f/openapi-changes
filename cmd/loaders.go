@@ -185,6 +185,9 @@ func loadGitHistoryCommitsDetailed(gitPath, filePath string, opts summaryOpts, b
 	}
 	_, err = os.Stat(filepath.Join(repo, filePath))
 	if err != nil {
+		if info, statErr := os.Stat(filePath); statErr == nil && info.IsDir() {
+			return nil, fmt.Errorf("'%s' and '%s' are both directories; pass --schema to compare them as JSON Schema collections", gitPath, filePath)
+		}
 		return nil, fmt.Errorf("cannot open file: '%s'", filePath)
 	}
 

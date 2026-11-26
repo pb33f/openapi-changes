@@ -65,12 +65,12 @@ func TestJSONSchemaSingleRootCommands(t *testing.T) {
 	require.Equal(t, 1, items[0].Summary.TotalChanges)
 	require.Empty(t, items[0].OriginalSources)
 	require.Empty(t, items[0].ModifiedSources)
-	ctr, root, release, err := bridgeRunChangerator(commits[0], nil)
+	comparison, err := bridgeRunChangerator(commits[0], nil)
 	require.NoError(t, err)
-	defer release()
-	require.Equal(t, "root", root.Id)
-	require.Equal(t, "Customer", root.Label)
-	require.Len(t, ctr.DeduplicateChanges(), 1)
+	defer comparison.Release()
+	require.Equal(t, "root", comparison.Root.Id)
+	require.Equal(t, "Customer", comparison.Root.Label)
+	require.Len(t, comparison.Changerator.DeduplicateChanges(), 1)
 }
 
 func TestJSONSchemaExplicitAndConfig(t *testing.T) {
@@ -98,6 +98,24 @@ func TestJSONSchemaExplicitAndConfig(t *testing.T) {
 	flat, err = runLeftRightReport(old, after, summaryOpts{schema: true}, nil)
 	require.NoError(t, err)
 	require.False(t, flat.Changes[0].Breaking)
+}
+
+func TestConsoleBridgeReportsUnchangedSchema(t *testing.T) {
+	schema := "../sample-specs/json-schema/before/customer.json"
+	commits, err := loadLeftRightCommits(schema, schema, summaryOpts{})
+	require.NoError(t, err)
+	require.Len(t, commits, 1)
+	t.Cleanup(func() { releaseDirectInputs(commits[0]) })
+	comparison, err := bridgeRunChangerator(commits[0], nil)
+	require.NoError(t, err)
+	require.Nil(t, comparison)
+}
+
+func TestUnmarkedInputNamesEverySupportedFormat(t *testing.T) {
+	unmarked := writeSchemaFile(t, t.TempDir(), "after.json", `{"type":"string"}`)
+	_, err := runLeftRightReport("../sample-specs/json-schema/before/customer.json", unmarked, summaryOpts{}, nil)
+	require.ErrorIs(t, err, model.ErrUnrecognizedInput)
+	require.ErrorContains(t, err, "unable to parse modified document")
 }
 
 func TestJSONSchemaGitSourcesAndPartialHistory(t *testing.T) {
