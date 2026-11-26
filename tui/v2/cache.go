@@ -8,6 +8,8 @@ import (
 
 	"github.com/pb33f/doctor/changerator"
 	v3 "github.com/pb33f/doctor/model/high/v3"
+	wc "github.com/pb33f/libopenapi/what-changed/model"
+	"github.com/pb33f/openapi-changes/model"
 )
 
 // commitCache is an LRU cache for changerator results, keyed by commit hash.
@@ -19,15 +21,17 @@ type commitCache struct {
 }
 
 type cacheEntry struct {
-	result           *changeratorResultV2
-	treeRoot         *v3.Node
-	stats            *changerator.ChangeStatistics
-	nodeStatsCache   map[*v3.Node]nodeStats
-	newLines         []string // pre-split commit.Data
-	oldLines         []string // pre-split commit.OldData
-	markdown         string   // cached raw markdown report (width-independent)
-	renderedMarkdown string   // cached glamour-rendered markdown
-	renderedWidth    int      // content width used for renderedMarkdown
+	originalSources, modifiedSources *model.SchemaSources
+	sourceLines                      map[string][]string
+	result                           *changeratorResultV2
+	treeRoot                         *v3.Node
+	stats                            *changerator.ChangeStatistics
+	nodeStatsCache                   map[*v3.Node]nodeStats
+	newLines                         []string // pre-split commit.Data
+	oldLines                         []string // pre-split commit.OldData
+	markdown                         string   // cached raw markdown report (width-independent)
+	renderedMarkdown                 string   // cached glamour-rendered markdown
+	renderedWidth                    int      // content width used for renderedMarkdown
 }
 
 // changeratorResultV2 wraps the cmd.changeratorResult to avoid import cycles.
@@ -74,14 +78,6 @@ func (c *commitCache) put(hash string, entry *cacheEntry) {
 	}
 	c.entries[hash] = entry
 	c.order = append(c.order, hash)
-}
-
-func (c *commitCache) getLines(hash string) (newLines, oldLines []string) {
-	entry := c.get(hash)
-	if entry == nil {
-		return nil, nil
-	}
-	return entry.newLines, entry.oldLines
 }
 
 func (c *commitCache) releaseAll() {
@@ -138,4 +134,34 @@ func splitLines(data []byte) []string {
 		return nil
 	}
 	return strings.Split(string(data), "\n")
+}
+
+// changeLines selects the physical source on each side before applying coordinates.
+func (c *commitCache) changeLines(hash string, ch *wc.Change) ([]string, []string) {
+	entry := c.get(hash)
+	if entry == nil {
+		return nil, nil
+	}
+	if ch == nil || ch.Context == nil || ch.SchemaResource == "" {
+		return entry.newLines, entry.oldLines
+	}
+	get := func(s *model.SchemaSources, name, prefix string, root []string) []string {
+		if s == nil || name == "" {
+			return nil
+		}
+		if name == s.Root {
+			return root
+		}
+		if entry.sourceLines == nil {
+			entry.sourceLines = make(map[string][]string)
+		}
+		key := prefix + name
+		if lines, ok := entry.sourceLines[key]; ok {
+			return lines
+		}
+		lines := splitLines(s.Files[name])
+		entry.sourceLines[key] = lines
+		return lines
+	}
+	return get(entry.modifiedSources, ch.Context.ModifiedDocument, "+", entry.newLines), get(entry.originalSources, ch.Context.OriginalDocument, "-", entry.oldLines)
 }

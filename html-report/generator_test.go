@@ -4,10 +4,15 @@
 package html_report
 
 import (
+	"encoding/json"
 	"testing"
+	"testing/fstest"
 	"time"
 
+	"github.com/pb33f/doctor/changerator"
 	v3 "github.com/pb33f/doctor/model/high/v3"
+	"github.com/pb33f/libopenapi/datamodel"
+	"github.com/pb33f/libopenapi/jsonschema"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/model"
 	"github.com/pb33f/testify/assert"
@@ -84,6 +89,116 @@ func TestNewReportData_Lite(t *testing.T) {
 
 	assert.Equal(t, bundledLiteJS, rd.BundledJS)
 	assert.NotEqual(t, bundledJS, rd.BundledJS, "lite should use the lite bundle")
+}
+
+func TestStandaloneSchemaReportItem(t *testing.T) {
+	root := []byte("{\"title\":\"Order\",\"properties\":{\"amount\":{\"$ref\":\"money.yaml\"}}}")
+	load := func(body string) *jsonschema.Document {
+		cfg := datamodel.NewDocumentConfiguration()
+		cfg.BasePath = "/snapshot"
+		cfg.LocalFS = fstest.MapFS{"money.yaml": {Data: []byte(body)}}
+		doc, err := jsonschema.Load(root, "order.json", cfg, true)
+		require.NoError(t, err)
+		t.Cleanup(doc.Release)
+		return doc
+	}
+	left, right := load("minLength: 2"), load("minLength: 3")
+	result, err := changerator.CompareJSONSchema(left, right, nil)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	defer result.Release()
+	commit := &model.Commit{OldData: root, Data: root, Synthetic: true, Hash: "synthetic", Message: "placeholder",
+		Specification:   &model.ComparisonSpecification{Kind: "jsonschema", OriginalVersion: jsonschema.Dialect, ModifiedVersion: jsonschema.Dialect},
+		OriginalSchemas: model.NewSchemaSources(left), ModifiedSchemas: model.NewSchemaSources(right)}
+	item, err := BuildReportItem(commit, result.Changerator, result.Changes, nil, "0")
+	require.NoError(t, err)
+	require.Equal(t, 1, item.Summary.TotalChanges)
+	require.Equal(t, 1, item.Summary.BreakingChanges)
+	require.Equal(t, string(root), item.OriginalSpec)
+	require.Equal(t, string(root), item.ModifiedSpec)
+	require.Equal(t, map[string]string{"money.yaml": "minLength: 2"}, item.OriginalSources)
+	require.Equal(t, map[string]string{"money.yaml": "minLength: 3"}, item.ModifiedSources)
+	require.Contains(t, item.OriginalSourcesHighlighted["money.yaml"][1], "minLength")
+	require.Contains(t, item.ModifiedSourcesHighlighted["money.yaml"][1], "minLength")
+	require.Nil(t, item.Commit)
+	require.Nil(t, BuildHistoryData([]*ReportItem{item}))
+	encoded, err := json.Marshal(item)
+	require.NoError(t, err)
+	assert.NotContains(t, string(encoded), "\"commit\":")
+	assert.NotContains(t, string(encoded), "gitCommitSha")
+	assert.Contains(t, string(item.Graph.Nodes), "\"documentKind\":\"jsonschema\"")
+	assert.Contains(t, string(item.Graph.Nodes), "\"modifiedDocument\":\"money.yaml\"")
+}
+
+func TestCollectionReportKeepsBothReferencesToMovedSchemaWithRemovedConstraint(t *testing.T) {
+	load := func(name, money string) *jsonschema.Document {
+		doc, err := jsonschema.LoadCollection(map[string][]byte{
+			"order.yaml":   []byte("title: Order\nproperties:\n  total:\n    $ref: urn:money\n"),
+			"invoice.yaml": []byte("title: Invoice\nproperties:\n  amount:\n    $ref: urn:money\n"),
+			name:           []byte(money),
+		}, t.TempDir(), nil)
+		require.NoError(t, err)
+		t.Cleanup(doc.Release)
+		return doc
+	}
+	const money = "$id: urn:money\ntitle: Money\nproperties:\n  currency:\n    type: string\n"
+	left, right := load("a/money.yaml", money+"    minLength: 3\n"), load("b/money.yaml", money)
+	result, err := changerator.CompareJSONSchema(left, right, nil)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	t.Cleanup(result.Release)
+	commit := &model.Commit{
+		Synthetic: true, Specification: &model.ComparisonSpecification{Kind: "jsonschema"},
+		OriginalSchemas: model.NewSchemaSources(left), ModifiedSchemas: model.NewSchemaSources(right),
+	}
+	item, err := BuildReportItem(commit, result.Changerator, result.Changes, nil, "0")
+	require.NoError(t, err)
+	require.Equal(t, 1, item.Summary.TotalChanges)
+	require.Equal(t, 1, item.Summary.Removals)
+	require.Empty(t, item.OriginalSpec)
+	require.Empty(t, item.ModifiedSpec)
+	require.Len(t, item.OriginalSources, 3)
+	require.Len(t, item.ModifiedSources, 3)
+	require.Len(t, item.OriginalSourcesHighlighted, 3)
+	require.Len(t, item.ModifiedSourcesHighlighted, 3)
+	require.Equal(t, money+"    minLength: 3\n", item.OriginalSources["a/money.yaml"])
+	require.Equal(t, money, item.ModifiedSources["b/money.yaml"])
+
+	for _, graph := range []*GraphData{item.Graph, item.ExplorerGraph} {
+		require.NotNil(t, graph)
+		type graphNode struct {
+			ID, Label, Origin string
+			Timeline          []*whatChangedModel.Change
+		}
+		var nodes []graphNode
+		require.NoError(t, json.Unmarshal(graph.Nodes, &nodes))
+		byID := make(map[string]graphNode, len(nodes))
+		var edits []*whatChangedModel.Change
+		for _, node := range nodes {
+			byID[node.ID] = node
+			edits = append(edits, node.Timeline...)
+		}
+		require.Equal(t, "Schemas", byID["root"].Label)
+		require.Len(t, edits, 1)
+		require.Equal(t, "a/money.yaml", edits[0].Context.OriginalDocument)
+		require.Equal(t, "b/money.yaml", edits[0].Context.ModifiedDocument)
+		require.Equal(t, 6, *edits[0].Context.OriginalLine)
+		require.Nil(t, edits[0].Context.NewLine)
+		var edges []v3.Edge
+		require.NoError(t, json.Unmarshal(graph.Edges, &edges))
+		var uses []string
+		for _, edge := range edges {
+			if edge.Ref == "urn:money" {
+				require.Len(t, edge.Sources, 1)
+				require.Len(t, edge.Targets, 1)
+				use := byID[edge.Sources[0]]
+				require.Empty(t, use.Timeline)
+				require.Equal(t, "Money", byID[edge.Targets[0]].Label)
+				uses = append(uses, use.Origin)
+			}
+		}
+		require.ElementsMatch(t, []string{"order.yaml", "invoice.yaml"}, uses)
+	}
 }
 
 func TestBuildHistoryData(t *testing.T) {

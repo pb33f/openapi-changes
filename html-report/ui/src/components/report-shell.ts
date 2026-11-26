@@ -150,8 +150,8 @@ export class ReportShell extends ReportShellBase {
     protected override handleTreeNodeClicked(evt: CustomEvent<NodeClickedEvent>): void {
         const { nodeId } = evt.detail;
         if (!nodeId) return;
-        this.selectNode(nodeId);
         if (this.activeMainTab === 'graph' && this.explorer) {
+            this.selectNode(nodeId);
             this.explorer.revealPathToNode(nodeId);
             return;
         }
@@ -190,6 +190,10 @@ export class ReportShell extends ReportShellBase {
                         ${this._changePanelExpanded && item ? html`
                             <pb33f-focused-diff-panel compact
                                 .changes=${this.selectedNodeChanges}
+                                .originalSources=${item.originalSources}
+                                .modifiedSources=${item.modifiedSources}
+                                .originalSourcesHighlighted=${item.originalSourcesHighlighted}
+                                .modifiedSourcesHighlighted=${item.modifiedSourcesHighlighted}
                                 .originalSpec=${item.originalSpec || ''}
                                 .modifiedSpec=${item.modifiedSpec || ''}
                                 .originalHighlighted=${item.originalHighlighted || {}}

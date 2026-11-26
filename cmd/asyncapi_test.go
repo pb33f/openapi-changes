@@ -173,11 +173,11 @@ func TestAsyncAPIAllReports(t *testing.T) {
 	require.Len(t, items, 1)
 	require.Contains(t, items[0].HtmlReport, `icon="channel"`)
 	require.Contains(t, items[0].HtmlReport, `id="channels"`)
-	ctr, root, release, err := bridgeRunChangerator(commits[0], nil)
+	comparison, err := bridgeRunChangerator(commits[0], nil)
 	require.NoError(t, err)
-	require.NotNil(t, root)
-	defer release()
-	require.Len(t, ctr.DeduplicateChanges(), 2)
+	require.NotNil(t, comparison.Root)
+	defer comparison.Release()
+	require.Len(t, comparison.Changerator.DeduplicateChanges(), 2)
 }
 
 func TestAsyncAPIUnchangedHistoryWithMalformedRevision(t *testing.T) {

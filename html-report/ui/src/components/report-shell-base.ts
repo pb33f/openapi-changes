@@ -9,10 +9,10 @@ import reportCss from '../css/report.css.js';
 import {
     HeaderComponent, FooterComponent, HttpMethodComponent, PathRenderComponent, RenderJSONPathComponent,
     TimelineComponent, TimelineItemComponent, SpecSummaryTimelineItem,
-    ThemeSwitcher, ModelTreeNodeClicked, DiffViewer,
+    ThemeSwitcher, ModelTreeNodeClicked, DiffViewer, isReferenceEdge, sourceText,
 } from '@pb33f/cowboy-components/static-report';
 import type {
-    NodeClickedEvent, ReportPayload, ReportItem, Change, Node, ChangeHistory,
+    NodeClickedEvent, ReportPayload, ReportItem, Change, Node, Edge, ChangeHistory,
 } from '@pb33f/cowboy-components/static-report';
 // Ensure components are registered (tree-shaking guard)
 void HeaderComponent;
@@ -56,6 +56,13 @@ const HISTORY_COLOR_KEYS: Record<string, string> = {
     'Modifications': 'tertiary',
     'Removals': 'error',
 };
+
+/** Reads one source's highlighted lines. A name such as "__proto__" is an ordinary key. */
+function highlightedSource(
+    sources: Record<string, Record<number, string>> | undefined, name?: string,
+): Record<number, string> | undefined {
+    return name && sources && Object.prototype.hasOwnProperty.call(sources, name) ? sources[name] : undefined;
+}
 
 function formatChartDate(iso: string): string {
     try {
@@ -137,6 +144,7 @@ export abstract class ReportShellBase extends LitElement {
     }
 
     private _graphNodeMap: Map<string, Node> = new Map();
+    private _schemaReferences = new Map<string, Edge[]>();
     private _cachedChartIndex: number = -1;
     private _cachedData: ReportPayload | null = null;
     protected _changeDataset: ChartDataset[] = [];
@@ -197,6 +205,11 @@ export abstract class ReportShellBase extends LitElement {
         return (this.data?.items?.length ?? 0) > 1;
     }
 
+    private get isSchemaCollection(): boolean {
+        const item = this.activeItem;
+        return item?.specification?.kind === 'jsonschema' && !item.originalSpec && !item.modifiedSpec;
+    }
+
     protected selectItem(index: number): void {
         this.activeItemIndex = index;
         this.selectedDiffChanges = [];
@@ -206,14 +219,43 @@ export abstract class ReportShellBase extends LitElement {
 
     protected selectNode(nodeId: string): void {
         this.selectedNodeId = nodeId;
-        const node = this._graphNodeMap.get(nodeId);
-        if (node) {
-            this.selectedNodeChanges = node.timeline || [];
-            this.selectedDiffChanges = node.timeline || [];
-        } else {
-            this.selectedNodeChanges = [];
-            this.selectedDiffChanges = [];
+        const changes = this.changesForNode(nodeId);
+        this.selectedNodeChanges = changes;
+        this.selectedDiffChanges = changes;
+    }
+
+    private changesForNode(nodeId: string): Change[] {
+        const local = this._graphNodeMap.get(nodeId)?.timeline || [];
+        if (!this._schemaReferences.has(nodeId)) return local;
+
+        const changes = [...local];
+        const pending: string[] = [];
+        const addReferences = (id: string, timeline: Change[]) => {
+            for (const edge of this._schemaReferences.get(id) || []) {
+                // Reports written before edges carried their keyword encode it in the edge ID.
+                const keyword = edge.keyword ?? (edge.id.startsWith('ref:$dynamicRef:') ? '$dynamicRef' : '$ref');
+                if (timeline.some(change => change.property === keyword)) continue;
+                for (const target of edge.targets) pending.push(target);
+            }
+        };
+        addReferences(nodeId, local);
+
+        // A recursive use can reach this node again. Its local edits are already present.
+        const visited = new Set<string>();
+        for (let i = 0; i < pending.length; i++) {
+            const id = pending[i];
+            if (visited.has(id)) continue;
+            visited.add(id);
+            const node = this._graphNodeMap.get(id);
+            if (!node) continue;
+            const timeline = node.timeline || [];
+            if (id !== nodeId) {
+                for (const change of timeline) changes.push(change);
+            }
+            for (const child of node.nodes || []) pending.push(child);
+            addReferences(id, timeline);
         }
+        return changes;
     }
 
     protected updateModelTree(): void {
@@ -225,6 +267,17 @@ export abstract class ReportShellBase extends LitElement {
             nodeMap.set(node.id, node);
         }
         this._graphNodeMap = nodeMap;
+        this._schemaReferences.clear();
+        if (item.specification?.kind === 'jsonschema') {
+            for (const edge of item.graph.edges || []) {
+                if (!isReferenceEdge(edge)) continue;
+                for (const source of edge.sources) {
+                    const references = this._schemaReferences.get(source);
+                    if (references) references.push(edge);
+                    else this._schemaReferences.set(source, [edge]);
+                }
+            }
+        }
         this.modelTree.nodeMap = nodeMap;
         this.modelTree.node = nodeMap.get('root') || null;
         this.modelTree.changesEnabled = true;
@@ -410,9 +463,14 @@ export abstract class ReportShellBase extends LitElement {
      * when the graph tab is active (e.g. to reveal nodes in the explorer).
      */
     protected handleTreeNodeClicked(evt: CustomEvent<NodeClickedEvent>): void {
-        const { changes } = evt.detail;
-        if (changes && changes.length > 0) {
-            this.navigateToDiffForChanges(changes as Change[]);
+        const { nodeId, changes } = evt.detail;
+        if (nodeId) this.selectNode(nodeId);
+        const referenceSite = nodeId && this._schemaReferences.has(nodeId);
+        const selected = changes?.length && !referenceSite ? changes : nodeId ? this.selectedNodeChanges : [];
+        if (selected.length) {
+            this.navigateToDiffForChanges(selected);
+        } else if (nodeId && this.isSchemaCollection && this._graphNodeMap.get(nodeId)?.origin) {
+            this.mainTabGroup?.show('diff');
         }
     }
 
@@ -456,7 +514,7 @@ export abstract class ReportShellBase extends LitElement {
                                                 @click=${() => this.selectItem(i)}>
                                                 <div slot="time"
                                                     class="time ${hasBreaking ? 'heart-breaker' : 'dream-maker'} ${i === this.activeItemIndex ? 'selected-bar' : ''}">
-                                                    <sl-relative-time date="${item.commit.date}" format="narrow"></sl-relative-time>
+                                                    ${item.commit ? html`<sl-relative-time date="${item.commit.date}" format="narrow"></sl-relative-time>` : nothing}
                                                 </div>
                                                 <div slot="content">
                                                     <div class="change-content ${hasBreaking ? 'heart-breaker' : 'dream-maker'} ${i === this.activeItemIndex ? 'selected-bar' : ''}">
@@ -536,7 +594,7 @@ export abstract class ReportShellBase extends LitElement {
 
         return html`
             <div class="overview-content">
-                <div class="commit-info">
+                ${item.commit ? html`<div class="commit-info">
                     <span class="commit-hash">${item.commit.hash.substring(0, 8)}</span>
                     <span class="commit-message">${item.commit.message || 'No message'}</span>
                     <span class="commit-meta">
@@ -546,7 +604,7 @@ export abstract class ReportShellBase extends LitElement {
                             hour: '2-digit', minute: '2-digit',
                         })}</span>
                     </span>
-                </div>
+                </div>` : nothing}
                 ${this.renderSummary()}
                 ${this.renderHistoryChart()}
             </div>
@@ -584,6 +642,17 @@ export abstract class ReportShellBase extends LitElement {
     }
 
     protected renderContentTabs(item: ReportItem): TemplateResult {
+        const origin = this.selectedNodeId ? this._graphNodeMap.get(this.selectedNodeId)?.origin : undefined;
+        const context = item.graph.changes?.[0]?.context;
+        const collection = this.isSchemaCollection;
+        const originalFile = origin || context?.originalDocument || context?.modifiedDocument;
+        const modifiedFile = origin || context?.modifiedDocument || context?.originalDocument;
+        const original = collection ? sourceText(item.originalSources, originalFile) ?? '' : item.originalSpec;
+        const modified = collection ? sourceText(item.modifiedSources, modifiedFile) ?? '' : item.modifiedSpec;
+        const originalHighlighted = collection
+            ? highlightedSource(item.originalSourcesHighlighted, originalFile) : item.originalHighlighted;
+        const modifiedHighlighted = collection
+            ? highlightedSource(item.modifiedSourcesHighlighted, modifiedFile) : item.modifiedHighlighted;
         return html`
             <sl-tab-group @sl-tab-show=${this.handleTabShow}>
                 ${this.isMultiCommit ? html`
@@ -621,10 +690,14 @@ export abstract class ReportShellBase extends LitElement {
 
                 <sl-tab-panel name="diff">
                     <pb33f-diff-viewer
-                        .originalSpec=${item.originalSpec}
-                        .modifiedSpec=${item.modifiedSpec}
-                        .originalHighlighted=${item.originalHighlighted || {}}
-                        .modifiedHighlighted=${item.modifiedHighlighted || {}}
+                        .originalSources=${item.originalSources}
+                        .modifiedSources=${item.modifiedSources}
+                        .originalSourcesHighlighted=${item.originalSourcesHighlighted}
+                        .modifiedSourcesHighlighted=${item.modifiedSourcesHighlighted}
+                        .originalSpec=${original}
+                        .modifiedSpec=${modified}
+                        .originalHighlighted=${originalHighlighted || {}}
+                        .modifiedHighlighted=${modifiedHighlighted || {}}
                         .selectedChanges=${this.selectedDiffChanges}
                     ></pb33f-diff-viewer>
                 </sl-tab-panel>

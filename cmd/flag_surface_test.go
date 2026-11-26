@@ -79,5 +79,6 @@ func TestRootPersistentFlagsRemainAvailable(t *testing.T) {
 		"ext-refs":         true,
 		"config":           true,
 		"global-revisions": true,
+		"schema":           true,
 	}, names)
 }

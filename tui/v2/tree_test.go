@@ -160,6 +160,27 @@ func TestCursorStartsOnFirstLeaf(t *testing.T) {
 	assert.Equal(t, "deprecated", entry.change.Property)
 }
 
+func TestSchemaTreeShowsItsRootAndSelectsTheChange(t *testing.T) {
+	for _, label := range []string{"Customer", "Schemas"} {
+		root := makeTestTree()
+		root.Label, root.DocumentKind = label, "jsonschema"
+		tree := newTreeModel(root, 20)
+		require.Same(t, root, tree.entries[0].node)
+		require.Nil(t, tree.entries[0].change)
+		require.Equal(t, 1, tree.entries[1].depth)
+		require.NotNil(t, tree.selectedEntry().change)
+	}
+}
+
+func TestCollectionLabelsDistinguishFilesWithTheSameTitle(t *testing.T) {
+	root := &v3.Node{Label: "Schemas", DocumentKind: "jsonschema"}
+	tree := newTreeModel(root, 20)
+	for _, file := range []string{"left.yaml", "right.yaml"} {
+		row := treeEntry{depth: 1, node: &v3.Node{Label: "Price", Type: "schema", OriginLocation: file}}
+		assert.Contains(t, tree.renderNode(row, consoleStyles{}), "Price ("+file+")")
+	}
+}
+
 func TestFlattenNodeTree_IncludesRootOwnedLeaves(t *testing.T) {
 	root := makeRootChangeTree()
 	tm := newTreeModel(root, 20)

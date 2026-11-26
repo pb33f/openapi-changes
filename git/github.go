@@ -124,10 +124,13 @@ func ProcessGithubRepoDetailed(username, repo, filePath string,
 	}
 
 	svc := newGitHubService()
-	config := doctorgithub.DefaultSessionConfig()
-	config.Timeout = 60 * time.Second
+	newSession := func() *doctorgithub.GitHubSession {
+		config := doctorgithub.DefaultSessionConfig()
+		config.Timeout = 60 * time.Second
+		return svc.CreateSessionWithOptionalToken(os.Getenv(GithubToken), config)
+	}
 
-	session := svc.CreateSessionWithOptionalToken(os.Getenv(GithubToken), config)
+	session := newSession()
 	if session == nil {
 		err := errors.New("failed to create GitHub session")
 		model.SendProgressError("git", err.Error(), errorChan)
@@ -158,12 +161,11 @@ func ProcessGithubRepoDetailed(username, repo, filePath string,
 		fmt.Sprintf("fetched %d github revisions", len(revisions)), true, progressChan)
 
 	opts.ReadRevision = func(_, revision, path string) ([]byte, error) {
-		service := newGitHubService()
-		files, ok := service.(doctorgithub.FileService)
+		files, ok := svc.(doctorgithub.FileService)
 		if !ok {
 			return nil, fmt.Errorf("GitHub service cannot read revision references")
 		}
-		session := service.CreateSessionWithOptionalToken(os.Getenv(GithubToken), config)
+		session := newSession()
 		if session == nil {
 			return nil, fmt.Errorf("failed to create GitHub reference session")
 		}

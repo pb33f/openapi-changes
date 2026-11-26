@@ -4,20 +4,24 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/pb33f/doctor/terminal"
 	"github.com/pb33f/libopenapi/datamodel"
 	"github.com/pb33f/libopenapi/index"
+	"github.com/pb33f/libopenapi/jsonschema"
 	"github.com/pb33f/openapi-changes/git"
 	"github.com/pb33f/openapi-changes/model"
 )
@@ -25,6 +29,7 @@ import (
 type comparisonSource struct {
 	Display             string
 	RootBytes           []byte
+	Directory           string
 	DocConfig           *datamodel.DocumentConfiguration
 	RewriteDocumentPath model.DocumentPathRewriter
 	Cleanup             func()
@@ -65,6 +70,9 @@ func resolveLocalFileSource(raw string, opts summaryOpts) (comparisonSource, err
 		return comparisonSource{}, fmt.Errorf("cannot resolve file '%s': %w", raw, err)
 	}
 	bits, err := os.ReadFile(absPath)
+	if errors.Is(err, os.ErrNotExist) {
+		return comparisonSource{}, fmt.Errorf("cannot open file/repository: '%s': %w", raw, err)
+	}
 	if err != nil {
 		return comparisonSource{}, fmt.Errorf("cannot read file '%s': %w", raw, err)
 	}
@@ -251,22 +259,89 @@ func attachLazyLocalFS(docConfig *datamodel.DocumentConfiguration) error {
 	return nil
 }
 
-func buildLeftRightCommit(left, right comparisonSource) (*model.Commit, error) {
-	leftDoc, leftAsync, err := model.ParseSpecification(left.RootBytes, left.DocConfig)
+func resolveSchemaDirectory(raw string, opts summaryOpts) (comparisonSource, error) {
+	directory, err := filepath.Abs(raw)
+	if err != nil {
+		return comparisonSource{}, err
+	}
+	base, baseURL, err := resolveBaseOverride(opts.base)
+	if err != nil {
+		return comparisonSource{}, err
+	}
+	config := newComparisonDocConfig(opts)
+	config.BasePath = directory
+	if base != "" {
+		config.BasePath = base
+	}
+	config.BaseURL = baseURL
+	config.AllowFileReferences = true
+	config.AllowRemoteReferences = opts.remote || baseURL != nil
+	return comparisonSource{Display: raw, Directory: directory, DocConfig: config, Cleanup: func() {}}, nil
+}
+
+func (s comparisonSource) parse(schema model.SchemaInputOptions) (model.ParsedSpecification, error) {
+	if s.Directory == "" {
+		return model.ParseInput(s.RootBytes, s.Display, s.DocConfig, schema)
+	}
+	files := os.DirFS(s.Directory)
+	members := make(map[string][]byte)
+	err := fs.WalkDir(files, ".", func(name string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		// Tooling and dependency directories hold JSON and YAML that are not schemas.
+		if entry.IsDir() && name != "." && (entry.Name() == "node_modules" || strings.HasPrefix(entry.Name(), ".")) {
+			return fs.SkipDir
+		}
+		if !entry.Type().IsRegular() {
+			return nil
+		}
+		switch strings.ToLower(path.Ext(name)) {
+		case ".json", ".yaml", ".yml":
+			data, err := fs.ReadFile(files, name)
+			if err != nil {
+				return err
+			}
+			members[name] = data
+		}
+		return nil
+	})
+	if err != nil {
+		return model.ParsedSpecification{}, err
+	}
+	doc, err := jsonschema.LoadCollection(members, s.Directory, s.DocConfig)
+	if err != nil {
+		return model.ParsedSpecification{}, explainCollectionMember(err, members)
+	}
+	return model.ParsedSpecification{Schema: doc}, nil
+}
+
+// explainCollectionMember adds guidance when the rejected member carries no dialect
+// declaration. A schema directory is read whole, so a stray tooling file ends up here.
+func explainCollectionMember(err error, members map[string][]byte) error {
+	var member *jsonschema.MemberError
+	if errors.As(err, &member) && !model.DeclaresSchema(members[member.Name]) {
+		return fmt.Errorf("%s does not look like a JSON Schema (it has no Draft 2020-12 $schema declaration); move it out of the directory if it is not one: %w", member.Name, err)
+	}
+	return err
+}
+
+func buildLeftRightCommit(left, right comparisonSource, schema model.SchemaInputOptions) (*model.Commit, error) {
+	original, err := left.parse(schema)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse original document '%s': %w", left.Display, err)
 	}
-	rightDoc, rightAsync, err := model.ParseSpecification(right.RootBytes, right.DocConfig)
+	modified, err := right.parse(schema)
 	if err != nil {
-		if leftDoc != nil {
-			leftDoc.Release()
-		}
+		original.Release()
 		return nil, fmt.Errorf("unable to parse modified document '%s': %w", right.Display, err)
 	}
 
 	var rewriters []model.DocumentPathRewriter
-	if (leftAsync == nil) != (rightAsync == nil) {
-		return nil, fmt.Errorf("cannot compare OpenAPI and AsyncAPI documents")
+	if original.Kind() != modified.Kind() {
+		original.Release()
+		modified.Release()
+		return nil, fmt.Errorf("cannot compare %s and %s documents", original.Kind(), modified.Kind())
 	}
 	if left.RewriteDocumentPath != nil {
 		rewriters = append(rewriters, left.RewriteDocumentPath)
@@ -281,10 +356,12 @@ func buildLeftRightCommit(left, right comparisonSource) (*model.Commit, error) {
 		CommitDate:        time.Now(),
 		OldData:           left.RootBytes,
 		Data:              right.RootBytes,
-		OldDocument:       leftDoc,
-		Document:          rightDoc,
-		OldAsyncDocument:  leftAsync,
-		AsyncDocument:     rightAsync,
+		OldSchemaDocument: original.Schema,
+		SchemaDocument:    modified.Schema,
+		OldDocument:       original.OpenAPI,
+		Document:          modified.OpenAPI,
+		OldAsyncDocument:  original.AsyncAPI,
+		AsyncDocument:     modified.AsyncAPI,
 		OriginalSource:    left.Display,
 		ModifiedSource:    right.Display,
 		Synthetic:         true,
@@ -293,19 +370,27 @@ func buildLeftRightCommit(left, right comparisonSource) (*model.Commit, error) {
 }
 
 func buildLeftRightCommitAndSources(left, right string, opts summaryOpts) (*model.Commit, error) {
-	leftSource, err := resolveComparisonSource(left, opts)
+	resolve := resolveComparisonSource
+	if opts.schema && comparisonMode([]string{left, right}, true) == schemaDirectories {
+		resolve = resolveSchemaDirectory
+	}
+	leftSource, err := resolve(left, opts)
 	if err != nil {
 		return nil, err
 	}
 	defer leftSource.Cleanup()
 
-	rightSource, err := resolveComparisonSource(right, opts)
+	rightSource, err := resolve(right, opts)
 	if err != nil {
 		return nil, err
 	}
 	defer rightSource.Cleanup()
 
-	commit, err := buildLeftRightCommit(leftSource, rightSource)
+	schema := model.SchemaInputOptions{Explicit: opts.schema}
+	if opts.base != "" && !isHTTPURL(opts.base) {
+		schema.BasePath = leftSource.DocConfig.BasePath
+	}
+	commit, err := buildLeftRightCommit(leftSource, rightSource, schema)
 	if err != nil {
 		return nil, err
 	}

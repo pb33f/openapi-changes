@@ -136,6 +136,7 @@ func loadGitHubCommitsDetailed(rawURL string, opts summaryOpts, breakingConfig *
 	d := makeProgressDrainer()
 	result, errs := processGithubRepoDetailed(user, repo, filePath,
 		d.ProgressChan, d.ErrorChan, git.HistoryOptions{
+			Schema:         opts.schema,
 			Lazy:           true,
 			BaseCommit:     opts.baseCommit,
 			Limit:          opts.limit,
@@ -184,11 +185,15 @@ func loadGitHistoryCommitsDetailed(gitPath, filePath string, opts summaryOpts, b
 	}
 	_, err = os.Stat(filepath.Join(repo, filePath))
 	if err != nil {
+		if info, statErr := os.Stat(filePath); statErr == nil && info.IsDir() {
+			return nil, fmt.Errorf("'%s' and '%s' are both directories; pass --schema to compare them as JSON Schema collections", gitPath, filePath)
+		}
 		return nil, fmt.Errorf("cannot open file: '%s'", filePath)
 	}
 
 	extractDrainer := makeProgressDrainer()
 	extractOpts := git.HistoryOptions{
+		Schema:          opts.schema,
 		BaseCommit:      opts.baseCommit,
 		GlobalRevisions: opts.globalRevisions,
 		Limit:           opts.limit,
@@ -206,6 +211,7 @@ func loadGitHistoryCommitsDetailed(gitPath, filePath string, opts summaryOpts, b
 	populateDrainer := makeProgressDrainer()
 	result, errs := populateHistoryDetailed(commits,
 		populateDrainer.ProgressChan, populateDrainer.ErrorChan, git.HistoryOptions{
+			Schema:         opts.schema,
 			LimitTime:      opts.limitTime,
 			Base:           opts.base,
 			Remote:         opts.remote,

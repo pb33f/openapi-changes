@@ -13,9 +13,13 @@ globalThis.cancelAnimationFrame ??= ((handle: number) => clearTimeout(handle)) a
 
 // --- Mock cowboy-components ---
 
-vi.mock('@pb33f/cowboy-components/static-report', () => {
+vi.mock('@pb33f/cowboy-components/static-report', async () => {
+    const {isReferenceEdge} = await import('@pb33f/cowboy-components/model/graph.js');
+    const {sourceText} = await import('@pb33f/cowboy-components/components/diff-viewer/diff-focus.js');
     class StubElement extends HTMLElement {}
     return {
+        isReferenceEdge,
+        sourceText,
         HeaderComponent: StubElement,
         FooterComponent: StubElement,
         HttpMethodComponent: StubElement,

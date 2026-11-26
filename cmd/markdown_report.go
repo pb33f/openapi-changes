@@ -4,16 +4,20 @@
 package cmd
 
 import (
+	"bytes"
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/pb33f/doctor/changerator/renderer"
 	"github.com/pb33f/doctor/terminal"
+	"github.com/pb33f/libopenapi/jsonschema"
 	whatChangedModel "github.com/pb33f/libopenapi/what-changed/model"
 	"github.com/pb33f/openapi-changes/internal/changecounts"
 	"github.com/pb33f/openapi-changes/model"
@@ -23,13 +27,13 @@ import (
 
 func printMarkdownReportUsage(palette terminal.Palette) {
 	printCommandUsage("markdown-report",
-		"Generates a detailed markdown report of API changes using the doctor changerator engine.",
+		"Generates a detailed Markdown change report using the doctor changerator engine.",
 		palette)
 }
 
 // renderCommitMarkdown runs the doctor changerator on a single commit and returns markdown.
 // Returns (markdown, nil) on success, ("", nil) for no changes, ("", err) for failures.
-func renderCommitMarkdown(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (string, error) {
+func renderCommitMarkdown(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, includeDiff bool) (string, error) {
 	result, err := runChangerator(commit, breakingConfig)
 	if err != nil {
 		return "", err
@@ -42,6 +46,7 @@ func renderCommitMarkdown(commit *model.Commit, breakingConfig *whatChangedModel
 
 	markdown, err := renderer.NewHTMLRenderer(renderer.DefaultRenderConfig()).RenderMarkdown(&renderer.RenderInput{
 		ChangeReport:        result.DocChanges,
+		SchemaLabels:        result.Changerator.SchemaLabels,
 		Doctor:              result.RightDrDoc,
 		RightDocContent:     commit.Data,
 		DeduplicatedChanges: deduplicatedChanges,
@@ -50,19 +55,111 @@ func renderCommitMarkdown(commit *model.Commit, breakingConfig *whatChangedModel
 	if err != nil {
 		return "", err
 	}
+	if includeDiff {
+		diff := comparisonDiff(commit, result)
+		if diff != "" {
+			markdown += "\n<details>\n<summary>Unified Diff</summary>\n\n"
+			fence := diffFence(diff)
+			markdown += fence + "diff\n" + diff + fence + "\n\n</details>\n"
+		}
+	}
 	return markdown, nil
 }
 
-// generateUnifiedDiff produces a unified diff between original and modified strings.
-func generateUnifiedDiff(original, modified string) string {
-	diff := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(original),
-		B:        difflib.SplitLines(modified),
-		FromFile: "Original",
-		ToFile:   "Modified",
-		Context:  3,
+// Choose a fence that can contain the entire authored diff.
+func diffFence(diff string) string {
+	width, run := 3, 0
+	for _, ch := range diff {
+		if ch == '`' {
+			run++
+			width = max(width, run)
+		} else {
+			run = 0
+		}
 	}
-	text, err := difflib.GetUnifiedDiffString(diff)
+	return strings.Repeat("`", width+1)
+}
+
+func comparisonDiff(commit *model.Commit, result *changeratorResult) string {
+	if result.originalSchema == nil {
+		return generateUnifiedDiff("Original", "Modified", commit.OldData, commit.Data)
+	}
+	type filePair struct{ original, modified string }
+	old, newer := result.originalSchema, result.modifiedSchema
+	filesByID := func(doc *jsonschema.Document) map[string]string {
+		m := make(map[string]string, len(doc.Resources))
+		for _, r := range doc.Resources {
+			m[r.ID] = r.Source.Name
+		}
+		return m
+	}
+	oldFiles, newFiles := filesByID(old), filesByID(newer)
+	pairs := make(map[filePair]struct{})
+	for _, change := range result.DocChanges.GetAllChanges() {
+		from, to := oldFiles[change.SchemaResource], newFiles[change.SchemaResource]
+		if ctx := change.Context; ctx != nil {
+			if ctx.OriginalDocument != "" {
+				from = ctx.OriginalDocument
+			}
+			if ctx.ModifiedDocument != "" {
+				to = ctx.ModifiedDocument
+			}
+		}
+		if from == "" && old.Sources[to] != nil {
+			from = to
+		}
+		if to == "" && newer.Sources[from] != nil {
+			to = from
+		}
+		if old.Root != nil && newer.Root != nil {
+			if from == "" && to == newer.Root.Source.Name {
+				from = old.Root.Source.Name
+			}
+			if to == "" && from == old.Root.Source.Name {
+				to = newer.Root.Source.Name
+			}
+		}
+		pairs[filePair{from, to}] = struct{}{}
+	}
+	sorted := make([]filePair, 0, len(pairs))
+	for pair := range pairs {
+		sorted = append(sorted, pair)
+	}
+	slices.SortFunc(sorted, func(a, b filePair) int {
+		return cmp.Or(strings.Compare(a.original, b.original), strings.Compare(a.modified, b.modified))
+	})
+	var diffs strings.Builder
+	for _, pair := range sorted {
+		var a, b []byte
+		if f := old.Sources[pair.original]; f != nil {
+			a = f.Data
+		}
+		if f := newer.Sources[pair.modified]; f != nil {
+			b = f.Data
+		}
+		from, to := pair.original, pair.modified
+		if from == "" {
+			from = "/dev/null"
+		}
+		if to == "" {
+			to = "/dev/null"
+		}
+		diffs.WriteString(generateUnifiedDiff(from, to, a, b))
+	}
+	return diffs.String()
+}
+
+func generateUnifiedDiff(from, to string, original, modified []byte) string {
+	if bytes.Equal(original, modified) {
+		return ""
+	}
+	lines := func(data []byte) []string {
+		if len(data) == 0 {
+			return nil
+		}
+		return difflib.SplitLines(string(data))
+	}
+	text, err := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{A: lines(original), B: lines(modified), FromFile: from, ToFile: to, Context: 3})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "warning: failed to generate diff: %s\n", err)
 		return ""
@@ -92,7 +189,7 @@ func generateMarkdownReport(commits []*model.Commit, breakingConfig *whatChanged
 	includeCommitMetadata := true
 
 	for i, commit := range commits {
-		markdown, err := renderCommitMarkdown(commit, breakingConfig)
+		markdown, err := renderCommitMarkdown(commit, breakingConfig, includeDiff)
 		if err != nil {
 			emitCommitWarning(commit, err)
 			renderErrors = append(renderErrors, wrapCommitError(commit, err))
@@ -126,18 +223,6 @@ func generateMarkdownReport(commits []*model.Commit, breakingConfig *whatChanged
 		sb.WriteString(content)
 		sb.WriteString("\n")
 
-		if includeDiff && len(commit.OldData) > 0 && len(commit.Data) > 0 {
-			diffText := generateUnifiedDiff(string(commit.OldData), string(commit.Data))
-			if diffText != "" {
-				sb.WriteString("<details>\n")
-				sb.WriteString("<summary>Unified Diff</summary>\n\n")
-				sb.WriteString("````diff\n")
-				sb.WriteString(diffText)
-				sb.WriteString("````\n\n")
-				sb.WriteString("</details>\n\n")
-			}
-		}
-
 		sb.WriteString("---\n\n")
 	}
 
@@ -168,14 +253,15 @@ func GetMarkdownReportCommand() *cobra.Command {
 		SilenceUsage: true,
 		Use:          "markdown-report",
 		Short:        "Generate a markdown report",
-		Long:         "Generate a detailed markdown report of API changes rendered as markdown",
+		Long:         "Generate a detailed Markdown change report",
 		Example:      "openapi-changes markdown-report HEAD~1:openapi.yaml ./openapi.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			compact, _ := cmd.Flags().GetBool("compact")
 			resultFile, _ := cmd.Flags().GetString("result-file")
 			reportFile, _ := cmd.Flags().GetString("report-file")
 			includeDiff, _ := cmd.Flags().GetBool("include-diff")
-			if err := validateCompactOptions(args, compact, includeDiff, reportFile, resultFile); err != nil {
+			schema, _ := cmd.Flags().GetBool("schema")
+			if err := validateCompactOptions(args, compact, includeDiff, schema, reportFile, resultFile); err != nil {
 				return err
 			}
 			input, err := prepareCommandRun(cmd, args, printMarkdownReportUsage)
@@ -185,6 +271,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 			if input == nil {
 				return nil
 			}
+			defer input.releaseDirectInputs()
 			styles := commandStylesFor(input.Opts.palette)
 
 			if compact {
@@ -225,7 +312,7 @@ func GetMarkdownReportCommand() *cobra.Command {
 	return cmd
 }
 
-func validateCompactOptions(args []string, compact, includeDiff bool, reportFile, resultFile string) error {
+func validateCompactOptions(args []string, compact, includeDiff, schema bool, reportFile, resultFile string) error {
 	if resultFile != "" && !compact {
 		return errors.New("--result-file requires --compact")
 	}
@@ -235,7 +322,7 @@ func validateCompactOptions(args []string, compact, includeDiff bool, reportFile
 	if len(args) != 2 {
 		return errors.New("--compact requires two direct comparison inputs; history is not supported")
 	}
-	if info, err := os.Stat(args[0]); err == nil && info.IsDir() {
+	if comparisonMode(args, schema) == localHistory {
 		return errors.New("--compact does not support repository history")
 	}
 	if includeDiff {

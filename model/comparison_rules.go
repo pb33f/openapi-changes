@@ -6,7 +6,7 @@ import (
 )
 
 // ComparisonRules keeps independent policies for each engine. SchemaRules
-// applies to JSON Schemas embedded in AsyncAPI documents only.
+// applies to standalone JSON Schemas and schemas embedded in AsyncAPI documents.
 type ComparisonRules struct {
 	Legacy   bool                         `yaml:"-"` // an unscoped OpenAPI policy must not silently apply to AsyncAPI
 	OpenAPI  *openapi.BreakingRulesConfig `yaml:"openapiRules"`

@@ -24,6 +24,7 @@ const (
 
 // summaryOpts holds the flags shared by the current doctor-based command family.
 type summaryOpts struct {
+	schema          bool
 	rules           *model.ComparisonRules
 	noColor         bool
 	tektronix       bool
@@ -111,6 +112,7 @@ func readCommonFlags(cmd *cobra.Command) (opts summaryOpts, configFlag string, e
 	opts.limitTime, _ = cmd.Flags().GetInt("limit-time")
 	opts.base, _ = cmd.Flags().GetString("base")
 	opts.baseCommit, _ = cmd.Flags().GetString("base-commit")
+	opts.schema, _ = cmd.Flags().GetBool("schema")
 	opts.remote, _ = cmd.Flags().GetBool("remote")
 	opts.extRefs, _ = cmd.Flags().GetBool("ext-refs")
 	opts.globalRevisions, _ = cmd.Flags().GetBool("global-revisions")
@@ -222,27 +224,42 @@ func prepareCommandRun(
 	}, nil
 }
 
-// loadCommitsFromArgs dispatches to the appropriate commit loader based on argument types.
-// Expects len(args) to be 1 or 2 (caller must validate arg count).
-func loadCommitsFromArgs(args []string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
+type inputMode uint8
+
+const (
+	directInputs inputMode = iota
+	schemaDirectories
+	localHistory
+	githubHistory
+)
+
+// comparisonMode distinguishes a directory pair from the repository/file form used by history.
+func comparisonMode(args []string, schema bool) inputMode {
 	if len(args) == 1 {
+		return githubHistory
+	}
+	if len(args) != 2 || isHTTPURL(args[0]) {
+		return directInputs
+	}
+	first, err := os.Stat(args[0])
+	if err != nil || !first.IsDir() {
+		return directInputs
+	}
+	if schema {
+		second, err := os.Stat(args[1])
+		if err == nil && second.IsDir() {
+			return schemaDirectories
+		}
+	}
+	return localHistory
+}
+
+func loadCommitsFromArgs(args []string, opts summaryOpts, breakingConfig *whatChangedModel.BreakingRulesConfig) ([]*model.Commit, error) {
+	switch comparisonMode(args, opts.schema) {
+	case githubHistory:
 		return loadGitHubCommits(args[0], opts, breakingConfig)
-	}
-	if isHTTPURL(args[0]) {
-		return loadLeftRightCommits(args[0], args[1], opts)
-	}
-	if _, _, ok := parseGitRef(args[0]); ok {
-		return loadLeftRightCommits(args[0], args[1], opts)
-	}
-	f, statErr := os.Stat(args[0])
-	if statErr == nil && f.IsDir() {
+	case localHistory:
 		return loadGitHistoryCommits(args[0], args[1], opts, breakingConfig)
-	}
-	if _, _, ok := parseGitRef(args[1]); ok {
-		return loadLeftRightCommits(args[0], args[1], opts)
-	}
-	if statErr != nil {
-		return nil, fmt.Errorf("cannot open file/repository: '%s'", args[0])
 	}
 	return loadLeftRightCommits(args[0], args[1], opts)
 }
@@ -263,6 +280,8 @@ func printCommandUsage(commandName, description string, palette terminal.Palette
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" ./specs/old.yaml ./specs/new.yaml"))
+	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" --schema before/customer.json after/customer.json"))
+	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" --schema before/schemas after/schemas"))
 	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" HEAD~1:openapi.yaml ./openapi.yaml"))
 	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" https://github.com/user/repo/blob/main/openapi.yaml"))
 	fmt.Printf("  %s\n", cmdStyle.Render("openapi-changes "+commandName+" /path/to/git/repo path/to/openapi.yaml"))

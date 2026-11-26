@@ -84,9 +84,18 @@ type ConsoleModel struct {
 // commitCounts survives graph eviction without retaining a comparison report.
 type commitCounts struct{ total, breaking int }
 
+// Comparison is one changerator run with the sources its code views navigate.
+type Comparison struct {
+	Changerator                      *changerator.Changerator
+	Root                             *v3.Node
+	OriginalSources, ModifiedSources *model.SchemaSources
+	Release                          func()
+}
+
 // RunChangeratorFn is the function signature for running the changerator.
 // This is injected from the cmd package to avoid import cycles.
-type RunChangeratorFn func(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*changerator.Changerator, *v3.Node, func(), error)
+// A nil Comparison means the commit has no changes to show.
+type RunChangeratorFn func(commit *model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig) (*Comparison, error)
 
 // NewConsoleModel creates a new ConsoleModel and runs the changerator on the first commit.
 func NewConsoleModel(commits []*model.Commit, breakingConfig *whatChangedModel.BreakingRulesConfig, themeArg any, _ string, runFn RunChangeratorFn) ConsoleModel {
@@ -409,7 +418,7 @@ func (m *ConsoleModel) loadActiveCommit() {
 		return
 	}
 
-	ctr, root, releaseFn, err := m.runFn(commit, m.breakingCfg)
+	comparison, err := m.runFn(commit, m.breakingCfg)
 	if err != nil {
 		m.emptyState = fmt.Sprintf("Error: %s", err)
 		m.tree = newTreeModel(nil, m.tree.height)
@@ -418,7 +427,7 @@ func (m *ConsoleModel) loadActiveCommit() {
 		m.diffSummaryH = 0
 		return
 	}
-	if ctr == nil {
+	if comparison == nil {
 		m.emptyState = "No changes detected in this commit"
 		if commit.Comparable() {
 			m.counts[commit.Hash] = commitCounts{}
@@ -432,6 +441,7 @@ func (m *ConsoleModel) loadActiveCommit() {
 		m.diffSummaryH = 0
 		return
 	}
+	ctr, root := comparison.Changerator, comparison.Root
 	var counts commitCounts
 	if ctr.ChangeReport != nil {
 		counts = commitCounts{ctr.ChangeReport.TotalChanges(), ctr.ChangeReport.TotalBreakingChanges()}
@@ -454,13 +464,15 @@ func (m *ConsoleModel) loadActiveCommit() {
 		result: &changeratorResultV2{
 			Changerator: ctr,
 			RightRoot:   root,
-			releaseFn:   releaseFn,
+			releaseFn:   comparison.Release,
 		},
-		treeRoot:       root,
-		stats:          stats,
-		nodeStatsCache: statsMap,
-		newLines:       splitLines(commit.Data),
-		oldLines:       splitLines(commit.OldData),
+		treeRoot:        root,
+		stats:           stats,
+		nodeStatsCache:  statsMap,
+		originalSources: comparison.OriginalSources,
+		modifiedSources: comparison.ModifiedSources,
+		newLines:        splitLines(commit.Data),
+		oldLines:        splitLines(commit.OldData),
 	}
 	m.cache.put(commit.Hash, entry)
 	m.applyCache(entry)
@@ -535,7 +547,7 @@ func (m *ConsoleModel) updateDiffContent() {
 		return
 	}
 
-	newLines, oldLines := m.cache.getLines(m.activeHash)
+	newLines, oldLines := m.cache.changeLines(m.activeHash, m.activeChange)
 	lines, changeLn := resolveSpecAndLine(m.activeChange, newLines, oldLines)
 
 	// Fallback: no spec lines or no line info — use renderDiff which includes its own header
@@ -598,7 +610,7 @@ func (m *ConsoleModel) updateDiffContent() {
 // For removals the relevant content is in the old spec; for additions/modifications
 // it is in the new spec. The line number is chosen to match.
 func (m *ConsoleModel) openCodeModal(ch *whatChangedModel.Change) {
-	newLines, oldLines := m.cache.getLines(m.activeHash)
+	newLines, oldLines := m.cache.changeLines(m.activeHash, ch)
 	lines, changeLn := resolveSpecAndLine(ch, newLines, oldLines)
 	if len(lines) == 0 {
 		return
@@ -619,7 +631,7 @@ func (m *ConsoleModel) rebuildCodeModal() {
 	if m.activeChange == nil {
 		return
 	}
-	newLines, oldLines := m.cache.getLines(m.activeHash)
+	newLines, oldLines := m.cache.changeLines(m.activeHash, m.activeChange)
 	lines, changeLn := resolveSpecAndLine(m.activeChange, newLines, oldLines)
 	if len(lines) == 0 {
 		return

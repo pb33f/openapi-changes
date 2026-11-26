@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createMinimalPayload, createMultiCommitPayload } from './fixtures.js';
+import type { ReportItem } from '@pb33f/cowboy-components/static-report';
 
 import '../src/components/report-shell-lite.js';
 
@@ -40,6 +41,26 @@ function tabTexts(el: ShellElement): string[] {
 
 describe('ReportShellLite render structure', () => {
     describe('single-item mode', () => {
+        it('passes both authored source maps to the offline diff viewer', async () => {
+            const payload = createMinimalPayload();
+            const item = payload.items[0];
+            item.originalSources = {'money.yaml': 'minLength: 2'};
+            item.modifiedSources = {'money.yaml': 'minLength: 3'};
+            item.originalSourcesHighlighted = {'money.yaml': {1: '<span>minLength: 2</span>'}};
+            item.modifiedSourcesHighlighted = {'money.yaml': {1: '<span>minLength: 3</span>'}};
+            item.specification = {kind: 'jsonschema', originalVersion: '2020-12', modifiedVersion: '2020-12'};
+            delete item.commit;
+            delete payload.history;
+            const shell = await createShell(payload);
+            const viewer = queryOne(shell, 'pb33f-diff-viewer') as HTMLElement & Pick<ReportItem,
+                'originalSources' | 'modifiedSources' | 'originalSourcesHighlighted' | 'modifiedSourcesHighlighted'>;
+            expect(viewer.originalSources).toEqual(item.originalSources);
+            expect(viewer.modifiedSources).toEqual(item.modifiedSources);
+            expect(viewer.originalSourcesHighlighted).toEqual(item.originalSourcesHighlighted);
+            expect(viewer.modifiedSourcesHighlighted).toEqual(item.modifiedSourcesHighlighted);
+            expect(shell.shadowRoot?.querySelector('.commit-info')).toBeNull();
+        });
+
         it('renders correct tab labels', async () => {
             const el = await createShell(createMinimalPayload());
             const tabs = tabTexts(el);

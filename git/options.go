@@ -9,6 +9,7 @@ import "github.com/pb33f/openapi-changes/model"
 // BreakingConfig is intentionally kept as a separate parameter in function
 // signatures — it controls comparison semantics, not history traversal.
 type HistoryOptions struct {
+	Schema          bool
 	ReadRevision    func(repo, revision, path string) ([]byte, error) // optional hosted revision reader
 	Lazy            bool                                              // prepare sources now and retain only the active model window
 	Base            string

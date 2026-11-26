@@ -73,20 +73,26 @@ func (t *treeModel) rebuild() {
 	children := t.root.Children
 	totalItems := len(rootChanges) + len(children)
 	idx := 0
+	var guides []bool
+	if t.root.DocumentKind == "jsonschema" {
+		t.entries = append(t.entries, treeEntry{node: t.root, isLast: true, hasKids: totalItems > 0})
+		guides = []bool{false}
+	}
 
 	for _, change := range rootChanges {
 		idx++
 		t.entries = append(t.entries, treeEntry{
 			node:   t.root,
 			change: change,
-			depth:  0,
+			depth:  len(guides),
+			guides: guides,
 			isLast: idx == totalItems,
 		})
 	}
 
 	for _, child := range children {
 		idx++
-		t.flattenNode(child, 0, idx == totalItems, nil)
+		t.flattenNode(child, len(guides), idx == totalItems, guides)
 	}
 	// Clamp cursor
 	if t.cursor >= len(t.entries) {
@@ -338,6 +344,11 @@ func (t treeModel) renderNode(entry treeEntry, styles consoleStyles) string {
 	label := entry.node.Label
 	if label == "" {
 		label = entry.node.Type
+	}
+	if entry.depth == 1 && t.root != nil && t.root.DocumentKind == "jsonschema" && entry.node.Type == "schema" {
+		if source := entry.node.OriginLocation; source != "" && source != label {
+			label += " (" + source + ")"
+		}
 	}
 	return styles.info.Render(label)
 }

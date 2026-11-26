@@ -6,6 +6,7 @@ package model
 import (
 	"github.com/pb33f/libasyncapi"
 	"github.com/pb33f/libopenapi"
+	"github.com/pb33f/libopenapi/jsonschema"
 	whatChanged "github.com/pb33f/libopenapi/what-changed"
 	wc "github.com/pb33f/libopenapi/what-changed/model"
 	"time"
@@ -14,6 +15,11 @@ import (
 type DocumentPathRewriter func(string) string
 
 type Commit struct {
+	SchemaDocument    *jsonschema.Document `json:"-"`
+	OldSchemaDocument *jsonschema.Document `json:"-"`
+	OriginalSchemas   *SchemaSources       `json:"-"`
+	ModifiedSchemas   *SchemaSources       `json:"-"`
+
 	Specification     *ComparisonSpecification `json:"-"`
 	OriginalRevision  string                   `json:"-"`
 	ChangeReport      whatChanged.Changed      `json:"-"`

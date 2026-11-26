@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { Change } from '@pb33f/cowboy-components/static-report';
 import { createMinimalPayload, createMultiCommitPayload, createMinimalNode, createMinimalChange } from './fixtures.js';
 
 import '../src/components/report-shell-lite.js';
@@ -121,6 +122,109 @@ describe('ReportShellLite state management', () => {
             expect(el.selectedNodeId).toBe('nonexistent');
             expect(el.selectedNodeChanges).toEqual([]);
             expect(el.selectedDiffChanges).toEqual([]);
+        });
+
+        it('opens the defining file and old line from either use of a shared schema', async () => {
+            const payload = createMinimalPayload();
+            const item = payload.items[0];
+            item.specification = {kind: 'jsonschema', originalVersion: '2020-12', modifiedVersion: '2020-12'};
+            item.originalSpec = item.modifiedSpec = '';
+            item.originalSources = {'money.yaml': 'minLength: 3', 'invoice.yaml': 'title: Invoice', 'order.yaml': 'title: Order'};
+            item.modifiedSources = {...item.originalSources, 'money.yaml': 'type: string'};
+            item.originalSourcesHighlighted = {'money.yaml': {1: '<b>minLength: 3</b>'}, 'invoice.yaml': {1: '<b>title: Invoice</b>'}};
+            item.modifiedSourcesHighlighted = {'money.yaml': {1: '<b>type: string</b>'}};
+            const removed: Change = {
+                property: 'minLength', change: 5, changeText: 'property_removed', schemaResource: 'money.yaml',
+                path: '$.minLength', type: 'schema', breaking: false, original: '3',
+                context: {originalDocument: 'money.yaml', originalLine: 1, originalColumn: 1},
+            };
+            const own = createMinimalChange({property: '$ref', schemaResource: 'invoice.yaml'});
+            const description = createMinimalChange({property: 'description', schemaResource: 'invoice.yaml'});
+            item.graph = {
+                nodes: [
+                    createMinimalNode('root', {nodes: ['order', 'invoice', 'money']}),
+                    createMinimalNode('order', {origin: 'order.yaml', nodes: ['order.total']}),
+                    createMinimalNode('invoice', {origin: 'invoice.yaml', nodes: ['invoice.total', 'invoice.tax']}),
+                    createMinimalNode('money', {origin: 'money.yaml', nodes: ['currency', 'recursive']}),
+                    createMinimalNode('currency', {origin: 'money.yaml', timeline: [removed]}),
+                    createMinimalNode('order.total', {origin: 'order.yaml'}),
+                    createMinimalNode('invoice.total', {origin: 'invoice.yaml', timeline: [description]}),
+                    createMinimalNode('invoice.tax', {origin: 'invoice.yaml', timeline: [own]}),
+                    createMinimalNode('recursive', {origin: 'money.yaml'}),
+                ],
+                edges: ['order.total', 'invoice.total', 'invoice.tax', 'recursive'].map(id => ({
+                    id: 'ref:' + id, ref: id === 'recursive' ? '' : 'money.yaml',
+                    sources: [id], targets: ['money'],
+                })),
+                changes: [removed, own, description],
+            };
+            const el = await createShell(payload);
+            const viewer = el.shadowRoot!.querySelector('pb33f-diff-viewer') as any;
+            expect(viewer.originalSpec).toBe('minLength: 3');
+            expect(viewer.modifiedSpec).toBe('type: string');
+            expect(viewer.originalHighlighted).toEqual({1: '<b>minLength: 3</b>'});
+            expect(viewer.modifiedHighlighted).toEqual({1: '<b>type: string</b>'});
+            const show = vi.spyOn(el.mainTabGroup, 'show');
+            const click = (nodeId: string, changes: Change[] = []) => el.dispatchEvent(new CustomEvent('model-tree-node-clicked', {
+                detail: {nodeId, changes},
+            }));
+            for (const use of ['order.total', 'recursive']) {
+                click(use);
+                await el.updateComplete;
+                expect(el.selectedNodeId).toBe(use);
+                expect(el.selectedNodeChanges).toEqual([removed]);
+                expect(viewer.selectedChanges).toEqual([removed]);
+                expect(show).toHaveBeenLastCalledWith('diff');
+            }
+            click('invoice.total', [description]);
+            await el.updateComplete;
+            expect(el.selectedNodeChanges).toEqual([description, removed]);
+            expect(viewer.selectedChanges).toEqual([description, removed]);
+            click('invoice.tax', [own]);
+            expect(el.selectedDiffChanges).toEqual([own]);
+            click('invoice');
+            await el.updateComplete;
+            expect(viewer.selectedChanges).toEqual([]);
+            expect(viewer.originalSpec).toBe('title: Invoice');
+            expect(viewer.modifiedSpec).toBe('title: Invoice');
+            expect(viewer.originalHighlighted).toEqual({1: '<b>title: Invoice</b>'});
+            expect(viewer.modifiedHighlighted).toEqual({});
+            expect(show).toHaveBeenLastCalledWith('diff');
+        });
+
+        it('follows distinct static and dynamic references from one node only once per definition', async () => {
+            const payload = createMinimalPayload();
+            const item = payload.items[0];
+            item.specification = {kind: 'jsonschema', originalVersion: '2020-12', modifiedVersion: '2020-12'};
+            const edits = ['a.yaml', 'b.yaml'].map(schemaResource => createMinimalChange({
+                schemaResource, path: '$.minLength', property: 'minLength',
+                context: {originalDocument: schemaResource, modifiedDocument: schemaResource,
+                    originalLine: 2, originalColumn: 1, newLine: 2, newColumn: 1},
+            }));
+            item.graph = {
+                nodes: [
+                    createMinimalNode('root', {nodes: ['use', 'keyed', 'a', 'b']}),
+                    createMinimalNode('use'), createMinimalNode('keyed'), createMinimalNode('a', {timeline: [edits[0]]}),
+                    createMinimalNode('b', {timeline: [edits[1]]}),
+                ],
+                edges: [
+                    {id: 'ref:use', ref: 'a.yaml', sources: ['use'], targets: ['a']},
+                    {id: 'ref:$dynamicRef:use', ref: 'b.yaml', sources: ['use'], targets: ['b']},
+                    {id: 'ref:keyed', keyword: '$dynamicRef', ref: 'b.yaml', sources: ['keyed'], targets: ['b']},
+                    {id: 'ref:a', ref: 'b.yaml', sources: ['a'], targets: ['b']},
+                ],
+                changes: edits,
+            };
+            const el = await createShell(payload);
+            el.selectNode('use');
+            expect(el.selectedNodeChanges).toEqual(edits);
+            const retarget = createMinimalChange({property: '$ref'});
+            el._graphNodeMap.get('use').timeline = [retarget];
+            el.selectNode('use');
+            expect(el.selectedNodeChanges).toEqual([retarget, edits[1]]);
+            el._graphNodeMap.get('keyed').timeline = [retarget];
+            el.selectNode('keyed');
+            expect(el.selectedNodeChanges).toEqual([retarget, edits[1]]);
         });
     });
 

@@ -49,7 +49,7 @@ type elementSummary struct {
 	breaking int
 }
 
-func buildElementSummaries(changes []*whatChangedModel.Change) []elementSummary {
+func buildElementSummaries(changes []*whatChangedModel.Change, labels map[string]string) []elementSummary {
 	if len(changes) == 0 {
 		return nil
 	}
@@ -64,6 +64,9 @@ func buildElementSummaries(changes []*whatChangedModel.Change) []elementSummary 
 			continue
 		}
 		name := summarizeTopLevelElement(change.Path)
+		if change.SchemaResource != "" {
+			name = change.SchemaResource
+		}
 		if name == "" {
 			name = "document"
 		}
@@ -76,8 +79,20 @@ func buildElementSummaries(changes []*whatChangedModel.Change) []elementSummary 
 		}
 	}
 
+	labelCount := make(map[string]int)
+	if len(labels) > 0 {
+		for id := range grouped {
+			labelCount[labels[id]]++
+		}
+	}
 	summaries := make([]elementSummary, 0, len(grouped))
 	for name, stats := range grouped {
+		if label := labels[name]; label != "" && label != name {
+			if labelCount[label] > 1 {
+				label += " (" + name + ")"
+			}
+			name = label
+		}
 		summaries = append(summaries, elementSummary{name: name, total: stats.total, breaking: stats.breaking})
 	}
 	sort.Slice(summaries, func(i, j int) bool {
@@ -369,7 +384,7 @@ func renderSummaryWithTheme(
 			}
 
 			sb.WriteString(renderDedupedCountsNote(markdown, styles))
-			sb.WriteString(renderElementSummaryTable(buildElementSummaries(deduplicatedChanges), markdown, styles))
+			sb.WriteString(renderElementSummaryTable(buildElementSummaries(deduplicatedChanges, result.Changerator.SchemaLabels), markdown, styles))
 
 			counts := changecounts.FromChanges(deduplicatedChanges)
 			breaking := counts.Breaking
@@ -487,16 +502,14 @@ func GetSummaryCommand() *cobra.Command {
 			if input == nil {
 				return nil
 			}
+			defer input.releaseDirectInputs()
 			input.Opts.markdown, _ = cmd.Flags().GetBool("markdown")
 			input.Opts.errorOnDiff, _ = cmd.Flags().GetBool("error-on-diff")
 			styles := summaryStylesForPalette(input.Opts.palette)
 
-			if len(input.Commits) == 0 && len(args) == 2 {
-				firstArgInfo, statErr := os.Stat(args[0])
-				if statErr == nil && firstArgInfo.IsDir() {
-					printNoPriorVersionText()
-					return nil
-				}
+			if len(input.Commits) == 0 && comparisonMode(args, input.Opts.schema) == localHistory {
+				printNoPriorVersionText()
+				return nil
 			}
 
 			output, hasBreaking, hasChanges, renderErr := renderSummaryWithTheme(
