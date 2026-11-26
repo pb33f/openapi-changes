@@ -99,8 +99,8 @@ github.com/muesli/cancelreader v0.2.2 h1:3I4Kt4BQjOR54NavqnDogx/MIoWBFa0StPA8ELU
 github.com/muesli/cancelreader v0.2.2/go.mod h1:3XuTXfFS2VjM+HTLZY9Ak0l6eUKfijIfMUZ4EgX0QYo=
 github.com/ncruces/go-strftime v1.1.0 h1:vtPmPWMkb539RGV9WpWT9EwJGvrOCKvMNI4obWL47Hk=
 github.com/ncruces/go-strftime v1.1.0/go.mod h1:yVaq7iwCN09vHRrKBrrflXT0M9tTMG2KmZ9Fj7xeG/g=
-github.com/pb33f/doctor v0.0.90-0.20261125173329-f6a00cb7bd20 h1:i31HcLG9lJ93xTCh6GdH8Idz2znpC8gmXoGHbaGm39g=
-github.com/pb33f/doctor v0.0.90-0.20261125173329-f6a00cb7bd20/go.mod h1:A9Rw94a46Y6gxi1ut9dwSVghFF9VKhkbsSECYObMplc=
+github.com/pb33f/doctor v0.0.90-0.20261126153131-ae1c8c2c39eb h1:0zyiB0Hs70vxvWIFX9Jm2kPl4dMHe4OGa5N6+M4eB5s=
+github.com/pb33f/doctor v0.0.90-0.20261126153131-ae1c8c2c39eb/go.mod h1:M3TmespLy1Fq86jyTFz5RN0gSHnwCfi4ye5NIZ4Is78=
 github.com/pb33f/go-yaml v0.2.0 h1:t9fYMVk2BGlBIu6L07gryB+gOWt8rjEJO7e/jdBSqCo=
 github.com/pb33f/go-yaml v0.2.0/go.mod h1:QvWdkHP5VjFYAeHMQUkaPQqREaQnBNOXmWzAjNrnSdo=
 github.com/pb33f/jsonpath v0.8.5 h1:wsbwJbz6MPUTy5fAtiIlOyQb3oblaa5M7qjtdz6orPw=
@@ -109,8 +109,8 @@ github.com/pb33f/jsonschema/v6 v6.0.3 h1:TMIkE1xCmnF8Cy+anIBs+r4ASfGtwzfFxYsrrIn
 github.com/pb33f/jsonschema/v6 v6.0.3/go.mod h1:cYPShw+w1Jrs0YgpE2rk1FLdIAsKfWcotv/54G6ddFo=
 github.com/pb33f/libasyncapi v0.0.7 h1:0CTUZwjQm4Fya6Znb7q/1kBWvp/92v5CaB9T55zJMiA=
 github.com/pb33f/libasyncapi v0.0.7/go.mod h1:OcM42Lo3J4F9Tz55RZIOxcAubOv1BGRg9gy8Sp36skk=
-github.com/pb33f/libopenapi v0.44.1-0.20261125173239-a8c5a3f78589 h1:hHPOgW9pV7JhglY8djJ4xPmHPESi/ndgw9MO5MFAnSU=
-github.com/pb33f/libopenapi v0.44.1-0.20261125173239-a8c5a3f78589/go.mod h1:jp2ZQ3ZpilsMDSwhPSFgwlq0+xvrYE3+9mjS/rYNDDo=
+github.com/pb33f/libopenapi v0.44.1-0.20261126152905-3b07cb139b1b h1:dENJKwnNuh5gpT+Bmq0/yWR1k7E2WaLhAS7bl72Vdlw=
+github.com/pb33f/libopenapi v0.44.1-0.20261126152905-3b07cb139b1b/go.mod h1:jp2ZQ3ZpilsMDSwhPSFgwlq0+xvrYE3+9mjS/rYNDDo=
 github.com/pb33f/ordered-map/v2 v2.3.2 h1:wDyaZ2Pv9QLh64X4utCeD5Zoi9nIv2aW3lwv172O5PQ=
 github.com/pb33f/ordered-map/v2 v2.3.2/go.mod h1:1OhFrXu3OYw3kM+FXF+Ug3ugmmZ9LE8z0JfQMLvtV0w=
 github.com/pb33f/testify v0.1.1 h1:mnHe7uxKt8dyNYEGUspow72VjD264DB5rOJq4bz5tJw=
